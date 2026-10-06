@@ -301,3 +301,27 @@ records/flash and a normal return at `517E` / SP `FFF6`. Partial release
 eight-input checks. Evidence and new payload/body hashes are in that branch's
 `docs/exit-release.md`; natural installation of these new bodies remains
 unvalidated. Maker main, frozen server fixtures and releases were not replaced.
+
+## Independent clean-build replay
+
+**CONFIRMED (clean committed core):** the same natural MOVE snapshot and
+180-frame deletion replay passed against the isolated library built from
+`61f28d126a2e369607fba4b773b0c06dfc87193b`.
+
+- Loaded library SHA256:
+  `7b072fa21168ece875baceb979113afe2c0cb298da52d45b599941c6a95c2f2c`.
+- Exported `gitCommit` matched that full commit; `projectVersion` was
+  `0.11-feature/full_server-9342-61f28d126`, without a dirty suffix.
+- The tracer used all feature defines and generated includes from this clean
+  build; dynamic linking resolved the isolated clean library.
+- A20 `447E` / ROM0 `0D50` received ID `47303032` (`G002`), not `FFFFFFFF`.
+- Index/Box records changed from `20 01 10 01 FF 00` to
+  `10 01 FF 01 FF 00`; complete flash remained identical.
+- Final host PC `517E`, SP `FFF6`; no invalid-access diagnostics.
+
+Evidence: `/tmp/netdeget-clean-61f-idtrace-o1gcxe4h/report.json` and `trace.log`.
+The original ROM and input SRAM/flash hashes match the earlier baseline trace.
+This closes the candidate-versus-committed-build gap for this ID-read/delete
+route. Broader natural allocation/gameplay and Test ROM clean-build reruns are
+owned by the mGBA chat; release replacement and hardware validation remain
+separate.
