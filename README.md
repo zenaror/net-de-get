@@ -7,5 +7,6 @@ Não é uma reconstrução completa RGBDS nem implementa Mobile Adapter/REON, e 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
 - Fragmentos RGBDS parciais: [`src/rom0/mbc6_helpers.asm`](src/rom0/mbc6_helpers.asm)
+- Disassembly organizado por domínio: [`src/engine/`](src/engine/) e [`src/data/`](src/data/) (trechos parciais, com níveis de evidência anotados)
 - Hash da ROM externa: [`roms.sha256`](roms.sha256)
 - Ferramentas e ambiente: [`INSTALL.md`](INSTALL.md)
