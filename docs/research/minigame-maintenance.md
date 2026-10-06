@@ -198,3 +198,27 @@ Trace input identities (synthetic copies only; files remain outside Git):
 - SRAM SHA256: `6ae61c4764455b3524d004ea3780c8d3270f0fee6af642b5debab84195918003`.
 - Flash SHA256: `3ef4290116c5bf5210f36b6e2444c812994d6923e2ed64c84cb4e99c39106ccc`.
 - Trace log SHA256: `2dc64e7c406715a3c52b3ed912531675d354a5843ddf92298a2f8538c5e67a85`.
+
+### Independent candidate-core comparison
+
+**CONFIRMED (candidate emulator, same input snapshot and joypad replay):**
+with the mGBA owner's limited candidate invalidating the read-bank latch when
+flash is disabled in array mode and the operation is not busy, the trace changes
+at the first wrong read:
+
+| Observation | Installed baseline | Candidate |
+| --- | --- | --- |
+| A20 `445E`, flash disabled | Latch valid, bank112 | Latch invalid |
+| A20 `446A`, flash enabled, B16 | `6005=FF`, `6044=FF` | `6005=01`, `6044=FF` |
+| A20 `447E` / ROM0 `0D50`, file ID | `FFFFFFFF` | `47303032` (`G002`) |
+| After 180 release frames | Bad mapper/stack state | Normal host `517E`, SP `FFF6` |
+
+The candidate removed the same Index/Box record and left the full flash
+unchanged. Evidence: `/tmp/netdeget-candidate-idtrace-nh5yb2_t/trace.log` and
+`report.json`; candidate library SHA256:
+`0122452480576dd1942e932523f30a3e95ddc288fc94906184e1fe2b3fe8fbbc`.
+This independent comparison links the observed wrong ID to the retained latch
+in this emulator route. It does not validate physical hardware lifetime,
+occupied-sector copying or all maintenance operations. At this checkpoint the
+candidate remains uncommitted, with broader regression and fresh-core checks
+owned by the mGBA chat.
