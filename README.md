@@ -2,9 +2,10 @@
 
 Este repositório separado guarda evidências do comportamento de MBC6 que ajudam a completar o suporte no mGBA. O escopo atual é deliberadamente pequeno: identificação da ROM hospedeira e análise estática do despacho ROM/flash necessário para validar o mapper.
 
-Não é uma reconstrução RGBDS byte a byte, não implementa Mobile Adapter/REON e não contém a ROM comercial. Uma reconstrução integral poderá ser considerada em uma etapa futura.
+Não é uma reconstrução completa RGBDS nem implementa Mobile Adapter/REON, e não contém a ROM comercial. Inclui fragmentos RGBDS estáticos das rotinas MBC6 já decodificadas; cada fragmento está marcado com seus limites de evidência.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
+- Fragmentos RGBDS parciais: [`src/rom0/mbc6_helpers.asm`](src/rom0/mbc6_helpers.asm)
 - Hash da ROM externa: [`roms.sha256`](roms.sha256)
 - Ferramentas e ambiente: [`INSTALL.md`](INSTALL.md)
