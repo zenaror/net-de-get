@@ -1,0 +1,11 @@
+# Commercial reference ROMs are kept outside this repository.
+*.gb
+*.gbc
+*.sav
+*.sav.*
+*.flash
+/cache/
+/.cache/
+/build/
+__pycache__/
+*.py[cod]
