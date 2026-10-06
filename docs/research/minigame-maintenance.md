@@ -325,3 +325,44 @@ This closes the candidate-versus-committed-build gap for this ID-read/delete
 route. Broader natural allocation/gameplay and Test ROM clean-build reruns are
 owned by the mGBA chat; release replacement and hardware validation remain
 separate.
+
+## Bank80 warnings during occupied-list entry
+
+**CONFIRMED (bounded clean-core observation):** occupied-game fresh-core runs
+have bank warnings even though gameplay/input/return and complete flash
+preservation checks pass. Both old candidate logs (`6hwgpf6p`, `03x3qwkg`)
+and clean logs (`8t9nser4`, `2kyftvyi`) contain one invalid Flash bank80 and six
+invalid ROM bank80 diagnostics **before stage8**, on normal local-list entry.
+They are not warnings caused by the later held-Select exit in these runs.
+A strict assertion requiring no invalid-bank messages therefore fails; these
+runs must not be described as warning-free.
+
+A pass-through store observer replayed ordinary boot/list-entry joypad input
+from `/tmp/mgba-netdeget-occupied-reopen-mr1suxab/`, against the same isolated
+clean library. It captured at frame1632:
+
+| Guest store instruction | Observation before delegated store |
+| --- | --- |
+| Native A20 `4D81` | Writes `80` into scratch `C5C5`, replacing `0E` |
+| Native A20 `4DEF` | Writes `80` into B selector register `37FF`; current B112 (`70`) is flash-selected, flash access disabled |
+| Native A20 `4DFA` | Writes `00` into B chip-select `3800`, after the invalid Flash warning |
+
+Subsequent ROM-mode context restores write the same selector80 at native A20
+`5055`, ROM0 `227F` (four times) and native A20 `477A`, causing the six ROM
+warnings across frames1632-1636. Hook PCs are instruction-end addresses
+(`4D84`, `4DF2`, `4DFD`, `5058`, `2282`, `477D`), not instruction starts.
+Evidence: `/tmp/netdeget-boundary-80-z6bm_quc/trace.log`;
+`fixtures/maintenance/boundary.c` delegates every observed store unchanged.
+
+**PROBABLE (static explanation, matched to observed writes):** the title-list
+routine at A20 `4D43` initially saves B context into `C5C5`, then `4D80-4D81`
+reuses that byte for each Index. The downloaded-header path subtracts `10` at
+`4DAB` before selecting the actual flash bank. The final `4DEA-4DEF` restore
+uses `C5C5` without that subtraction; for the relocated G001 Index80 it
+therefore writes selector80 instead of its payload selector70. This explains
+the first logged warning and its propagation through context restores.
+
+The original ROM is unchanged. No warning suppression or mapper correction
+was made in this investigation. Hardware interpretation, potential broader
+consequences and warning policy remain unvalidated; passing gameplay and
+storage comparisons do not establish that all invalid accesses are harmless.

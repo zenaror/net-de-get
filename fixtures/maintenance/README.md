@@ -38,3 +38,14 @@ Key masks: A1, B2, Select4, Start8, Right16, Left32, Up64, Down128.
 The initial snapshot has G002 then G001 in BOX2, Index/Box pairs
 `20 01 10 01 FF 00`, with payloads in separate erase sectors.
 See `docs/research/minigame-maintenance.md` for results and evidence limits.
+
+## Occupied-list boundary observer
+
+`boundary.c` uses the same compiler/ABI requirements, arguments and snapshots.
+It wraps the CPU store callback, reports selected writes, then delegates each
+store unchanged. Hook PC values point just after the guest store instruction.
+It neither changes the ROM nor suppresses mapper warnings. To replay the
+Index80 entry case, copy the naturally acknowledged occupied-list snapshot
+`/tmp/mgba-netdeget-occupied-reopen-mr1suxab/` into a disposable save directory
+and use the first nine key/frame pairs of the boot/list macro above. This
+observer runs normal frames throughout, without instruction stepping.
