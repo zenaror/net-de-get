@@ -222,3 +222,59 @@ in this emulator route. It does not validate physical hardware lifetime,
 occupied-sector copying or all maintenance operations. At this checkpoint the
 candidate remains uncommitted, with broader regression and fresh-core checks
 owned by the mGBA chat.
+
+### Occupied-sector retention and fresh-core execution
+
+**CONFIRMED (mGBA owner run, report/logs inspected):** candidate allocation
+from a baseline with seven occupied sectors retained a byte-exact G001 copy at
+`E0000` and installed the new payload byte-exact at `E2000`. The report also
+confirms the seven original sectors and hidden/metadata region stayed intact.
+The relocated G001 record became Index `80`, followed by new Index `81`.
+Evidence: `/tmp/mgba-netdeget-local-1hqcsm7h/report.json`.
+
+Both relocated programs opened after fresh-core boot: new Index81 at A selector
+113 (`/tmp/mgba-maintenance-candidate-neighbor-6hwgpf6p/run.log`, stages14/30/32)
+and copied G001 Index80 at A selector112
+(`/tmp/mgba-maintenance-candidate-neighbor-03x3qwkg/run.log`, stages44/60/62).
+Each counted all eight buttons once (`0101010101010101`) and returned to host
+`517E` with SP `FFF6`. Both reports record unchanged flash during execution.
+These observations validate this occupied-allocation retention route in the
+candidate emulator. Legacy regression results and the later physical reuse
+round remain pending at this checkpoint.
+
+### Physical reuse with retention
+
+**CONFIRMED (mGBA owner run, report inspected):** the next occupied-sector
+allocation in the candidate erased sector0, copied G002 byte-exact into offset0
+and installed the new payload byte-exact at `2000`. The tail `4000-1FFFF`
+was erased (`FF`); every other sector and the hidden/metadata region stayed
+intact, including the relocated G001 copy at `E0000`. Evidence:
+`/tmp/mgba-netdeget-local-2cw0297h/report.json`.
+
+This demonstrates physical sector erasure/reuse with retention during natural
+allocation in this candidate route. It does not establish a user-visible format
+operation or that downloading the same ID overwrites its previous instance.
+The mGBA owner reports 30/30 CTest passes including four added regression cases;
+MBC6 Test ROM comparison remains pending at this checkpoint.
+
+## Exit chord reaches host reconstruction — natural instruction trace
+
+**CONFIRMED (candidate emulator, ordinary joypad route):** launching the
+recovered G001 from BOX1 and exiting with `12:3, 0:300` captured, in order:
+
+- native A20 `4010`, held joypad `FF96=0C`;
+- native A20 `401D`, held joypad `FF96=0C`;
+- ROM0 `3E00`, held joypad `FF96=0C`.
+
+The exit chord's Select bit therefore reaches the host's reconstruction shortcut
+before release. The run ends normally at host `517E`. Evidence:
+`/tmp/netdeget-select-exit-trace-c34mlhjk/trace.log` and `macro.json`.
+Its input is a copy of the naturally acquired/deleted/recovered single-game
+snapshot `rebuild-select-long`, with normal BOX1 navigation (sixteen Down
+pulses), Play, then Start+Select. No guest-memory or CPU injection was used.
+The published trace fixture now includes these PCs and the held joypad value.
+
+**PROBABLE (fixture improvement):** waiting for the exit chord to be released
+before returning to the host should avoid this accidental shortcut. Existing
+C/assembly payloads remain unchanged; any change needs new artifact hashes and
+natural execution checks. This is independent of the core's flash-latch fix.

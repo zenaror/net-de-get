@@ -25,9 +25,9 @@ static unsigned long seen;
 static void trace(struct mCore*c) {
  struct GB*g=c->board;unsigned pc=g->cpu->pc;
  if(seen>300)return;
- if((g->memory.currentBank==16 && (pc==0x5018||pc==0x5036||pc==0x503B||pc==0x503E||pc==0x5045||pc==0x5073||pc==0x5085)) || (g->memory.currentBank==20 && (pc==0x445E||pc==0x446A||pc==0x447E||pc==0x4481)) || pc==0x0D50|| pc==0x3C3B||pc==0x3C78||pc==0x3C9F||pc==0x138D||pc==0x1359||pc==0x13FD) {
+ if((g->memory.currentBank==16 && (pc==0x5018||pc==0x5036||pc==0x503B||pc==0x503E||pc==0x5045||pc==0x5073||pc==0x5085)) || (g->memory.currentBank==20 && (pc==0x4010||pc==0x401D||pc==0x445E||pc==0x446A||pc==0x447E||pc==0x4481)) || pc==0x3E00|| pc==0x0D50|| pc==0x3C3B||pc==0x3C78||pc==0x3C9F||pc==0x138D||pc==0x1359||pc==0x13FD) {
  struct GBMBC6State*m=&g->memory.mbcState.mbc6;
- printf("TRACE n=%lu pc=%04X A=%d B=%d latch=%d/%u/%u en=%d we=%d mode=%u cmd=%u op=%d/%d/%u SP=%04X BC=%04X DE=%04X HL=%04X hdr=%02X/%02X src=%02X d400=%02X c5c4=%02X c5c5=%02X c5c7=%02X id=%02X%02X%02X%02X\n",seen++,pc,g->memory.currentBank,g->memory.currentBank1,m->flashIoBankValid,m->flashIoWindow,m->flashIoBank,m->flashEnable,m->flashWriteEnable,m->flashMode,m->flashCommand,m->flashOperationActive,m->flashOperationBusy,m->flashOperationBank,g->cpu->sp,g->cpu->bc,g->cpu->de,g->cpu->hl,c->busRead8(c,0x6005),c->busRead8(c,0x6044),c->busRead8(c,g->cpu->hl),c->busRead8(c,0xD400),c->busRead8(c,0xC5C4),c->busRead8(c,0xC5C5),c->busRead8(c,0xC5C7),c->busRead8(c,0xDCF7),c->busRead8(c,0xDCF8),c->busRead8(c,0xDCF9),c->busRead8(c,0xDCFA));
+ printf("TRACE n=%lu pc=%04X A=%d B=%d latch=%d/%u/%u en=%d we=%d mode=%u cmd=%u op=%d/%d/%u SP=%04X BC=%04X DE=%04X HL=%04X hdr=%02X/%02X src=%02X d400=%02X c5c4=%02X c5c5=%02X c5c7=%02X id=%02X%02X%02X%02X joy=%02X\n",seen++,pc,g->memory.currentBank,g->memory.currentBank1,m->flashIoBankValid,m->flashIoWindow,m->flashIoBank,m->flashEnable,m->flashWriteEnable,m->flashMode,m->flashCommand,m->flashOperationActive,m->flashOperationBusy,m->flashOperationBank,g->cpu->sp,g->cpu->bc,g->cpu->de,g->cpu->hl,c->busRead8(c,0x6005),c->busRead8(c,0x6044),c->busRead8(c,g->cpu->hl),c->busRead8(c,0xD400),c->busRead8(c,0xC5C4),c->busRead8(c,0xC5C5),c->busRead8(c,0xC5C7),c->busRead8(c,0xDCF7),c->busRead8(c,0xDCF8),c->busRead8(c,0xDCF9),c->busRead8(c,0xDCFA),c->busRead8(c,0xFF96));
  }
 }
 
