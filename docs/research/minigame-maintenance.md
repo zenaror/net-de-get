@@ -278,3 +278,26 @@ The published trace fixture now includes these PCs and the held joypad value.
 before returning to the host should avoid this accidental shortcut. Existing
 C/assembly payloads remain unchanged; any change needs new artifact hashes and
 natural execution checks. This is independent of the core's flash-latch fix.
+
+## Published core checkpoint and separate Maker follow-up
+
+The mGBA owner published the fix and four regression cases as
+`61f28d126` on `feature/full_server`. The owner reports 30/30 CTest targets,
+four legacy Test ROM runs, six offline scenarios / 56 checks, and the M6FL
+old/candidate differential observation (21 checks each) passed. The committed
+maintenance report is `tools/mbc6/MAINTENANCE.md` in `zenaror/mgba`.
+The source checkpoint was inspected locally; the runtime traced here is still
+the candidate library identified above. Existing platform releases at `ed393`
+do not yet include this source fix. A build from the committed checkpoint is
+required before replacing release binaries.
+
+The Maker follow-up is isolated on `codex/exit-wait-release`, commit
+`ce5a9dc07156edea71837b0f0838b94c32e2b4b8` in `zenaror/net-de-get-maker`.
+Its C bridge (including REACTION) and assembly PAD wait for both exit buttons
+to be released before returning. Three staged-payload joypad tests captured
+host A20 `4010` with `FF96=00`, no ROM0 `3E00` reconstruction, unchanged BOX
+records/flash and a normal return at `517E` / SP `FFF6`. Partial release
+(Start released, Select still held) did not return early. C/ASM PAD also passed
+eight-input checks. Evidence and new payload/body hashes are in that branch's
+`docs/exit-release.md`; natural installation of these new bodies remains
+unvalidated. Maker main, frozen server fixtures and releases were not replaced.
