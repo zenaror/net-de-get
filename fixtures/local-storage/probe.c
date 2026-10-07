@@ -2381,6 +2381,73 @@ int main(int argc,char **argv){
   require(exact,"A0F producer updates fields even when queue full and preserves guards",n);
  }
  }
+ { /* A0F display setup prefix and callback cleanup; no44AE resource call. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ for(unsigned mode=0;mode<256;mode++)for(unsigned initial=0;initial<2;initial++){
+  wr(c,0xFF4F,initial);wr(c,0xFF70,initial?7:3);wr(c,0xC765,mode);wr(c,0xC764,0xA5);wr(c,0xC779,0x5A);
+  for(unsigned i=0;i<19;i++)wr(c,0xC766+i,0xCC);
+  for(unsigned i=0;i<6;i++)wr(c,0xC67F+i,0xA5+i);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x409C;
+  unsigned steps=0;while(cpu->pc!=0x4134&&steps++<2000)c->step(c);
+  bool exact=cpu->pc==0x4134&&cpu->sp==0xCFFE&&cpu->hl==(mode?0x52EC:0x4E20)&&
+   rd(c,0xC765)==mode&&rd(c,0xC764)==0xA5&&rd(c,0xC779)==0x5A&&
+   rd(c,0xC1C5)==0x88&&rd(c,0xC1C6)==0x52&&rd(c,0xC21C)==0x0F&&rd(c,0xC21D)==0&&
+   (rd(c,0xFF4F)&1)==0&&g->memory.wramCurrentBank==1&&g->memory.ime&&
+   rd(c,0xFF8E)==0xCE&&rd(c,0xFF8F)==0x47&&rd(c,0xFF92)==0&&rd(c,0xFF93)==0&&
+   rd(c,0xC67F)==0xC3&&rd(c,0xC680)==0xCD&&rd(c,0xC681)==0x47&&
+   rd(c,0xC682)==0xD9&&rd(c,0xC683)==0xA9&&rd(c,0xC684)==0xAA;
+  for(unsigned i=0;i<19;i++){
+   unsigned value=0,address=0xC766+i;
+   if(address==0xC76A)value=mode?2:0;
+   if(address==0xC76E)value=mode?0:4;
+   if(address==0xC76F)value=mode?0x10:8;
+   if(address==0xC772)value=1;
+   if(address==0xC773)value=mode?0xEC:0x20;
+   if(address==0xC774)value=mode?0x52:0x4E;
+   if(address==0xC775)value=mode?0x98:0x94;
+   if(address==0xC776)value=mode?0x99:0x95;
+   exact&=rd(c,address)==value;
+  }
+  require(exact,"A0F complete known setup prefix all mode bytes stops before44AE",mode*2+initial);
+ }
+ for(unsigned pattern=0;pattern<4;pattern++){
+  for(unsigned i=0;i<6;i++)wr(c,0xC67F+i,(pattern*41+i)&255);
+  wr(c,0xFF8E,0xA5);wr(c,0xFF8F,0x5A);wr(c,0xFF92,0xA5);wr(c,0xFF93,0x5A);
+  call(c,0x4141);
+  bool exact=rd(c,0xFF8E)==0&&rd(c,0xFF8F)==0&&rd(c,0xFF92)==0&&rd(c,0xFF93)==0&&
+   rd(c,0xC67F)==0xD9&&rd(c,0xC682)==0xD9;
+  for(unsigned i=0;i<6;i++)if(i!=0&&i!=3)exact&=rd(c,0xC67F+i)==((pattern*41+i)&255);
+  require(exact,"A0F cleanup complete preserves unused empty-stub operands",pattern);
+ }
+ }
+ { /* Count bounded original list format and complete setup/header loading. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ const unsigned values[]={1,0xFD,0xFE,0xFF};
+ for(unsigned length=0;length<=16;length++)for(unsigned kind=0;kind<4;kind++){
+  for(unsigned i=0;i<length;i++)wr(c,0xC74E +i,values[kind]);wr(c,0xC74E +length,0);
+  wr(c,0xC76C,0xA5);wr(c,0xC76D,0x5A);call(c,0x44AE);
+  require(rd(c,0xC76C)==length&&rd(c,0xC76D)==(kind>=2?length:0)&&cpu->hl==0xC74E +length,
+   "A0F zero-terminated list total and FE/FF counts complete",length*4+kind);
+ }
+ wr(c,0x37FF,0x5A);wr(c,0x3800,0);unsigned header[12];for(unsigned i=0;i<12;i++)header[i]=rd(c,0x6000+i);
+ const unsigned fields[]={0xCF92,0xCF93,0xCF90,0xCF91,0xCF94,0xCF95,0xCF96,0xCF97,0xCF98,0xCF99,0xCF9A,0xCF9B};
+ const unsigned modes[]={0,1,128,255},lengths[]={0,1,16};
+ for(unsigned m=0;m<4;m++)for(unsigned l=0;l<3;l++)for(unsigned kind=0;kind<4;kind++)for(unsigned prior=0;prior<2;prior++){
+  unsigned length=lengths[l],mode=modes[m],oldB=prior?0x15:5;
+  for(unsigned i=0;i<length;i++)wr(c,0xC74E +i,values[kind]);wr(c,0xC74E +length,0);wr(c,0xC765,mode);
+  wr(c,0x37FF,oldB);wr(c,0x3800,0);wr(c,0xFFAD,oldB);wr(c,0xFFAE,0);
+  unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x6000+i);
+  call(c,0x409C);
+  bool exact=rd(c,0xC76C)==length&&rd(c,0xC76D)==(kind>=2?length:0)&&
+   rd(c,0xC76A)==(mode?2:0)&&rd(c,0xC773)==(mode?0xEC:0x20)&&rd(c,0xC774)==(mode?0x52:0x4E)&&
+   rd(c,0xC663)==0x5A&&rd(c,0xC664)==0&&rd(c,0xC666)==0x5A&&rd(c,0xC667)==0&&
+   rd(c,0xC115)==oldB&&rd(c,0xC116)==0&&cpu->hl==0x600C;
+  for(unsigned i=0;i<12;i++)exact&=rd(c,fields[i])==header[i];
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x6000+i)==restored[i];
+  require(exact,"A0F complete setup original B5A header list and restored B window",m*24+l*8+kind*2+prior);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

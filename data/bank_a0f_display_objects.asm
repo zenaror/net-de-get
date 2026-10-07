@@ -1,19 +1,5 @@
-; PROBABLE original display-table setup prefix and bounded two-variant objects.
+; PROBABLE original display-table pointer prefix and bounded two-variant objects.
 ; Physical bank07 upper8KiB is A0F4000-5FFF: pointer words retain -2000.
-SECTION "A0F display 609C-60B1", ROMX[$609C], BANK[$07]
-PrepareA0FDisplayTablePrefix::
-	di
-	xor a, a
-	ldh [$FF4F], a
-	ldh [$FF70], a
-	ld a, $0F
-	ld [$C21C], a
-	ld a, $00
-	ld [$C21D], a
-	ld hl, A0FDisplayTablePrefix - $2000
-	call ResidentJump0258
-ASSERT @ == $60B2
-
 SECTION "A0F display 7288-7289", ROMX[$7288], BANK[$07]
 A0FDisplayTablePrefix::
 	dw A0FDisplayVariants0 - $2000

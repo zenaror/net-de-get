@@ -564,3 +564,20 @@ are added. This forced original-component chain does not establish natural
 menu geometry, OAM DMA or screen identity. Relative JR targets use physical
 labels; the linker rejected subtracting2000 from relative targets before the
 final byte-identical build. Semantics remain PROBABLE.
+
+
+### A0F setup, terminated-list count and callback cleanup
+
+512 original409C prefixes cover everyC765 byte and initialVBK0/1 with WRAM
+banks3/7, stopping at4134. They check19 initialized fields, guards, table,
+callbacks/stubs, effectiveWRAM1/VBK0 and IME after EI. Four complete4141
+calls clear callbacks and RETI stubs while preserving operand bytes.
+44AE was measured as a C74E zero-terminated list counter, not a rendering
+resource call.68 complete counter calls cover lengths0..16 and bytes1/FD/FE/FF;
+C76C counts entries, C76D counts FE/FF, retaining8-bit counters.96 complete
+409C setup calls cover four modes, three lengths, four byte classes and two
+prior B windows. All12 fields loaded from original B5A6000 header, HL600C,
+mode/count fields and actual restored-window bytes are checked.848 assertions
+are added. Lists are bounded synthetic WRAM and the header is original ROM;
+no natural menu, installed callback, IRQ or audio stream runs. No universal
+list bound/unterminated behavior is claimed. Semantics remain PROBABLE.

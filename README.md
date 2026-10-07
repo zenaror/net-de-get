@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 436 seções**, todos comparados byte a byte com a referência externa. Os 236 trechos analisados somam 36137 bytes; os demais 1012439 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 441 seções**, todos comparados byte a byte com a referência externa. Os 240 trechos analisados somam 36360 bytes; os demais 1012216 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 436 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 441 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -493,3 +493,16 @@ A confiança permanece `PROBABLE`. Quatro chamadas do setter conferem guards e r
 A interpretação é `PROBABLE`. O seletor define `$C76B=0` para `$C767<4`, ou 1 nos demais casos. O produtor lê `$C766`, soma 1 quando o valor é pelo menos 5, compara o resultado com `$0B` e soma mais 1 quando necessário; ambas as somas são de oito bits. Executa três RLCA e soma `$10`, guardando X em `$C768`. Para Y, lê `$C767`, executa quatro RLCA e soma `$50`, guardando em `$C769`. Enfileira DE=X/Y, C=0 e B=`$C76B` pelo thunk `$025E`; isso liga estaticamente o primeiro índice da tabela às duas variantes originais. As rotações mantêm os bits que voltam pelo wrap, sem substituí-las por multiplicações ampliadas.
 
 A fixture encadeia seletor → produtor → objetos originais → shadow para todos os 65.536 pares `$C766/$C767`, conferindo variante, posição, quatro bytes de fila, todos os 160 bytes finais, guarda, capacidade e campos do mapper restaurado. Quatro chamadas adicionais verificam contagens de fila 0/15/16/255: a posição é atualizada mesmo quando a fila rejeita o registro; os bytes de fila e guards permanecem conforme a capacidade original. São 393.225 novos asserts, somando 1.904.665. O privado preserva os 1.286 símbolos publicados em `33dbe88`; montagem integral e negativos reais passam. Esse é um encadeamento forçado de componentes originais, sem execução natural do menu, prova de domínio geométrico admissível ou transferência OAM.
+
+
+### Setup A `$0F`, contagem da lista e limpeza de callbacks
+
+`engine/startup/bank_a0f_setup.asm` recebe o prefixo publicado `$409C-$40B1` e extrai `$40B2-$4140/$4141-$415B` (170 bytes adicionais). `bank_a0f_list_count.asm` extrai `$44AE-$44D6` (41 bytes) e `data/bank_b5a_a1e_header.asm` extrai o cabeçalho B `$5A:$6000-$600B` (12 bytes). São 223 bytes novos. `PrepareA0FDisplayTablePrefix`, `ResidualROM07_60B2` e `ResidualROM2D_4000` permanecem nos endereços publicados. O setup passa a ter alias `InitializeA0FDisplay`; os objetos ficam no fonte de dados. B `$5A` usa a metade física inferior `$2D:$4000-$5FFF` mapeada em `$6000-$7FFF`, e o cabeçalho preserva seis words numéricas, sem afirmar extensão das tabelas/streams.
+
+A confiança é `PROBABLE`. A continuação instala stub JP para `$47CD` e callback `$47CE`, zera o outro callback e deixa seu stub vazio com `$D9`. Depois de EI, limpa 19 bytes em `$C766-$C778`, inicializa `$C772=1` e separa `$C765` zero dos demais valores. Zero define `$C76A=0`, `$C775/$C776=$94/$95`, `$C76F=8`, `$C76E=4` e ponteiro `$4E20`; não zero define 2, `$98/$99`, `$10`, 0 e ponteiro `$52EC`, respectivamente. Guarda o ponteiro em `$C773/$C774`.
+
+A chamada `$44AE` foi inicialmente tratada como recurso pendente; medir seu corpo mostrou uma contagem da lista em `$C74E`, independente do ponteiro anterior em HL. Zera `$C76C/$C76D`, lê até zero, incrementa `$C76C` para cada entrada e `$C76D` quando o byte é `$FE/$FF`. Os contadores são de oito bits; não se afirma um tamanho universal da lista nem segurança sem terminador. Depois, o setup carrega HL `$6000`/DE `$005A` e chama o carregador de cabeçalho A `$1E`, que copia 12 bytes reais de B `$5A` e restaura B. `$4141` desabilita interrupções, limpa os quatro destinos de callback/stub, executa EI e retorna.
+
+512 prefixos conhecidos (todos os 256 valores de `$C765`, VBK 0/1 e WRAM inicial 3/7) param antes da contagem, conferindo 19 campos, guards, ponteiro, callbacks, stubs, VBK 0, WRAM efetivo 1 e IME ativo. Quatro limpezas completas preservam os operandos antigos dos stubs vazios. Outros 68 calls verificam comprimentos 0–16 com bytes 1/`$FD/$FE/$FF`, e 96 inicializações completas combinam quatro valores de modo, três comprimentos, quatro classes de byte e dois pares anteriores de B. Conferem contagens, campos de modo, os 12 campos reais de cabeçalho, HL `$600C` e oito bytes efetivamente remapeados após restaurar B. São 848 novos asserts, somando 1.905.513; o privado preserva os 1.294 símbolos publicados em `c2c5cd6`. Montagem integral e negativos reais passam.
+
+A inicialização completa é verificada em entrada forçada com lista sintética delimitada e cabeçalho real. Não houve IRQ natural, execução dos callbacks instalados, stream de áudio ou interpretação completa dos recursos `$4E20/$52EC`. IME ativo é efeito de EI, sem preservação do estado anterior. Uso natural da lista, menu e temporização continuam pendentes.
