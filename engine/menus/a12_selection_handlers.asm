@@ -29,7 +29,7 @@ A12SelectionVariant0::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	call $5051
+	call TickA12TileFrame
 	ld hl, $C5E5
 	inc [hl]
 	ld a, [$C73A]
@@ -54,7 +54,7 @@ A12SelectionVariant1::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	call $5051
+	call TickA12TileFrame
 	call $4C11
 	ld hl, $C5E5
 	inc [hl]
@@ -80,7 +80,7 @@ A12SelectionVariant2::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	call $5051
+	call TickA12TileFrame
 	call $4C41
 	ld hl, $C5E5
 	inc [hl]
@@ -106,7 +106,7 @@ A12SelectionVariant3::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	call $5051
+	call TickA12TileFrame
 	ld hl, $C5E5
 	inc [hl]
 	call ResidentJump0261

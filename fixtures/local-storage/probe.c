@@ -212,6 +212,44 @@ static void modelA0FDirections(unsigned held,unsigned *column,unsigned *row,unsi
  if(held&0x80){unsigned next=(*row+1)&255;if(next>=4)*column=*column<5?1:*column<10?6:11;*row=next>=5?0:next;*variant=*row<4?0:1;}
  if(held&0x40){*row=(*row-1)&255;if(*row==255){*row=4;*column=*column<5?1:*column<10?6:11;}*variant=*row<4?0:1;}
 }
+static void probeA12FrameGate(struct mCore *c,unsigned threshold,unsigned counter,unsigned frames,unsigned frame,unsigned loop,unsigned flags,unsigned index){
+ struct GB *g=c->board;struct SM83Core *cpu=g->cpu;unsigned nextCounter=counter,nextFrame=frame,nextThreshold=threshold,source=0xD820;
+ unsigned expectedA,expectedF,expectedB=0xBE,ret=0;bool copy=false;
+ if(!threshold){expectedA=0;expectedF=0xC0;}
+ else if(counter<threshold){expectedB=threshold;expectedA=(counter-threshold)&255;expectedF=0x50|((counter&15)<(threshold&15)?0x20:0);}
+ else{expectedB=frames;nextCounter=0;unsigned next=(frame+1)&255;
+  if(next!=frames){nextFrame=next;expectedA=next;expectedF=0x40|((next&15)<(frames&15)?0x20:0)|(next<frames?0x10:0);copy=true;ret=0x508D;}
+  else{nextFrame=0;if(loop){source=0xD900|loop;expectedA=loop;expectedF=0x40;copy=true;ret=0x5086;}else{nextThreshold=0;expectedA=0;expectedF=0x80;}}
+ }
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ wr(c,0xC5E3,0x33);wr(c,0xC5E4,threshold);wr(c,0xC5E5,counter);wr(c,0xC5E6,frames);wr(c,0xC5E7,frame);wr(c,0xC5E8,loop);wr(c,0xC5E9,0x5A);
+ wr(c,0xC5F6,0x3C);wr(c,0xC5F7,0xD8);wr(c,0xC5F8,0x20);wr(c,0xC5FB,0xD9);wr(c,0xC5FC,loop);wr(c,0xC5FD,0xA5);
+ wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x5051;
+ unsigned steps=0,target=copy?0x4FFF:0xC100;while(cpu->pc!=target&&steps++<100)c->step(c);
+ require(cpu->pc==target&&cpu->sp==(copy?0xCFFC:0xD000)&&(!copy||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==ret),"A12 frame gate bounded return or actual copy entry with original return",index);
+ require(cpu->a==expectedA&&cpu->f.packed==expectedF&&cpu->bc==(expectedB<<8|0xEF)&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xC5E4)==nextThreshold&&rd(c,0xC5E5)==nextCounter&&rd(c,0xC5E6)==frames&&rd(c,0xC5E7)==nextFrame&&rd(c,0xC5E8)==loop&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==source&&rd(c,0xC5E3)==0x33&&rd(c,0xC5E9)==0x5A&&rd(c,0xC5F6)==0x3C&&rd(c,0xC5FD)==0xA5,"A12 frame independent threshold wrap completion loop source flags and guards",index);
+}
+static void probeA12FrameCopy(struct mCore *c,unsigned width,unsigned height,unsigned kind,unsigned plane,unsigned lcd,unsigned entry,unsigned index){
+ struct GB *g=c->board;struct SM83Core *cpu=g->cpu;unsigned area=width*height,advance=2*(area&255),source=kind==0?0x4000:kind==1?0x6000:0xD807,selector=kind==0?0x61:kind==1?0x63:0x65,payload[1024];
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,selector);wr(c,0x2800,0);wr(c,0x37FF,selector);wr(c,0x3800,0);
+ for(unsigned i=0;i<2*area;i++){if(kind==2)wr(c,source+i,(i*37+width*11+height*13)&255);payload[i]=rd(c,source+i);}
+ if(kind==2){const unsigned header[]={1,2,width,height,3,1,0};for(unsigned i=0;i<7;i++)wr(c,0xD800+i,header[i]);wr(c,0xD7FF,0x33);wr(c,source+2*area,0x5A);}
+ wr(c,0x27FF,0x12);wr(c,0x2800,0);wr(c,0xFFAB,0x12);wr(c,0xFFAC,0);wr(c,0xC113,0x12);wr(c,0xC114,0);
+ wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);
+ unsigned aBytes[8],bBytes[8];for(unsigned i=0;i<8;i++){aBytes[i]=rd(c,0x4000+i);bBytes[i]=rd(c,0x6000+i);}
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);
+ wr(c,0xC21C,selector);wr(c,0xC21D,0);wr(c,0xC5F9,1);wr(c,0xC5FA,2);wr(c,0xC5E2,width);wr(c,0xC5E3,height);wr(c,0xC5E4,1);wr(c,0xC5E5,entry==3?0xA5:1);wr(c,0xC5E6,entry==2?1:3);wr(c,0xC5E7,entry==3?0x5A:0);wr(c,0xC5E8,entry==2);
+ unsigned initialSource=entry==2?source+0x200:source;wr(c,0xC5F7,initialSource>>8);wr(c,0xC5F8,initialSource&255);wr(c,0xC5FB,source>>8);wr(c,0xC5FC,source&255);wr(c,0xC5E1,0x33);wr(c,0xC5FD,0x5A);
+ cpu->af=0x5AF0;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=entry==3?0xD800:0x9ABC;wr(c,0xFF40,lcd?0x91:0);call(c,entry==3?0x5093:entry?0x5051:0x4FFF);wr(c,0xFF40,0);
+ unsigned end=source+advance;bool exact=cpu->af==(entry==3?0x0080:((end&255)<<8|0x80))&&cpu->bc==(width<<8|height)&&cpu->de==source&&cpu->hl==end&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==end&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==source&&rd(c,0xC5E4)==1&&rd(c,0xC5E5)==(entry?0:1)&&rd(c,0xC5E7)==(entry==1?1:0)&&rd(c,0xC5E1)==0x33&&rd(c,0xC5FD)==0x5A&&(rd(c,0xFF4F)&1)==plane&&g->memory.ime&&rd(c,0xC113)==0x12&&rd(c,0xC114)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;
+ for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==aBytes[i]&&rd(c,0x6000+i)==bBytes[i];
+ if(!exact)fprintf(stderr,"Frame copy %u w=%u h=%u kind=%u entry=%u AF=%04X BC=%04X DE=%04X HL=%04X ptr=%02X%02X count=%u frame=%u\n",index,width,height,kind,entry,cpu->af,cpu->bc,cpu->de,cpu->hl,rd(c,0xC5F7),rd(c,0xC5F8),rd(c,0xC5E5),rd(c,0xC5E7));
+ require(exact,"A12 full direct tick loop setup copy source low-product advance registers mapper guards",index);
+ exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){bool tile=i>=0x1841&&i<0x1841+height*32&&((i-0x1841)%32)<width;unsigned expected=tile?payload[bank*area+((i-0x1841)/32)*width+(i-0x1841)%32]:0xA5;exact&=rd(c,0x8000+i)==expected;}}
+ if(kind==2){exact&=rd(c,0xD7FF)==0x33&&rd(c,source+2*area)==0x5A;for(unsigned i=0;i<2*area;i++)exact&=rd(c,source+i)==payload[i];}
+ require(exact,"A12 exact original two-plane tilemap complete VRAM source footprint and payload guards",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -3777,6 +3815,28 @@ int main(int argc,char **argv){
   for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==0xA5;}wr(c,0xFF4F,plane);
   require(exact,"A12 palettes only when dirty independent of DMA all palette bytes both whole VRAM planes",index++);
  }
+ }
+ { /* Local byte multiply: all HL inputs plus selected full AF products. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned value=0;value<65536;value++){
+  unsigned a=value&255;cpu->a=a;cpu->f.packed=((value>>8)&15)<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=value;call(c,0x5CFF);
+  require(cpu->hl==(value>>8)*(value&255)&&cpu->a==a&&cpu->f.packed==0xC0&&cpu->bc==0xBEEF&&cpu->de==0x5678,"A12 byte multiply full HL domain exact product preserves A BC DE flags",value);
+ }
+ const unsigned inputs[]={0,1,0x0100,0x0101,0x7F80,0x80FF,0xFF80,0xFFFF};
+ for(unsigned n=0;n<8;n++)for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++){
+  cpu->a=a;cpu->f.packed=flags<<4;cpu->bc=0x1234;cpu->de=0x5678;cpu->hl=inputs[n];call(c,0x5CFF);
+  require(cpu->hl==(inputs[n]>>8)*(inputs[n]&255)&&cpu->a==a&&cpu->f.packed==0xC0&&cpu->bc==0x1234&&cpu->de==0x5678,"A12 multiply selected HL full incoming AF domain",n*4096+a*16+flags);
+ }
+ }
+ { /* Complete early returns and original tick prefixes before tile copy. */
+ unsigned index=0;for(unsigned threshold=0;threshold<256;threshold++)for(unsigned counter=0;counter<256;counter++)for(unsigned flags=0;flags<16;flags++)probeA12FrameGate(c,threshold,counter,3,1,1,flags<<4,index++);
+ const unsigned loops[]={0,1,255};for(unsigned frames=0;frames<256;frames++)for(unsigned frame=0;frame<256;frame++)for(unsigned n=0;n<3;n++)probeA12FrameGate(c,1,1,frames,frame,loops[n],((frames^frame)&15)<<4,index++);
+ for(unsigned loop=0;loop<256;loop++)for(unsigned flags=0;flags<16;flags++)probeA12FrameGate(c,1,1,17,16,loop,flags<<4,index++);
+ }
+ { /* Full copies with original resources and WRAM records; zero dimensions excluded. */
+ const unsigned shapes[][2]={{1,1},{2,3},{3,2},{16,16},{17,17},{31,9}};unsigned index=0;
+ for(unsigned shape=0;shape<6;shape++)for(unsigned kind=0;kind<3;kind++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)for(unsigned entry=0;entry<3;entry++)probeA12FrameCopy(c,shapes[shape][0],shapes[shape][1],kind,plane,lcd,entry,index++);
+ for(unsigned shape=0;shape<6;shape++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeA12FrameCopy(c,shapes[shape][0],shapes[shape][1],2,plane,lcd,3,index++);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

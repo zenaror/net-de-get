@@ -1198,3 +1198,34 @@ fixture first required spacing after a hexadecimal literal ending in E in C;
 that was a compile fix only, not a ROM change. No disk save, natural menu/audio,
 physical timing, Japanese interpretation or universal raw-state validity is
 established. Complete callee chains remain pending in the canonical README.
+
+
+## A12 tile frames and byte multiplication
+
+PROBABLE static/forced-entry contracts. Four sections extract4FFF–50C7 and
+5CFF–5D10 (219 bytes); existing aliases remain. Copy destination is9800+x+32*y,
+source is big endian C5F7/C5F8, dimensions C5E2/C5E3. The original banked helper
+copies both complete planes. Source advance is twice the low byte of area:
+256 tiles advance0;289/279 tiles advance66/46, despite full578/558-byte copies.
+No widened arithmetic or correction is introduced.
+
+98304 full multiplication calls cover all65536 HL words with derived AF and
+eight selected HL words with all4096 AF values. ProductHL=H*L, A/BC/DE preserved,
+finalF=C0. Tick testing has1249280 cases:all threshold/counter pairs x16 flags;
+all frame-count/index pairs xloop0/1/255 with derived flags;all loop bytes x16
+flags at one completion boundary.526608 calls return completely;722672 stop
+at the original copy call target. Independent CP/SUB flags, wrap, completion,
+loop restart pointer, guards and call stack are compared. Those prefixes do not
+execute the copy and do not prove natural validity of every field combination.
+
+240 full direct/tick/loop/setup calls use shapes1x1,2x3,3x2,16x16,17x17,31x9,
+real resource ROM in both A/B windows and WRAM payloads, both VBKs, LCDoff/on.
+Setup uses a seven-byte WRAM header; actual original code consumes it and calls
+copy before clearing the two counters. Exact fields/registers, original mapper
+restore, every byte of both VRAM planes, WRAM source/guards and low-product
+advance are checked. Zero dimensions are excluded. No ROM-resource patching,
+disk saves, natural IRQ/audio/menu, hardware timing or Japanese meaning proof.
+
+2695888 new assertions; total14594077, plus24 verifier tests. Further static
+consumer4C11–4C40 calls setup5093 with6A96/6AB1 after guards; those resources
+and preceding4BE6 remain pending, not a tested complete consumer chain.

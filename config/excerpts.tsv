@@ -112,7 +112,13 @@ bank	start	end	symbol
 09	422F	422F	A12SelectionInterruptReturnOnly
 09	4230	4238	PositionA12SelectionWindow
 09	4239	4250	UpdateA12SelectionDMAAndPalettes
-09	4251	5FFF	ResidualROM09_4251
+09	4251	4FFE	ResidualROM09_4251
+09	4FFF	5050	CopyA12TileFrame
+09	5051	5092	TickA12TileFrame
+09	5093	50C7	InitializeA12TileFrames
+09	50C8	5CFE	ResidualROM09_50C8
+09	5CFF	5D10	MultiplyA12HLBytes
+09	5D11	5FFF	ResidualROM09_5D11
 09	6000	7FFF	ResidualROM09_6000
 0A	4000	4029	LocalMinigameMenuEntry
 0A	402A	406B	LocalMinigameMenuLoop
