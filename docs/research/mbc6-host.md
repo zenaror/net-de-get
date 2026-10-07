@@ -683,3 +683,26 @@ The full source now has 250 sections: 88 analyzed sections (15,656 bytes) and
 162 residual ranges (1,032,920 bytes). Full/private checks preserve the complete
 ROM hash and all 571 address symbols published at dd6004a. The CPU suite has
 3061 assertions, with 24 verifier tests and both actual negative-build cases.
+
+
+### Main states 0/1/2 and internal pointer tables
+
+**PROBABLE**, static consumers: `home/main_states.asm` refines ROM0 $03BC-$04A5
+(234 bytes), preserving `ResidualROM00_03BC`. MainStatePointers references the
+three entry points $03BC/$03C9/$03D6 symbolically. Words $0407-$040C are read by
+$03E0; branch pointers $041D-$0422 are consumed by DispatchReturnTable via
+$0416-$041A; result pointers $046E-$047B are read by $045B-$046C. These are
+explicit tables, not instructions obtained by decoding adjacent bytes.
+No universal bound on $C706/$C214 or meaning of their values is established.
+The remaining $04A6-$051D source is still uninterpreted.
+
+**SYNTHETIC**: 256 indices at $0391 stop before JP HL at $03A5, checking wrapped
+byte doubling, loaded target word, pushed $03A6 return, SP and BC/input. Seven
+forced result handlers $047C+6*i return after writing $C623=3/4/5/1/2/7/6 and
+preserve BC/DE/HL. These add 270 assertions, total 3331; they do not execute the
+main-state callees or establish natural main-loop/game behavior.
+
+Full source: 257 sections, 95 analyzed sections (15,890 bytes), 162 residual
+ranges (1,032,686 bytes). Full/private gates, 24 checker tests and actual
+negative builds pass, preserving all 591 symbols from e48a89c and the full
+reference hash. No Japanese bytes, external original or real saves are changed.

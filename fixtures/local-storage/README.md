@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **3,061 assertions**.
+and stack assertions, the maintained fixture reports **3,331 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -156,3 +156,12 @@ They check B $1F ROM mapping through shadow fields and mapped bytes, preserved
 BC/DE/HL/SP, palettes, scroll/window and sound routing. Eight added assertions
 are SYNTHETIC; they do not execute the complete startup, HALT loops, natural
 boot, real DMG hardware or LCD-on timing.
+
+
+Main-state probes force all 256 byte indices at $0391 and stop at $03A5 before
+JP HL executes the selected target. They check eight-bit doubling, the loaded
+word, saved return address, SP and preserved BC/input. Out-of-table reads are
+reproduced, not declared naturally admissible. Seven forced handlers at
+$047C+6*i check writes of 3/4/5/1/2/7/6 to $C623, bounded returns and preserved
+BC/DE/HL (14 assertions). These 270 added assertions do not establish natural
+main-state execution or the external callees of states 0/1/2.

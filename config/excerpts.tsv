@@ -248,4 +248,11 @@ bank	start	end	symbol
 00	05F5	0660	DispatchReturnTable
 00	02B8	03A7	StartCartridgeProgram
 00	03A8	03BB	MainStatePointers
-00	03BC	051D	ResidualROM00_03BC
+00	03BC	0406	MainState00
+00	0407	040C	MainStateCompareWords
+00	040D	041C	MainState02ConditionalDispatch
+00	041D	0422	MainState02BranchPointers
+00	0423	046D	MainState02Branches
+00	046E	047B	MainStateResultPointers
+00	047C	04A5	WriteMainState03
+00	04A6	051D	ResidualROM00_04A6

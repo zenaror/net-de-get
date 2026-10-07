@@ -1,9 +1,9 @@
 ; PROBABLE static main-state pointers; no universal index bound established.
 SECTION "Main state pointers", ROM0[$03A8]
 MainStatePointers::
-	dw $03BC
-	dw $03C9
-	dw $03D6
+	dw MainState00
+	dw MainState01
+	dw MainState02
 	dw $04A6
 	dw $056A
 	dw $0577

@@ -821,6 +821,25 @@ int main(int argc,char **argv){
           rd(c,0xFF24)==0x77&&rd(c,0xFF25)==0xFF,
           "DMG prefix palette scroll window and sound routes",mode);
  }
+ /* Main dispatch: all byte indices, stop immediately before JP HL. */
+ for(unsigned index=0;index<256;index++){
+  wr(c,0xC623,index);wr(c,0xFFFF,0);wr(c,0xFF0F,0);
+  struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  unsigned table=0x03A8+((index*2)&255),target=rd(c,table)|(rd(c,table+1)<<8);
+  cpu->sp=0xCFFE;cpu->bc=0x1234;cpu->pc=0x0391;
+  unsigned steps=0;while(cpu->pc!=0x03A5&&steps++<100)c->step(c);
+  require(cpu->pc==0x03A5&&cpu->hl==target&&cpu->de==target&&cpu->bc==0x1234&&
+          cpu->sp==0xCFFC&&rd(c,0xCFFC)==0xA6&&rd(c,0xCFFD)==3&&rd(c,0xC623)==index,
+          "main dispatch byte wrap target and pushed return",index);
+ }
+ const unsigned stateValues[]={3,4,5,1,2,7,6};
+ for(unsigned index=0;index<7;index++){
+  wr(c,0xC623,0xA5);cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;
+  call(c,0x047C+6*index);
+  require(rd(c,0xC623)==stateValues[index]&&cpu->a==stateValues[index]&&
+          cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
+          "main result handler state and preserved register pairs",index);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
