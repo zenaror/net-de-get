@@ -62,7 +62,7 @@ bank	start	end	symbol
 00	23E4	24B8	DispatchBankedCallback
 00	24B9	254D	ResidualROM00_24B9
 00	254E	25CA	DispatchLocalMinigame
-00	25CB	2612	ResidualROM00_25CB
+00	25CB	2612	SwitchToDoubleSpeed
 00	2613	261B	CopyBytesHLToDE
 00	2DC3	2DCF	LocalCursorHorizontalJitter
 00	3031	38AF	ResidualROM00_3031

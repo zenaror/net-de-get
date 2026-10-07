@@ -122,9 +122,9 @@ ResidentJump026A::
 ResidentJump026D::
 	jp DispatchLocalMinigame
 ResidentJump0270::
-	jp $25CB
+	jp SwitchToDoubleSpeed
 ResidentJump0273::
-	jp $25EF
+	jp SwitchToNormalSpeed
 ResidentJump0276::
 	jp CopyBytesHLToDE
 ResidentJump0279::

@@ -940,3 +940,25 @@ restored A/B bytes. Copy DI/EI leaves IME enabled; no prior-IME restoration clai
 205824 complete calls add411648 assertions,total5000484 plus24 verifier tests.
 No flash-font domain,exclusive resource extent,natural callbacks/menus,Japanese
 interpretation,visible colors or physical timing proof. Original bytes preserved.
+
+## Resident CGB speed switches ($25CB–$2612)
+
+PROBABLE contracts from original KEY1/STOP flow and synthetic full CPU calls.
+The $0270/$0273 thunks now name SwitchToDoubleSpeed/SwitchToNormalSpeed.
+16384 tested calls cover both initial modes, both target modes, all 256 IE
+bytes and all 16 upper-nibble flags. Initial speed is established by the
+original helper itself, never by mutating the core speed field. Another
+16385 setup/cleanup calls execute that same original code.
+
+The transition path prepares KEY1, saves IE, masks IE, deselects JOYP, executes
+STOP and polls bit7, clears JOYP/IF, then restores saved AF/IE. Early return
+leaves IE/IF/JOYP untouched. Tests check bounded return, SP, actual speed and
+CPU multiplier, KEY1 readback, IE/IF/JOYP, AF/BC/DE/HL, a WRAM guard and IME.
+A after transition equals saved IE; early return A is KEY1 readback. Flags
+come from the initial BIT7 (carry preserved), including the saved flags after
+transition. LCD/timer/serial are disabled and IME false for these synthetic
+calls; no pending-interrupt race or physical STOP timing is asserted.
+
+49153 new assertions give total5049637, plus24 verifier tests. Existing core
+GBStop toggles speed when KEY1 prepare bit is set; that core behavior is
+emulator evidence, not hardware proof. No natural caller trace is added.

@@ -3380,6 +3380,26 @@ int main(int argc,char **argv){
   require(exact,"Original text font banked A B resources all raw plane bytes both full VRAM LCDoff on",resource*1024+plane*4+prior*2+lcd);
  }
  }
+ { /* Actual original KEY1/STOP transitions; no core speed-field mutation. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0xFF07,0);wr(c,0xFF02,0);c->setKeys(c,0);
+ for(unsigned initial=0;initial<2;initial++)for(unsigned target=0;target<2;target++)
+ for(unsigned ie=0;ie<256;ie++)for(unsigned flags=0;flags<16;flags++){
+  call(c,initial?0x270:0x273);
+  require(g->doubleSpeed==initial,"Original helper establishes initial speed",initial);
+  wr(c,0xFFFF,ie);wr(c,0xFF0F,0x15);wr(c,0xFF00,0x30);wr(c,0xC1B8,0x5A);
+  g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->a=0x5A;cpu->f.packed=flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=target?0x270:0x273;
+  unsigned steps=0;while(cpu->pc!=0xC100&&steps++<1000)c->step(c);
+  bool changed=initial!=target;unsigned expectedFlags=(initial?0x20:0xA0)|((flags&1)?0x10:0);
+  require(cpu->pc==0xC100&&cpu->sp==0xD000&&g->doubleSpeed==target&&cpu->tMultiplier==2-target&&
+   rd(c,0xFF4D)==(target?0xFE:0x7E)&&rd(c,0xFFFF)==ie&&(rd(c,0xFF0F)&31)==(changed?0:0x15)&&
+   rd(c,0xFF00)==(changed?0xCF:0xFF)&&cpu->a==(changed?ie:initial?0xFE:0x7E)&&cpu->f.packed==expectedFlags&&
+   cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xC1B8)==0x5A&&!g->memory.ime,
+   "Original speed helpers both modes full IE flags preserved registers and early return",((initial*2+target)*256+ie)*16+flags);
+ }
+ call(c,0x273);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
