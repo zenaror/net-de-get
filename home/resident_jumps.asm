@@ -128,9 +128,9 @@ ResidentJump0273::
 ResidentJump0276::
 	jp CopyBytesHLToDE
 ResidentJump0279::
-	jp $261C
+	jp TickCounterAndPollJoypad
 ResidentJump027C::
-	jp $2620
+	jp PollJoypadState
 ResidentJump027F::
 	jp $2685
 ResidentJump0282::

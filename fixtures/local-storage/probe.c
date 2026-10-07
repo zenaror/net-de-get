@@ -54,6 +54,27 @@ static void callWithLimit(struct mCore *c,unsigned entry,unsigned limit){
  require(cpu->pc==0xC100&&cpu->sp==0xD000,"bounded return",entry);
 }
 static void call(struct mCore *c,unsigned entry){callWithLimit(c,entry,100000);}
+/* Independent byte-state model, including the core's explicit opposing-key policy. */
+struct JoypadState {unsigned previous,repeat,counter;};
+static unsigned sampledKeys(unsigned keys,bool opposing){
+ if(!opposing){if((keys&0x30)==0x30)keys&=~0x30;if((keys&0xC0)==0xC0)keys&=~0xC0;}return keys;
+}
+static struct JoypadState probeJoypad(struct mCore *c,unsigned keys,bool opposing,struct JoypadState old,unsigned frame,bool tick,unsigned index){
+ struct GB *g=c->board;struct SM83Core *cpu=g->cpu;unsigned sample=sampledKeys(keys,opposing),edge=(old.previous^sample)&sample,masked=sample&0xF3;
+ unsigned counter=0,output=edge,marker=1,flags=0x40|(old.repeat==masked?0x80:0)|((old.repeat&15)<(masked&15)?0x20:0)|(old.repeat<masked?0x10:0);
+ if(old.repeat==masked){counter=(old.counter+1)&0x9F;if(!counter)counter=0x80;
+  if((counter&0x80)&&!(counter&3)){output|=masked;marker=0;flags=0x80;}
+  else flags=(counter&0x80)?0x20:0xA0;
+ }
+ g->allowOpposingDirections=opposing;c->setKeys(c,keys);wr(c,0xFF96,old.previous);wr(c,0xFF99,old.repeat);wr(c,0xFF9A,old.counter);wr(c,0xFF8B,frame);
+ wr(c,0xFF95,0x3C);wr(c,0xFF9C,0xA5);wr(c,0xC1B8,0x5A);cpu->a=0x5A;cpu->f.packed=0xF0;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;
+ call(c,tick?0x279:0x27C);
+ require(cpu->a==marker&&cpu->f.packed==flags&&cpu->bc==((sample&0xF0)<<8|masked)&&cpu->de==0x5678&&cpu->hl==0xFF9A&&
+  rd(c,0xFF96)==sample&&rd(c,0xFF97)==edge&&rd(c,0xFF98)==output&&rd(c,0xFF99)==masked&&rd(c,0xFF9A)==counter&&rd(c,0xFF9B)==marker&&
+  rd(c,0xFF8B)==((frame+tick)&255)&&rd(c,0xFF95)==0x3C&&rd(c,0xFF9C)==0xA5&&rd(c,0xC1B8)==0x5A&&rd(c,0xFF00)==255,
+  "Original joypad sampled keys edge repeat counter AF BC DE HL guards frame wrap",index);
+ return (struct JoypadState){sample,masked,counter};
+}
 /* Independent bounded model of lower-slot straight-line command framing.
    It stops before FE; it does not model loop control or natural IRQ timing. */
 struct A1EEvent {unsigned pointer,low,high;};
@@ -3281,6 +3302,36 @@ int main(int argc,char **argv){
   require(exact,"Complete original entry returns choice clears callbacks and preserves list after forced frame/audio producers",m*8+family*2+plane);
  }
  c->setKeys(c,0);wr(c,0xFF40,0);wr(c,0xFF97,0);wr(c,0xFF98,0);
+ }
+ { /* Exhaustive polling transitions and bounded held/release traces. */
+ struct GB *g=c->board;bool savedPolicy=g->allowOpposingDirections;wr(c,0xFF40,0);
+ for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+ for(unsigned policy=0;policy<2;policy++){
+  for(unsigned keys=0;keys<256;keys++)for(unsigned previous=0;previous<256;previous++){
+   unsigned masked=sampledKeys(keys,policy)&0xF3;struct JoypadState old={previous,masked^1,(previous*73+keys)&255};
+   probeJoypad(c,keys,policy,old,0x5A,false,policy*65536+keys*256+previous);
+  }
+  for(unsigned keys=0;keys<256;keys++)for(unsigned previousRepeat=0;previousRepeat<256;previousRepeat++){
+   struct JoypadState old={(previousRepeat*19+keys)&255,previousRepeat,(previousRepeat*73+keys)&255};
+   probeJoypad(c,keys,policy,old,0x5A,false,policy*65536+keys*256+previousRepeat);
+  }
+  for(unsigned keys=0;keys<256;keys++)for(unsigned counter=0;counter<256;counter++){
+   unsigned sample=sampledKeys(keys,policy);struct JoypadState old={sample,sample&0xF3,counter};
+   probeJoypad(c,keys,policy,old,0x5A,false,policy*65536+keys*256+counter);
+  }
+  for(unsigned frame=0;frame<256;frame++){
+   unsigned keys=(frame*73)&255;struct JoypadState old={(frame*19)&255,frame^0xA5,(frame*41)&255};
+   probeJoypad(c,keys,policy,old,frame,true,policy*256+frame);
+  }
+  for(unsigned keys=0;keys<256;keys++){
+   struct JoypadState old={0,0,0};unsigned frame=0xF0;
+   for(unsigned step=0;step<96;step++){unsigned current=step<48?keys:step<64?0:keys^1;
+    old=probeJoypad(c,current,policy,old,frame,true,policy*24576+keys*96+step);frame=(frame+1)&255;
+   }
+  }
+ }
+ bool untouched=true;for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)untouched&=rd(c,0x8000+i)==0xA5;}
+ require(untouched,"Whole VRAM remains untouched across exhaustive polling group",0);g->allowOpposingDirections=savedPolicy;c->setKeys(c,0);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

@@ -886,3 +886,28 @@ unchanged hardware palette bytes. No original IRQ uploader/frame producer/audio
 progress or natural menu timing is asserted. Reading448 bytes at50E0 crosses
 published text/object records and does not establish an exclusive font extent.
 These33 complete calls add789 assertions,total3703075; PROBABLE/SYNTHETIC only.
+
+
+## Resident joypad polling and repeat
+
+PROBABLE/SYNTHETIC: original261C counter increment falls through2620 polling;
+resident0279/027C now name these routines. Preserve all repeated JOYP reads.
+FF97=(previous XORsample)&sample; FF96=sample; deselect JOYP. Repeat compares
+sample&F3 againstFF99, excluding Select/Start. Change resetsFF9A and outputs
+edge/marker1; equality increments counter masked9F,zero->80. Counter bit7
+with low two bits zero outputs edge|masked state/marker0; otherwise edge/marker1.
+No physical frame duration is inferred from a call-count repeat mechanism.
+
+Run with core allowOpposingDirections false and true, then restore its old value.
+The independent model suppresses opposite direction pairs only with false;
+this is the core fixture policy, not physical-controller evidence. For each
+policy,65536 key/previous pairs cover edges with a changed repeat state,
+65536 key/previous-repeat pairs cover comparison flags with other fields derived,
+and65536 key/counter pairs cover matched-repeat counters. These are separate
+parameter domains, not the full product of all independent state fields.
+256 calls per policy exhaust prior frame-counter bytes.256 traces per policy
+run96 original polls with48 held,16 released,32 A-inverted samples and independently
+chained expected state. Check AF/BC/DE/HL,HRAM state,edges,repeat,marker,wraps,
+guards and JOYP deselection. Both8192-byte VRAM planes remain A5 at group end.
+442880 complete calls add885761 assertions,total4588836. No natural IRQ/menu,
+hardware debounce or physical timing claim.
