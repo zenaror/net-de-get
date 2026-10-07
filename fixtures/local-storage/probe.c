@@ -163,6 +163,14 @@ int main(int argc,char **argv){
   require(cpu->hl==targets[i]&&cpu->sp==0xCAFE&&rd(c,0xD000)==states[i],
           "state dispatch preserves input and stack",states[i]);
  }
+ /* State 1 nonzero gate: original RET path, no downstream callees. */
+ for(unsigned value=1;value<256;value++){
+  wr(c,0xC21F,value);cpu->bc=0x1234;cpu->de=0x5678;cpu->hl=0x9ABC;
+  call(c,0x42CD);
+  require(cpu->a==value&&!(cpu->af&0x80)&&rd(c,0xC21F)==value&&
+          cpu->bc==0x1234&&cpu->de==0x5678&&cpu->hl==0x9ABC,
+          "state 1 nonzero gate skips downstream callees",value);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

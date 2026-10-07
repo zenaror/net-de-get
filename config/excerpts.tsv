@@ -26,3 +26,6 @@ bank	start	end	symbol
 0A	402A	406B	LocalMinigameMenuLoop
 0A	406C	407D	DispatchLocalMenuState
 0A	407E	4089	LocalMenuStateTargets
+0A	42CD	42E5	LocalMenuState1
+0A	42E6	42F8	LocalMenuState2
+0A	42F9	4302	LocalMenuState3

@@ -328,3 +328,18 @@ rotates to 1 and selects unaligned `$CD40`. These are synthetic mechanics checks
 not natural invalid-state occurrences or evidence of a safe dispatch bound.
 No semantic state names are asserted. The fixture now has **1126 assertions**;
 all **27 sections / 2019 bytes** match the reference.
+
+
+### Menu state handlers 1..3
+
+`engine/menus/local_state_handlers.asm` extracts `$42CD-$4302` as three
+return-terminated table targets (25, 19 and 10 bytes). Their names use literal
+state indices, not inferred UI meanings. **PROBABLE static interpretation:**
+state 1 reads `$C21F` and skips all six calls when nonzero; states 2/3 execute
+their original call sequences. External callees remain numeric pending analysis.
+
+Every nonzero `$C21F` value is checked at the original state-1 entry in a
+disposable core: bounded return, unchanged input and BC/DE/HL. These 255 fixtures
+add 510 assertions, bringing the maintained suite to **1636 assertions**. No
+zero-path, downstream-callee or natural-menu execution is asserted here.
+The extracted total is **30 sections / 2073 bytes**, all byte-exact.
