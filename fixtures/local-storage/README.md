@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,919 assertions**.
+and stack assertions, the maintained fixture reports **2,003 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -111,3 +111,10 @@ four counts. They check both four-byte OAM-source entries, unchanged hidden
 entry fields and adjacent sentinels. Offsets 251/252/255 deliberately exercise
 eight-bit offset+5 wrapping; natural admissibility and display behavior are not
 established by these memory/register fixtures.
+
+Thirty-six held-input pairs cover equal and changed bytes, irrelevant-bit changes,
+bit $10/$20 priority, unchanged absent descriptors and adjacent sentinels at
+$478D. Four transitions chain that producer into consumer body $5A0E, skipping
+callbacks, and check original one-cell sources in both VRAM planes, padding and
+consumed flags. The cases are forced, LCD-off and SYNTHETIC; neither natural
+input admissibility nor rendered indicators is established.

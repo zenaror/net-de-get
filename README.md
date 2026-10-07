@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **12861 bytes em 67 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **13003 bytes em 69 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -70,7 +70,7 @@ Objetivo: ampliar progressivamente o fonte RGBDS legível, preservando os bytes 
 
 ### Trabalho a fazer
 
-1. Seguir os produtores da fila e os handlers `$4656/$478D/$4940`, preservando campos e comparações; buscar preparação natural dos gráficos/paletas.
+1. Seguir os produtores da fila e os handlers `$4656/$4940`, preservando campos e comparações; buscar preparação natural dos gráficos/paletas.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
@@ -166,3 +166,9 @@ Os thunks `$0171/$0174` e seus corpos `$0799-$07E6` estão em `home/palette_entr
 `engine/menus/local_list_indicators.asm` cobre `$461A-$4655`. Zera primeiro o byte Y de duas entradas no buffer de OAM (`$C070/$C074`), usa o bit `$10` de `$D006` para suprimir a atualização e preenche os quatro bytes das entradas conforme `$D002` e `$D003`. A comparação inferior calcula `offset + 5` em oito bits, sem ampliação.
 
 Quarenta fixtures verificam as duas entradas e sentinels adjacentes, combinando o bit de pisca, offsets 0/1/251/252/255 e contagens 0/5/6/255. Os offsets altos demonstram só a mecânica de wrap; não estabelecem estados admissíveis ou indicadores naturais. A interpretação permanece `PROBABLE`.
+
+### Produtor dos indicadores de held input
+
+`engine/menus/local_held_indicators.asm` cobre `$478D-$4812`. Compara o byte inteiro de held input (`$FF96`) com `$D015`; se forem iguais, retorna sem alterar a fila. Quando diferem, escreve descriptors de uma célula em `$D046/$D04C` para os bits `$10/$20` anteriores/atuais, com prioridade para `$10` quando ambos estão ativos. Atualiza `$D021` e guarda o novo byte em `$D015`. Os oito bytes em `$4813-$481A` estão em `data/local_held_indicators.asm`, sem tradução.
+
+Trinta e seis combinações sintéticas conferem os descriptors, flags, caminho sem mudança e sentinels. Quatro transições encadeiam o produtor com o corpo do consumidor `$5A0E`, verificando ambos os planos de VRAM e o consumo dos flags. Os callbacks são pulados nesses quatro casos. Não há trace natural ou prova de admissibilidade de combinações como `$FF`; a interpretação permanece `PROBABLE`.

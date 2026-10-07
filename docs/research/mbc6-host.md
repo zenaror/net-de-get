@@ -562,3 +562,19 @@ and counts 0/5/6/255, checking both entries and adjacent sentinels. Large
 offsets are deliberate mechanics checks, not natural invalid-state evidence.
 No rendered/natural indicator claim follows. Suite: **1919 assertions**.
 Source: **67 sections / 12861 byte-exact bytes**.
+
+
+### Held-input one-cell queue producer
+
+**PROBABLE static interpretation:** A $14:$478D-$4812 compares the entire held
+byte $FF96 with previous $D015. Equal bytes leave descriptors/flag unchanged;
+changed bytes optionally write six-byte descriptors at $D046/$D04C for old/new
+bits $10/$20, with $10 priority. Destination is $986F or $9864; dimensions are
+1x1, with two consecutive source bytes per cell at $4813/$4815/$4817/$4819.
+It sets $D021=1 and stores the current held byte, even for irrelevant-bit changes.
+The eight original data bytes are emitted separately without translation.
+
+36 forced pairs and four producer-to-consumer-body transitions check descriptor
+bytes, guards, flags, both VRAM planes and padding. Consumer callbacks are
+skipped in these four cases. No natural trace, LCD-on timing or hardware claim.
+Suite: **2003 assertions**; **69 sections / 13003 byte-exact bytes**.

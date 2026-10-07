@@ -10,7 +10,7 @@ LocalMenuState1::
 	call $4940
 	call $488E
 	call UpdateLocalListIndicators
-	call $478D
+	call QueueLocalHeldIndicators
 	call $4656
 .return:
 	ret
@@ -23,7 +23,7 @@ LocalMenuState2::
 	call $4940
 	call UpdateLocalListIndicators
 	call $48DA
-	call $478D
+	call QueueLocalHeldIndicators
 	call $4656
 	ret
 .end:

@@ -559,6 +559,51 @@ int main(int argc,char **argv){
   require(ok,"list OAM indicators, blink bit, wrapped comparison and sentinels",
           blink*100+oi*10+ci);
  }
+ /* Held indicator producer: whole-byte equality and bit-10 priority. */
+ const unsigned heldValues[]={0,1,0x10,0x20,0x30,0xFF};
+ for(unsigned oi=0;oi<6;oi++)for(unsigned ni=0;ni<6;ni++){
+  unsigned old=heldValues[oi],now=heldValues[ni],changed=old!=now;
+  wr(c,0xD015,old);wr(c,0xFF96,now);wr(c,0xD021,0x37);
+  for(unsigned i=0;i<14;i++)wr(c,0xD045+i,0xA5);
+  call(c,0x478D);
+  unsigned ok=rd(c,0xD015)==now&&rd(c,0xD021)==(changed?1:0x37)&&
+              rd(c,0xD045)==0xA5&&rd(c,0xD052)==0xA5;
+  for(unsigned which=0;which<2;which++){
+   unsigned held=which?now:old,base=which?0xD04C:0xD046;
+   unsigned active=changed&&(held&0x30),bit10=held&0x10;
+   const unsigned descriptor[]={bit10?0x6F:0x64,0x98,1,1,
+    which?(bit10?0x17:0x19):(bit10?0x13:0x15),0x48};
+   for(unsigned i=0;i<6;i++)ok&=rd(c,base+i)==(active?descriptor[i]:0xA5);
+  }
+  require(ok,"held producer equality, priority, descriptors and sentinels",oi*10+ni);
+ }
+ /* Producer -> consumer body; callbacks remain skipped in these chain cases. */
+ const unsigned chainOld[]={0,0x10,0x10,0x20},chainNew[]={0x10,0,0x20,0x10};
+ for(unsigned mode=0;mode<4;mode++){
+  for(unsigned i=0;i<60;i++)wr(c,0xD028+i,0);
+  for(unsigned slot=0;slot<10;slot++){
+   wr(c,0xD028+slot*6,255);wr(c,0xD029+slot*6,255);
+  }
+  wr(c,0xD015,chainOld[mode]);wr(c,0xFF96,chainNew[mode]);wr(c,0xD021,0);
+  wr(c,0xD309,0);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<32;i++)wr(c,0x9860+i,0xA5);
+  }
+  wr(c,0xFF4F,0);call(c,0x478D);call(c,0x5A0E);
+  unsigned ok=rd(c,0xD021)==0&&rd(c,0xD015)==chainNew[mode]&&(rd(c,0xFF4F)&1)==0;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<32;i++){
+    unsigned expected=0xA5;
+    if(chainOld[mode]&&i==(chainOld[mode]==0x10?15:4))
+     expected=rd(c,(chainOld[mode]==0x10?0x4813:0x4815)+plane);
+    if(chainNew[mode]&&i==(chainNew[mode]==0x10?15:4))
+     expected=rd(c,(chainNew[mode]==0x10?0x4817:0x4819)+plane);
+    ok&=rd(c,0x9860+i)==expected;
+   }
+  }
+  require(ok,"held producer to queue-consumer planes and padding",mode);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
