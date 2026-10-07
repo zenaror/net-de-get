@@ -3,6 +3,6 @@
 ; Native A selector $14; physical RGBDS bank $0A lower half.
 SECTION "Local menu state targets", ROMX[$407E], BANK[$0A]
 LocalMenuStateTargets::
-	dw $408A, LocalMenuState1, LocalMenuState2, LocalMenuState3, $4303, $43C0
+	dw LocalMenuState0, LocalMenuState1, LocalMenuState2, LocalMenuState3, $4303, $43C0
 .end:
 ASSERT .end - LocalMenuStateTargets == 12

@@ -6,7 +6,7 @@
 SECTION "Local minigame title list", ROMX[$4D43], BANK[$0A]
 
 ; Native A selector $14: CPU $4D43; file $28D43.
-BuildLocalMinigameTitleList:
+BuildLocalMinigameTitleList::
 	ldh a, [hWindowBSelector]
 	ld [wTitleListBankOrIndex], a
 	ldh a, [hWindowBType]

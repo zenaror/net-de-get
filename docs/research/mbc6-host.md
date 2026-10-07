@@ -343,3 +343,20 @@ disposable core: bounded return, unchanged input and BC/DE/HL. These 255 fixture
 add 510 assertions, bringing the maintained suite to **1636 assertions**. No
 zero-path, downstream-callee or natural-menu execution is asserted here.
 The extracted total is **30 sections / 2073 bytes**, all byte-exact.
+
+
+### State-0 initialization boundary
+
+`engine/menus/local_state_init.asm` extracts native A `$14:$408A-$421D`
+(404 bytes). **PROBABLE static interpretation:** it configures graphics/copy
+arguments, fills state fields, sets `$D000=1`, selects paths from `$D004` and
+`$C703`, and calls the previously extracted title routine `$4D43`. That call
+now uses its exported symbol; its address and bytes are unchanged. External
+callees and undecoded data pointers retain their original numeric values.
+
+The interval stops at its `RET`; bytes `$421E-$42CC` are excluded from this code
+unit. References to `$4224/$426D/$4275/$427D` motivate a separate data-consumer
+analysis, not decoding that area linearly as instructions. The static exact-byte
+total is **31 sections / 2477 bytes**. The **1636 synthetic assertions** still
+cover earlier helpers and dispatch/early-return cases; they do not execute this
+initialization or establish natural graphics/menu behavior.

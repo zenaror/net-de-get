@@ -29,3 +29,4 @@ bank	start	end	symbol
 0A	42CD	42E5	LocalMenuState1
 0A	42E6	42F8	LocalMenuState2
 0A	42F9	4302	LocalMenuState3
+0A	408A	421D	LocalMenuState0
