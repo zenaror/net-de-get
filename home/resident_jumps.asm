@@ -44,7 +44,7 @@ ResidentJump01F5::
 ResidentJump01F8::
 	jp $294E
 ResidentJump01FB::
-	jp $2BFE
+	jp DrawQueuedTextFrame
 ResidentJump01FE::
 	jp $2D46
 ResidentJump0201::

@@ -7,6 +7,7 @@
 #include <mgba/internal/sm83/sm83.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 static unsigned checks;
 static void require(int ok,const char *name,unsigned index){
  if(!ok){fprintf(stderr,"FAIL %s case=%u\n",name,index);exit(10);}checks++;
@@ -2747,6 +2748,58 @@ int main(int argc,char **argv){
   require(exact,"A0F three indicator pairs original attributes both full VRAM planes",lcd*512+seed*2+initial);
  }
  wr(c,0xFF40,0);
+ }
+ { /* Frame writes: independent row/cell memory model, including overlapping rows. */
+ const unsigned attrs[]={0,1,0x23,255};
+ for(unsigned family=0;family<3;family++){
+  unsigned cases=family==0?1024:family==1?512:64;
+  for(unsigned sample=0;sample<cases;sample++){
+   unsigned plane=sample&1,lcd=family==1?0:(sample>>1)&1;
+   unsigned kind=family==0?sample>>2:family==1?1:((sample>>5)?2:1);
+   unsigned width=family==0?1+kind%29:family==1?sample>>1:kind==1?18:16;
+   unsigned height=family==0?1+kind%8:family==1?1:kind==1?5:1;
+   unsigned origin=family==2?(kind==1?0x98C0:0x9841):0x8000;
+   unsigned attr=attrs[(sample>>2)&3],columns=width?width:256,rows=((height*2)&255)+2,base=kind==1?0x6C:0x75;
+   unsigned char expected[2][8192];memset(expected,0xA5,sizeof(expected));
+   for(unsigned row=0;row<rows;row++)for(unsigned col=0;col<columns+2;col++){
+    unsigned address=origin-0x8000+row*32+col;
+    if(address>=8192){fprintf(stderr,"Frame model outside VRAM\n");exit(10);}
+    unsigned tile=base+(row==0?0:row==rows-1?6:3)+(col==0?0:col==columns+1?2:1);
+    expected[0][address]=tile;expected[1][address]=attr;
+   }
+   wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+   for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+   wr(c,0xFF4F,plane);wr(c,0xC1A3,attr);wr(c,0xC1A4,0x3C);wr(c,0xC1A7,0x5A);wr(c,0xC1A8,width);wr(c,0xC1A9,height);wr(c,0xC1AA,kind);
+   wr(c,0xC1AB,0xA5);wr(c,0xC1B8,0x5A);wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x3C);
+   unsigned entry=0x1FB,expectedD=0xA5;cpu->hl=origin;cpu->de=0xA500;
+   if(family==2){entry=0x1E6;cpu->a=kind==1?0:3;cpu->c=(sample>>4)&1?255:0;cpu->de=0x5268;wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);expectedD=0x98;}
+   if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,entry,2000000);
+   bool exact=cpu->hl==origin+(rows-1)*32+columns+1&&cpu->bc==0&&cpu->de==((expectedD<<8)|(base+8))&&cpu->a==plane&&
+    cpu->f.packed==(plane?0x20:0xA0)&&(rd(c,0xFF4F)&1)==plane&&rd(c,0xC1A8)==width&&rd(c,0xC1A9)==height&&rd(c,0xC1AA)==kind&&
+    rd(c,0xC1A3)==attr&&rd(c,0xC1AB)==0xA5&&rd(c,0xC1B8)==0x5A&&rd(c,0xC1BC)==0xA5&&rd(c,0xC1BD)==0x3C;
+   if(family==2)exact&=rd(c,0xC1A4)==(kind==1?1:2)&&rd(c,0xC1A7)==(kind==1?8:4)&&rd(c,0xC1A5)==(origin&255)&&rd(c,0xC1A6)==origin>>8;
+   else exact&=rd(c,0xC1A4)==0x3C&&rd(c,0xC1A7)==0x5A;
+   wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==expected[bank][i];}
+   require(exact,"Frame complete all kinds widths original preparation LCDoff on exact planes registers guards",family*1024+sample);
+  }
+ }
+ /* Zero doubled height would leave VRAM: stop before the last middle row at A000. */
+ for(unsigned heightCase=0;heightCase<2;heightCase++)for(unsigned widthCase=0;widthCase<2;widthCase++)for(unsigned plane=0;plane<2;plane++){
+  unsigned width=widthCase?29:1,base=0x6C;unsigned char expected[2][8192];memset(expected,0xA5,sizeof(expected));
+  for(unsigned row=0;row<256;row++)for(unsigned col=0;col<width+2;col++){
+   unsigned i=row*32+col;expected[0][i]=base+(row?3:0)+(col==0?0:col==width+1?2:1);expected[1][i]=0x23;
+  }
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC1A3,0x23);wr(c,0xC1A8,width);wr(c,0xC1A9,heightCase?128:0);wr(c,0xC1AA,1);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->hl=0x8000;cpu->de=0xA500;cpu->pc=0x1FB;
+  unsigned steps=0;while(!(cpu->pc==0x2C79&&cpu->hl==0xA000)&&steps++<2000000)c->step(c);
+  unsigned sample=heightCase*4+widthCase*2+plane;
+  require(cpu->pc==0x2C79&&cpu->hl==0xA000&&cpu->sp==0xCFFC&&cpu->bc==1&&cpu->de==0xA56F&&(rd(c,0xFF4F)&1)==0,
+   "Frame height0 128 prefix reaches row256 before leaving VRAM with saved VBK on stack",sample);
+  bool exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==expected[bank][i];}
+  require(exact,"Frame height0 128 prefix exact top and255 middle rows no outside writes",sample);
+ }
  }
  { /* Indexed text setup and blocking interpreter; original reached records. */
  wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);

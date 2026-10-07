@@ -712,3 +712,26 @@ counts0/1/106 remain forced inputs.66560 complete calls and16 prefixes
 add133080 assertions. No natural menu, physical timing, arbitrary-stream
 termination or nonnull-callback behavior is claimed. Semantics stay
 PROBABLE; original Japanese bytes are preserved.
+
+
+## Queued text frame and full nonzero-kind preparation
+
+The 2BFE..2D45 frame body selects tile base6C for kind1,75 otherwise.
+It fills all cells, not just the perimeter: top/middle/bottom rows use
+three consecutive tile variants each. Every cell writes plane0 tile and
+plane1 C1A3 attribute with original STAT waits and DI/EI. Initial VBK is
+restored; incoming IME is not preserved. Width0 means256 interior cells;
+doubled height wraps as a byte and zero means256 middle rows. No clipping.
+An independent sequential row/cell model accounts for wide-row overlaps.
+1024 complete calls cover all256 kinds, bothVBKs and LCDoff/on.512 calls
+cover all256 widths with height1 and LCDoff.64 complete calls start at
+original preparation thunk1E6 using ROM records0/3, bothVBKs, LCDoff/on,
+four attributes and two fallbacks. Check entire8192 bytes perplane,
+AF/BC/DE/HL and unchanged guards/state/cursor fields.
+Eight height0/128 prefixes with widths1/29 and bothVBKs stop at2C79,
+HL=A000,C=1,SP=CFFC before the last middle row leaves VRAM. Verify the
+top plus255 middle rows and saved-VBK stack boundary. Do not execute
+outside-VRAM accesses or claim complete return for these extreme cases.
+1600 full calls plus8 prefixes add3216 assertions. All inputs remain
+SYNTHETIC; semantics PROBABLE, with no natural geometry/menu/IRQ or
+physical timing claim.

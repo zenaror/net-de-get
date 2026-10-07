@@ -464,7 +464,9 @@ bank	start	end	symbol
 07	6628	668A	DrawA0FModeIndicatorRow
 00	261C	2752	ResidualROM00_261C
 00	2799	27A9	ConfigureAndPrepareQueuedTextRegion
-00	28E3	2D52	ResidualROM00_28E3
+00	28E3	2BFD	ResidualROM00_28E3
+00	2BFE	2D45	DrawQueuedTextFrame
+00	2D46	2D52	ResidualROM00_2D46
 07	6F0C	7267	ResidualROM07_6F0C
 00	2753	2798	ConfigureQueuedTextFromIndexedRecord
 00	28BE	28E2	RenderQueuedTextBlocking

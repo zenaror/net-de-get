@@ -74,7 +74,7 @@ IndexedText_28D3::
 	ret
 ASSERT @ == $28E3
 
-; PROBABLE preparation route; nonzero-kind helper remains a bounded prefix.
+; PROBABLE preparation route; nonzero kind draws the original two-plane frame.
 SECTION "Indexed text preparation 2799-27A9", ROM0[$2799]
 ResidualROM00_2799::
 ConfigureAndPrepareQueuedTextRegion::
@@ -82,7 +82,7 @@ ConfigureAndPrepareQueuedTextRegion::
  ld a, [$C1AA]
  or a, a
  jr z, .fill
- call $2BFE
+ call DrawQueuedTextFrame
  ret
 .fill:
  call FillQueuedTextRectangle
