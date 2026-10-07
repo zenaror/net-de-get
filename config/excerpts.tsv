@@ -55,3 +55,5 @@ bank	start	end	symbol
 0A	5CE2	5D81	LocalMenuAdditionalTiles
 0A	6002	71D3	LocalMenuTilesBeforeTemplate
 0A	7244	7801	LocalMenuTilesAfterTemplate
+0A	5B26	5B30	ClearLocalOAMBuffer
+0A	5B31	5B8B	SumLocalFlashHeaderCounts

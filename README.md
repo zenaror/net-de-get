@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **12377 bytes em 56 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **12479 bytes em 58 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -70,7 +70,7 @@ Objetivo: ampliar progressivamente o fonte RGBDS legível, preservando os bytes 
 
 ### Trabalho a fazer
 
-1. Extrair os produtores de descriptors da fila e os helpers `$5B26/$5B31`; seguir dependências dos seis estados e a preparação natural de gráficos/paletas.
+1. Extrair os produtores de descriptors da fila e o registro de callback em `$5BC6`; seguir dependências dos seis estados e a preparação natural de gráficos/paletas.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
@@ -94,7 +94,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **1.742 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **1.757 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -142,3 +142,9 @@ Os probes com LCD desligado cobrem paletas inativas/ativas, cópia exata dos dez
 `data/local_menu_tiles.asm` cobre os intervalos lidos na inicialização: A `$14:$5C0A-$5C19` (16 bytes), A `$14:$5CE2-$5D81` (160 bytes) e B `$15:$6002-$7801` (6 KiB). O intervalo de B inclui o template já emitido em `$71D4-$7243`; os dados novos ocupam somente os segmentos antes/depois dele. A leitura auxiliar de 32 bytes em `$71B4` usa o mesmo segmento. O banco físico RGBDS continua `$0A` para as duas janelas.
 
 Quatro probes reproduzem as cópias desses intervalos reais no core, com registradores/memória forçados e LCD desligado. Conferem todos os bytes, o sentinel após o destino, registradores e restauração dos seletores. Isso não executa o estado 0 inteiro nem demonstra a aparência natural ou a extensão completa de cada objeto gráfico.
+
+### Buffer de OAM e soma de headers de flash
+
+`engine/menus/local_housekeeping.asm` cobre `$5B26-$5B30`, que limpa 160 bytes em `$C000`, e `$5B31-$5B8B`, que percorre pares da lista até `$FF`. A varredura pula índices menores que `$10`, seleciona B como flash, exige `$6044=$FF`, aceita `$6005≤$10` e acumula esse byte em oito bits para `$D005`. Desativa as leituras de flash ao terminar, mas não restaura o seletor/tipo B visitado. A unidade semântica dessa contagem permanece `PROBABLE`.
+
+Os probes incluem lista vazia, índice embutido, contagens válidas 3/16, contagem 17 rejeitada, marcador inválido e duplicatas sintéticas para reproduzir wrap 272→16. Os headers são preparados somente no backing descartável do core e restaurados; nenhum comando de programação/erase ou save real é usado. O clear de OAM confere os 160 bytes e um sentinel posterior.

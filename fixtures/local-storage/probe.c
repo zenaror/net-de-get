@@ -431,6 +431,44 @@ int main(int argc,char **argv){
   for(unsigned i=0;i<size;i++)ok&=rd(c,destination+i)==expectedGraphics[i];
   require(ok,"actual graphics interval, mapper restoration and trailing sentinel",range);
  }
+ /* OAM buffer clear: WRAM only, exactly 160 bytes. */
+ wr(c,0x27FF,0x14);wr(c,0x2800,0);wr(c,0xFF70,1);
+ for(unsigned i=0;i<160;i++)wr(c,0xC000+i,0xA5);
+ wr(c,0xC0A0,0x37);cpu->bc=0x1234;cpu->de=0xBEEF;call(c,0x5B26);
+ unsigned oamClear=cpu->hl==0xC0A0&&cpu->bc==0x0034&&cpu->de==0xBEEF&&rd(c,0xC0A0)==0x37;
+ for(unsigned i=0;i<160;i++)oamClear&=rd(c,0xC000+i)==0;
+ require(oamClear,"OAM WRAM buffer extent, registers and sentinel",0);
+ /* Synthetic flash headers: mutate disposable backing memory, no command/save. */
+ struct GB *fixtureGB=c->board;
+ require(fixtureGB->memory.sram&&fixtureGB->sramSize>=GB_SIZE_MBC6_FLASH_STORAGE,
+         "disposable flash backing available",0);
+ uint8_t *fixtureFlash=fixtureGB->memory.sram+fixtureGB->sramSize-GB_SIZE_MBC6_FLASH_STORAGE;
+ unsigned originalCount=fixtureFlash[5],originalMarker=fixtureFlash[0x44];
+ for(unsigned mode=0;mode<6;mode++){
+  fixtureFlash[5]=mode==2||mode==5?16:mode==3?17:3;
+  fixtureFlash[0x44]=mode==4?0:255;
+  for(unsigned i=0;i<40;i++)wr(c,0xD1E6+i,0);
+  unsigned entries=mode==0?0:mode==5?17:1;
+  unsigned prefix=mode==1?1:0;
+  if(prefix){wr(c,0xD1E6,15);wr(c,0xD1E7,2);}
+  for(unsigned i=0;i<entries;i++){
+   wr(c,0xD1E6+2*(prefix+i),16);wr(c,0xD1E7+2*(prefix+i),3);
+  }
+  wr(c,0xD1E6+2*(prefix+entries),255);
+  wr(c,0xD06B,2);wr(c,0xCEE9,0);
+  wr(c,0x37FF,7);wr(c,0x3800,0);wr(c,0xFFAD,7);wr(c,0xFFAE,0);
+  wr(c,0xC115,7);wr(c,0xC116,0);call(c,0x5B31);
+  unsigned sum=mode==0||mode==3||mode==4?0:mode==1?3:16;
+  unsigned ok=rd(c,0xD005)==sum&&rd(c,0xC5C9)==sum&&
+              rd(c,0xC5CB)==0x20&&rd(c,0xC5C4)==0&&
+              !fixtureGB->memory.mbcState.mbc6.flashEnable&&
+              !fixtureGB->memory.mbcState.mbc6.flashWriteEnable&&
+              !fixtureGB->memory.mbcState.mbc6.flashOperationActive;
+  ok&=rd(c,0xFFAD)==(mode==0?7:0)&&rd(c,0xFFAE)==(mode==0?0:8)&&
+      rd(c,0xC115)==(mode==0?7:0)&&rd(c,0xC116)==(mode==0?0:8);
+  require(ok,"header count filters, wrap and selected B window remains",mode);
+ }
+ fixtureFlash[5]=originalCount;fixtureFlash[0x44]=originalMarker;
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

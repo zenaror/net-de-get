@@ -3,7 +3,7 @@
 ; Stops at RET $421D; subsequent bytes are not decoded as instructions.
 SECTION "Local menu state 0", ROMX[$408A], BANK[$0A]
 LocalMenuState0::
-	call $5B26
+	call ClearLocalOAMBuffer
 	ld a, $01
 	ldh [$FF4F], a
 	ld a, $14
@@ -154,7 +154,7 @@ LocalMenuState0::
 	ld a, $80
 	ld [$D021], a
 	call $517D
-	call $5B31
+	call SumLocalFlashHeaderCounts
 	ld a, [$D005]
 	ld b, a
 	ld a, $70

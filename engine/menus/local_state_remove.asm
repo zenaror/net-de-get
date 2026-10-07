@@ -149,7 +149,7 @@ LocalMenuState5::
 	call $508A
 	call $4E98
 	call $46C1
-	call $5B31
+	call SumLocalFlashHeaderCounts
 	ld a, $91
 	call $024F
 	ld a, [$D005]

@@ -489,3 +489,23 @@ and destinations and compare every output byte, trailing sentinel, registers
 and restored selectors. They do not execute the entire state-0 routine, verify
 natural rendering or establish arbitrary pointer/length safety. Suite: **1742
 assertions**. Source: **56 sections / 12377 byte-exact bytes**.
+
+
+### OAM buffer and bounded flash-header sum
+
+**PROBABLE static interpretation:** `$5B26-$5B30` clears 160 bytes in the OAM
+source buffer at `$C000`. `$5B31-$5B8B` swaps `$D06B` into scratch `$C5CB`,
+zeros other scratch, enables flash reads and scans index/box pairs at `$D1E6`
+until index `$FF`. It ignores builtin indices below `$10`, selects B flash
+with selector index minus `$10`, requires header `$6044=$FF`, accepts count
+`$6005` through `$10`, and adds it in eight bits. Result `$C5C9` is stored
+at `$D005`. Read/write controls are disabled on exit, while visited B
+selector/type and mirrors are left selected. Count units are not newly proved.
+
+Six synthetic header-sum cases include empty, skipped builtin, valid 3/16,
+rejected 17, marker mismatch and 17 duplicate count-16 entries (272 wraps to16).
+Headers are injected into disposable core backing memory, then restored; no
+flash program/erase command, original modification or real save is used. This
+does not establish natural duplicates or universal list bounds. An OAM-source
+clear fixture checks all 160 bytes, registers and a trailing sentinel. Suite:
+**1757 assertions**. Source: **58 sections / 12479 byte-exact bytes**.

@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,742 assertions**.
+and stack assertions, the maintained fixture reports **1,757 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -81,3 +81,12 @@ ranges: A `$14:$5C0A` (16), B `$15:$6002` (6144), A `$14:$5CE2` (160),
 and B `$15:$71B4` (32). They compare every copied byte, trailing sentinel,
 registers, selected VRAM plane and restored mapper values. Setup is forced and
 LCD is off; no complete state-0 or naturally rendered graphics claim follows.
+
+Local housekeeping checks clear exactly 160 WRAM OAM-source bytes at `$C000`,
+register outcomes and a trailing sentinel. Six header-sum fixtures cover empty
+list, skipped builtin index, accepted counts 3/16, rejected 17, marker mismatch
+and duplicate synthetic entries that wrap 272 to 16. Header bytes are injected
+directly into disposable core flash backing and restored; no program/erase
+command or save file is used. Checks also cover disabled read/write controls and
+the visited B selector/type remaining selected, not restored. Count units and
+natural duplicate-list admissibility are not established.

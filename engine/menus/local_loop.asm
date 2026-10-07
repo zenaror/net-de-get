@@ -21,7 +21,7 @@ LocalMinigameMenuLoop::
 	ld hl, $5188
 	call $017A
 	call $516E
-	call $5B26
+	call ClearLocalOAMBuffer
 	di
 	ld de, $0000
 	call $0150
