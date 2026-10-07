@@ -112,6 +112,46 @@ int main(int argc,char **argv){
  call(c,0x01B9);wr(c,0x0000,0x0A);
  require((rd(c,0xA30E)|(rd(c,0xA30F)<<8))==(expected&65535),
           "close updates stored record checksum",0);
+ /* Recovery: empty, one valid, invalid first, two valid, invalid second, zero sum. */
+ for(unsigned mode=0;mode<6;mode++){
+  for(unsigned i=0;i<4096;i++)wr(c,0xA000+i,0);
+  if(mode==5){
+   unsigned header=0xA30E;
+   for(unsigned i=0;i<4;i++)wr(c,header+2+i,rd(c,0x3ED8+i));
+   wr(c,header+6,4);wr(c,header+7,1); /* 260-byte payload */
+   unsigned sum=0;for(unsigned i=2;i<9;i++)sum+=rd(c,header+i);
+   unsigned remaining=65536-sum;
+   for(unsigned i=0;i<260;i++){
+    unsigned value=remaining>255?255:remaining;
+    wr(c,header+9+i,value);remaining-=value;
+   }
+   require(remaining==0,"zero-sum fixture reaches modulo65536 zero",mode);
+  }else if(mode){
+   unsigned header=0xA30E;
+   for(unsigned record=0;record<(mode>=3?2:1);record++){
+    for(unsigned i=0;i<4;i++)wr(c,header+2+i,rd(c,0x3ED8+i));
+    wr(c,header+6,3);wr(c,header+7,0);
+    wr(c,header+8,(mode>=3&&record==0)?1:0);
+    wr(c,header+9,1);wr(c,header+10,2);wr(c,header+11,3);
+    unsigned checksum=0;for(unsigned i=2;i<12;i++)checksum+=rd(c,header+i);
+    if(mode==2||(mode==4&&record==1))checksum++;
+    wr(c,header,checksum&255);wr(c,header+1,checksum>>8);header+=12;
+   }
+  }
+  call(c,0x108E);
+  unsigned count=(mode==0||mode==2||mode==5)?0:(mode==3?2:1);
+  require(cpu->a==count&&cpu->c==((mode==2||mode==4)?1:0),
+          "recovery count and stop reason",mode);
+  require((rd(c,0xA002)|(rd(c,0xA003)<<8))==(count?0xA30E:0),
+          "recovery first pointer",mode);
+  require((rd(c,0xA008)|(rd(c,0xA009)<<8))==(count==2?0xA31A:0),
+          "recovery second pointer or rejected suffix",mode);
+ }
+ wr(c,0xA000,0xA5);wr(c,0xAFFF,0x5A);wr(c,0xB000,0x37);
+ cpu->a=0;call(c,0x113E);
+ unsigned cleared=1;for(unsigned i=0;i<4096;i++)cleared&=rd(c,0xA000+i)==0;
+ require(cleared,"clear entire selected SRAM window",0);
+ require(rd(c,0xB000)==0x37,"clear leaves other SRAM window unchanged",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

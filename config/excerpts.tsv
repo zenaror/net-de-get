@@ -22,3 +22,4 @@ bank	start	end	symbol
 00	3ED8	3EDB	LocalMenuStorageName
 00	106D	108D	ComputeStorageDirectoryChecksum
 00	2000	2011	SubtractDEFromHL
+00	108E	114E	RebuildLocalStorageDirectory

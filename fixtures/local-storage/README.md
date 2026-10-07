@@ -22,11 +22,11 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,082 assertions**.
-All 256 arithmetic indices are tested, but this does not mean all are admissible
+and stack assertions, the maintained fixture reports **1,110 assertions**.
+Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
 The probes cover helpers, only bounded forced-entry open/create/close cases, not persistence,
-recovery, allocation capacity, arbitrary corrupted records or natural execution.
+complete recovery guarantees, allocation capacity, arbitrary corrupted records or natural execution.
 Semantic names remain PROBABLE. The maintained research note explains the
 static paths and distinguishes these fixtures from natural evidence.

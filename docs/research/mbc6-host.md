@@ -287,3 +287,26 @@ the two-byte stored size unchanged and still returns `$A317`. A forced `$01B9`
 close updates the record checksum. These bounded cases test the static distinction
 between new/existing records; they do not establish the safety of arbitrary
 corrupted records, natural menu operation or disk persistence.
+
+
+### Directory recovery and SRAM clear
+
+`home/local_storage_recovery.asm` reconstructs ROM0 `$108E-$114E` (193 bytes).
+**PROBABLE static interpretation:** recovery clears the directory, walks record
+headers from `$A30E`, checks each stored checksum against its data sum, writes
+accepted pointers/names into the six-byte directory, and advances by stored
+length +9 when header byte +8 requests continuation. A returns the rebuilt count
+from `$FF9D`; C is one on checksum mismatch and zero on the decoded termination
+paths. No general record-length or recovered-entry capacity guarantee is asserted.
+
+Six forced-entry fixtures exercise empty storage, one/two valid records, checksum
+failure in the first/second record, and a valid zero checksum. The invalid-second
+case returns A=1/C=1 and retains only the first pointer. The zero-checksum fixture
+has a 260-byte payload whose header/data sum is exactly 65536 and stored checksum
+zero; it returns A=0/C=0 without inserting the record. This reproduces the static
+zero termination condition, not a natural-data occurrence or a proposed ROM fix.
+
+The separate `$113E` helper clears 4096 bytes at `$A000` after writing `$0400`.
+The synthetic fixture checks all bytes and unchanged data at `$B000`. It does not
+perform flash erase or disk persistence. The expanded fixture has **1110 assertions**;
+source interval totals are **24 sections / 1923 bytes**, with exact-byte gates.
