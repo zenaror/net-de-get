@@ -578,3 +578,26 @@ The eight original data bytes are emitted separately without translation.
 bytes, guards, flags, both VRAM planes and padding. Consumer callbacks are
 skipped in these four cases. No natural trace, LCD-on timing or hardware claim.
 Suite: **2003 assertions**; **69 sections / 13003 byte-exact bytes**.
+
+
+### Text timer, cursor routines and list-input traversal
+
+**PROBABLE static interpretation:** A $14:$4656-$46C0 steps a text buffer with
+$D016 scheduling, source $D017/$D018 and row $D01A. Seven forced timer/empty-token
+cases return without calling the unextracted text sink $01EF. No universal
+buffer capacity or nonempty-output runtime claim.
+A $14:$488E-$493F separates three cursor routines and three data bytes at
+$48D7-$48D9. ROM0 $2DC3-$2DCF calculates a frame-derived byte displacement.
+256 frame-byte probes plus 20/16/20 cursor cases check arithmetic, entry fields
+and guards, not natural rendered motion or arbitrary table-index admissibility.
+A $14:$4940-$4C3D has exact reconstructed input branches; 16 unhandled-input
+cases return without tested menu-field changes. Active paths with unextracted
+callees remain static. A $14:$4CDA-$4CEF searches category-tagged pairs, retaining
+8-bit B increment/decrement; four probes include exhaustion and B=$FF against
+256 synthetic pairs, without implying natural list capacity.
+
+Source: **77 sections / 14089 byte-exact bytes**; CPU suite **2681 assertions**.
+19 checker tests now include eight complete-coverage/whole-image cases.
+Rafael authorized continuing until a full, independently assembled 1 MiB ROM
+matches the reference exactly. The complete gate rejects matching linker padding
+without explicit sources; sparse equivalence is still an intermediate result.

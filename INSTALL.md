@@ -15,3 +15,12 @@ The optional `make compare REFERENCE_ROM="/external/path/game.gbc"` compares onl
 ## Gates for each source change
 
 Run `make verify REFERENCE_ROM="/external/path/game.gbc"`. `sym-check` compares section boundaries and entry symbols to `config/excerpts.tsv`; `test` runs synthetic negative and positive checker fixtures; `compare` rebuilds into a fresh temporary directory and checks emitted bytes against the original hash-checked reference. No full-ROM equivalence is implied by sparse excerpt equivalence.
+
+## Complete reconstruction gate
+
+`make coverage` reports the explicit-source byte count and unresolved physical
+file ranges from the manifest. `make verify-full REFERENCE_ROM="/external/path/game.gbc"`
+requires the partial gates, full source coverage, correct image length and exact
+whole-file bytes. It currently fails because the reconstruction remains partial.
+Linker padding is never counted as source, even if it matches the reference.
+The original is read only for comparison, never as an assembly input or gap filler.

@@ -604,6 +604,101 @@ int main(int argc,char **argv){
   }
   require(ok,"held producer to queue-consumer planes and padding",mode);
  }
+ /* Text-step timer paths and empty strings, without calling the text sink. */
+ const unsigned textTimers[]={0,2,3,255};
+ for(unsigned mode=0;mode<4;mode++){
+  wr(c,0x27FF,0x14);wr(c,0x2800,0);
+  wr(c,0xD016,textTimers[mode]);wr(c,0xC1BA,2);wr(c,0xC1C2,0xA5);
+  wr(c,0xD017,0);wr(c,0xD018,0xD8);wr(c,0xD019,0x37);wr(c,0xD01A,7);
+  for(unsigned i=0;i<4;i++)wr(c,0xD329+i,0xA5);
+  call(c,0x4656);
+  require(rd(c,0xD016)==(textTimers[mode]?textTimers[mode]-1:0)&&
+          rd(c,0xC1C2)==0xA5&&rd(c,0xD017)==0&&rd(c,0xD018)==0xD8&&
+          rd(c,0xD019)==0x37&&rd(c,0xD01A)==7&&rd(c,0xD329)==0xA5&&
+          rd(c,0xD32A)==0xA5&&rd(c,0xD32B)==0xA5&&rd(c,0xD32C)==0xA5,
+          "text timer skips source/output",mode);
+ }
+ const unsigned emptyTextModes[]={1,2,255};
+ for(unsigned mode=0;mode<3;mode++){
+  wr(c,0xD016,1);wr(c,0xC1BA,emptyTextModes[mode]);wr(c,0xC1C2,0xA5);
+  wr(c,0xD017,0);wr(c,0xD018,0xD8);wr(c,0xD019,0x37);wr(c,0xD01A,7);
+  wr(c,0xD800,0);cpu->de=0xBEEF;
+  call(c,0x4656);
+  require(rd(c,0xD016)==0&&rd(c,0xC1C2)==0x37&&cpu->de==0xD801&&
+          rd(c,0xD017)==0&&rd(c,0xD018)==0xD8&&rd(c,0xD019)==0x37&&
+          rd(c,0xD01A)==7&&rd(c,0xD329)==0xA5&&rd(c,0xD32A)==0xA5&&
+          rd(c,0xD32B)==0xA5&&rd(c,0xD32C)==0xA5,
+          "empty text returns without sink or pointer store",mode);
+ }
+ /* Original cursor arithmetic and bounded OAM-buffer writes, LCD off. */
+ for(unsigned frame=0;frame<256;frame++){
+  wr(c,0xFF8B,frame);cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;
+  call(c,0x2DC3);
+  unsigned jitter=((((frame>>2)&3)^3)-2)&255;
+  require(cpu->a==jitter&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
+          "cursor frame byte arithmetic",frame);
+ }
+ const unsigned cursorRows[]={0,1,15,16,255};
+ for(unsigned row=0;row<5;row++)for(unsigned frame=0;frame<4;frame++){
+  unsigned value=cursorRows[row];wr(c,0xFF8B,frame*4);wr(c,0xD007,value);
+  wr(c,0x27FF,0x14);wr(c,0x2800,0);
+  for(unsigned i=0;i<5;i++)wr(c,0xC000+i,0xA5);
+  call(c,0x488E);
+  require(rd(c,0xC000)==((((value<<4)|(value>>4))+0x38)&255)&&
+          rd(c,0xC001)==((((frame^3)-2)+8)&255)&&rd(c,0xC002)==0x76&&
+          rd(c,0xC003)==8&&rd(c,0xC004)==0xA5,"list cursor entry and guard",row*4+frame);
+ }
+ const unsigned removeOffsets[]={0x10,0x38,0x68};
+ for(unsigned index=0;index<4;index++)for(unsigned frame=0;frame<4;frame++){
+  wr(c,0xFF8B,frame*4);wr(c,0xD01C,index==3?255:index);
+  for(unsigned i=0;i<5;i++)wr(c,0xC000+i,0xA5);
+  call(c,0x48AB);
+  unsigned x=index==3?0:((((frame^3)-2)+removeOffsets[index])&255);
+  require(rd(c,0xC000)==0x90&&rd(c,0xC001)==x&&
+          rd(c,0xC002)==(index==3?0xA5:0x76)&&rd(c,0xC003)==(index==3?0xA5:8)&&
+          rd(c,0xC004)==0xA5,"remove cursor entry and skipped fields",index*4+frame);
+ }
+ /* State equality/mismatch controls which row is selected or hidden. */
+ for(unsigned mode=0;mode<5;mode++)for(unsigned frame=0;frame<4;frame++){
+  wr(c,0xFF8B,frame*4);wr(c,0xD006,mode==0?2:0);
+  wr(c,0xD001,1);wr(c,0xD00A,mode==1?2:1);
+  wr(c,0xD002,3);wr(c,0xD00B,mode==2?4:3);
+  wr(c,0xD007,1);wr(c,0xD00C,mode==3?2:1);
+  for(unsigned i=0;i<5;i++)wr(c,0xC000+i,0xA5);
+  call(c,0x48DA);
+  unsigned active=(mode==0||mode==3),row=mode==3?2:1;
+  require(rd(c,0xC000)==(active?0x38+16*row:0)&&
+          rd(c,0xC001)==(active?((((frame^3)-2)+8)&255):0xA5)&&
+          rd(c,0xC002)==(active?0x76:0xA5)&&rd(c,0xC003)==(active?8:0xA5)&&
+          rd(c,0xC004)==0xA5,"move cursor equality and bit branch",mode*4+frame);
+ }
+ /* Unhandled input returns without executing external callees. */
+ const unsigned ignoredHeld[]={0,1,4,5},ignoredPressed[]={0,4,0x80,0x84};
+ for(unsigned held=0;held<4;held++)for(unsigned pressed=0;pressed<4;pressed++){
+  wr(c,0x27FF,0x14);wr(c,0x2800,0);
+  wr(c,0xFF98,ignoredHeld[held]);wr(c,0xFF97,ignoredPressed[pressed]);
+  for(unsigned i=0;i<32;i++)wr(c,0xD000+i,0xA5);
+  wr(c,0xD004,0);wr(c,0xC671,0xA5);call(c,0x4940);
+  unsigned ok=rd(c,0xC671)==0xA5;
+  for(unsigned i=0;i<32;i++)ok&=rd(c,0xD000+i)==(i==4?0:0xA5);
+  require(ok,"unhandled input preserves menu fields",held*4+pressed);
+ }
+ /* Pair lookup: nth matching category, exhaustion and B=$FF wrap. */
+ const unsigned lookupIndices[]={0,1,2,255};
+ for(unsigned mode=0;mode<4;mode++){
+  unsigned length=mode==3?256:4;
+  for(unsigned i=0;i<length;i++){
+   wr(c,0xD1E6+i*2,0x30+(i%16));
+   wr(c,0xD1E7+i*2,mode==3?1:((i==1||i==3)?1:0));
+  }
+  wr(c,0xD1E6+length*2,0xFF);cpu->b=lookupIndices[mode];cpu->c=1;
+  call(c,0x4CDA);
+  unsigned index=mode==0?1:mode==1?3:255;
+  require(cpu->hl==(mode==2?0xD1EF:0xD1E6+2*index)&&
+          rd(c,0xC5C3)==(mode==2?0xFF:0x30+index%16)&&
+          cpu->a==(mode==2?0xFF:1)&&cpu->b==(mode==2?1:0),
+          "pair lookup match exhaustion and index wrap",mode);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

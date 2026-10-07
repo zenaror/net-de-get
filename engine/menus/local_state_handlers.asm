@@ -7,11 +7,11 @@ LocalMenuState1::
 	and a
 	jr nz, .return
 	call $0279
-	call $4940
-	call $488E
+	call HandleLocalListInput
+	call UpdateLocalListCursor
 	call UpdateLocalListIndicators
 	call QueueLocalHeldIndicators
-	call $4656
+	call StepLocalMenuText
 .return:
 	ret
 .end:
@@ -20,11 +20,11 @@ ASSERT .end - LocalMenuState1 == $19
 SECTION "Local menu state 2", ROMX[$42E6], BANK[$0A]
 LocalMenuState2::
 	call $0279
-	call $4940
+	call HandleLocalListInput
 	call UpdateLocalListIndicators
-	call $48DA
+	call UpdateLocalMoveCursor
 	call QueueLocalHeldIndicators
-	call $4656
+	call StepLocalMenuText
 	ret
 .end:
 ASSERT .end - LocalMenuState2 == $13
@@ -33,7 +33,7 @@ SECTION "Local menu state 3", ROMX[$42F9], BANK[$0A]
 LocalMenuState3::
 	call $0279
 	call $4C6F
-	call $48AB
+	call UpdateLocalRemoveCursor
 	ret
 .end:
 ASSERT .end - LocalMenuState3 == $0A

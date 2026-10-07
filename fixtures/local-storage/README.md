@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **2,003 assertions**.
+and stack assertions, the maintained fixture reports **2,681 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -118,3 +118,13 @@ $478D. Four transitions chain that producer into consumer body $5A0E, skipping
 callbacks, and check original one-cell sources in both VRAM planes, padding and
 consumed flags. The cases are forced, LCD-off and SYNTHETIC; neither natural
 input admissibility nor rendered indicators is established.
+
+Text-step probes cover timer 0/2/3/255 and a zero source token with modes
+1/2/255. They return before the unextracted text sink, checking counters,
+pointers, state and buffer guards. Nonempty token output is only static here.
+Cursor probes exhaust all 256 frame bytes for $2DC3 arithmetic, then check
+20 list entries, 16 removal entries and 20 movement entries and OAM guards.
+They do not establish natural row/category bounds or rendered motion.
+Sixteen unhandled-input combinations return from $4940 with tested menu fields
+unchanged. Four pair-lookup cases cover first/second match, exhaustion and
+B=$FF on a synthetic 256-pair list; natural list capacity is not established.

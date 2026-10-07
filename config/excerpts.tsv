@@ -68,3 +68,11 @@ bank	start	end	symbol
 0A	461A	4655	UpdateLocalListIndicators
 0A	478D	4812	QueueLocalHeldIndicators
 0A	4813	481A	LocalHeldOldBit10
+0A	4656	46C0	StepLocalMenuText
+00	2DC3	2DCF	LocalCursorHorizontalJitter
+0A	488E	48AA	UpdateLocalListCursor
+0A	48AB	48D6	UpdateLocalRemoveCursor
+0A	48D7	48D9	LocalRemoveCursorOffsets
+0A	48DA	493F	UpdateLocalMoveCursor
+0A	4940	4C3D	HandleLocalListInput
+0A	4CDA	4CEF	FindLocalListEntry

@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **13003 bytes em 69 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **14089 bytes em 77 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -49,7 +49,7 @@ O trabalho segue o ciclo do Mobile Trainer: medir a próxima frente, extrair uma
 make verify REFERENCE_ROM="/caminho/externo/Net de Get - Minigame @ 100 (Japan).gbc"
 ```
 
-Esse alvo executa montagem, `sym-check`, `test` e `compare`. `make private-check REFERENCE_ROM="/caminho/externo/ROM.gbc"` repete o ciclo em cópia privada, compara a imagem com a árvore atual e exige a preservação de todos os símbolos de endereço do HEAD publicado. O manifesto `config/excerpts.tsv` fixa banco físico RGBDS, início, fim inclusivo e símbolo de entrada de cada seção. Os 11 testes do verificador incluem falhas deliberadas: seções ausentes/extras/movidas, símbolos ausentes/movidos/duplicados, sobreposição, bytes alterados e imagens truncadas. São testes sintéticos da ferramenta, sem evidência de execução natural do jogo.
+Esse alvo executa montagem, `sym-check`, `test` e `compare`. `make private-check REFERENCE_ROM="/caminho/externo/ROM.gbc"` repete o ciclo em cópia privada, compara a imagem com a árvore atual e exige a preservação de todos os símbolos de endereço do HEAD publicado. O manifesto `config/excerpts.tsv` fixa banco físico RGBDS, início, fim inclusivo e símbolo de entrada de cada seção. Os 19 testes do verificador incluem falhas deliberadas: seções ausentes/extras/movidas, símbolos ausentes/movidos/duplicados, sobreposição, bytes alterados e imagens truncadas. São testes sintéticos da ferramenta, sem evidência de execução natural do jogo.
 
 As novas rotinas cobrem ROM0 `$254E-$25CA` (dispatcher, 125 bytes) e `$3E00-$3ED7` (reconstrução da lista e cópia de template, 216 bytes). Seus nomes descritivos permanecem `PROBABLE`. O dispatcher restaura o seletor A salvo e impõe tipo ROM; a varredura pula o setor reservado `$70`, percorre seletores até `$80` e chama o checksum `$38B0`, agora extraído em `home/minigame_checksum.asm`. O ponteiro inicial HL da lista vem do chamador; nenhuma capacidade universal do destino foi demonstrada.
 
@@ -59,21 +59,34 @@ A rotina de checksum `$38B0-$391B` preserva o atalho para o valor armazenado `$B
 
 ## Plano e pendências
 
-Objetivo: ampliar progressivamente o fonte RGBDS legível, preservando os bytes da ROM original, com critérios de evidência explícitos. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
+Objetivo autorizado por Rafael: concluir uma ROM montável a partir do fonte RGBDS, idêntica byte a byte à referência original de 1 MiB. A referência externa é usada somente para verificação. O trabalho continua autonomamente até esse critério, preservando os bytes japoneses e os níveis de evidência. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
 
 | Fase | Estado | Critério de conclusão | Dependências |
 | --- | --- | --- | --- |
 | Estrutura e validação parcial | Implementada | montagem, manifesto, símbolos, testes negativos, comparação e cópia privada passando | RGBDS, Python, referência externa |
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
-| Expansão para outros domínios | Posterior | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
+| Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
+| Reconstrução completa | Pendente | montagem independente da referência; cobertura explícita de todos os 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | fonte de todos os bancos, dados e regiões de preenchimento identificadas |
 
 ### Trabalho a fazer
 
-1. Seguir os produtores da fila e os handlers `$4656/$4940`, preservando campos e comparações; buscar preparação natural dos gráficos/paletas.
+1. Seguir os callees do handler `$4940`, o produtor `$46C1` e o handler `$4C6F`, preservando campos e comparações; buscar preparação natural dos gráficos/paletas.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
-4. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
+4. Medir as lacunas com `make coverage`; concluir todas as regiões de código/dados e aplicar o gate integral abaixo.
+5. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
+
+### Critério de reconstrução completa
+
+```sh
+make coverage
+make verify-full REFERENCE_ROM="/caminho/externo/ROM.gbc"
+```
+
+`coverage` enumera intervalos ainda sem fonte explícito em offsets físicos do arquivo. `verify-full` exige todos os gates parciais, cobertura integral pelo manifesto, tamanho de 1048576 bytes e igualdade de todos os bytes. A montagem usa somente fontes/ativos do projeto; a ROM original não preenche lacunas. O padding do linker não conta como fonte, mesmo quando seus bytes coincidem com a referência. O gate integral falha enquanto houver regiões sem fonte; a imagem atual continua parcial. O hash final esperado é `9fb1e6e4a637796b8624bd2de6c9abaa9e758546b620cb5dc8441b07c288bc63`.
+
+O critério de ROM idêntica é distinto da conclusão de todos os nomes e interpretações semânticas: igualdade binária não promove hipóteses a `CONFIRMED`. Os oito novos testes do gate integral verificam cobertura, lacunas, padding coincidente, sobreposição, tamanho, bytes alterados e transição entre bancos físicos.
 
 ### Perguntas sem evidência suficiente
 
@@ -94,7 +107,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **2.003 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **2.681 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -172,3 +185,13 @@ Quarenta fixtures verificam as duas entradas e sentinels adjacentes, combinando 
 `engine/menus/local_held_indicators.asm` cobre `$478D-$4812`. Compara o byte inteiro de held input (`$FF96`) com `$D015`; se forem iguais, retorna sem alterar a fila. Quando diferem, escreve descriptors de uma célula em `$D046/$D04C` para os bits `$10/$20` anteriores/atuais, com prioridade para `$10` quando ambos estão ativos. Atualiza `$D021` e guarda o novo byte em `$D015`. Os oito bytes em `$4813-$481A` estão em `data/local_held_indicators.asm`, sem tradução.
 
 Trinta e seis combinações sintéticas conferem os descriptors, flags, caminho sem mudança e sentinels. Quatro transições encadeiam o produtor com o corpo do consumidor `$5A0E`, verificando ambos os planos de VRAM e o consumo dos flags. Os callbacks são pulados nesses quatro casos. Não há trace natural ou prova de admissibilidade de combinações como `$FF`; a interpretação permanece `PROBABLE`.
+
+### Timer de texto e cursores
+
+`engine/menus/local_text_step.asm` cobre `$4656-$46C0`: testa/decrementa `$D016`, lê a origem em `$D017/$D018`, copia tokens para `$D32A` e chama o sink `$01EF` nos caminhos de saída. Mantém os tokens `$FE/$FF`, o contador de linha `$D01A` e as atualizações de `$D019`. Sete fixtures cobrem timer inativo/maior que um e strings vazias em modos não zero, sem executar o sink. O buffer não tem limite universal demonstrado.
+
+`engine/menus/local_cursors.asm` cobre `$488E-$48AA`, `$48AB-$48D6` e `$48DA-$493F`; `data/local_cursor_offsets.asm` separa os três bytes `$48D7-$48D9`. O helper ROM0 `$2DC3-$2DCF`, em `home/local_cursor_jitter.asm`, calcula um deslocamento de oito bits a partir de `$FF8B`. Probes cobrem os 256 valores desse byte, 20 entradas de cursor de lista, 16 de remoção e 20 de movimento, com sentinels de OAM. Os índices 0/1/2 e o caminho `$FF` da tabela são fixtures delimitadas, sem garantia de índices arbitrários ou visualização natural.
+
+### Entrada da lista e busca de pares
+
+`engine/menus/local_list_input.asm` cobre `$4940-$4C3D`, com branches e chamadas preservados. Dezesseis combinações de bits não tratados retornam sem alterar os campos testados; os caminhos que chamam rotinas ainda externas têm somente equivalência estática neste passe. `engine/menus/local_list_lookup.asm` cobre `$4CDA-$4CEF`: percorre pares em `$D1E6`, busca o enésimo byte de categoria igual a C e encerra no marcador `$FF`. Os quatro probes cobrem duas correspondências, exaustão e o wrap do índice B `$FF` numa lista sintética de 256 pares. Não há prova de capacidade natural dessa lista. As interpretações continuam `PROBABLE`.

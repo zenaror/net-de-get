@@ -44,3 +44,14 @@ storage-probe:
 private-storage-check: all
 	@test -n "$(REFERENCE_ROM)" -a -n "$(MGBA_SOURCE)" -a -n "$(MGBA_BUILD)" || (echo 'Set REFERENCE_ROM, MGBA_SOURCE and MGBA_BUILD'; exit 1)
 	$(PYTHON) tools/check_private.py "$(REFERENCE_ROM)" --mgba-source "$(MGBA_SOURCE)" --mgba-build "$(MGBA_BUILD)"
+
+# This gate stays failing until every byte has explicit source coverage.
+.PHONY: coverage full-compare verify-full
+coverage:
+	$(PYTHON) tools/check_full.py
+
+full-compare: all sym-check
+	@test -n "$(REFERENCE_ROM)" || (echo 'Set REFERENCE_ROM to the external original'; exit 1)
+	$(PYTHON) tools/check_full.py "$(REFERENCE_ROM)"
+
+verify-full: verify full-compare
