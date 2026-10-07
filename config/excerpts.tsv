@@ -476,7 +476,11 @@ bank	start	end	symbol
 00	2799	27A9	ConfigureAndPrepareQueuedTextRegion
 00	28E3	2944	InitializeSelectionFieldsC20A
 00	2945	294D	ActivateSelectionText
-00	294E	2BFD	ResidualROM00_294E
+00	294E	2AB8	UpdateSelectionInput
+00	2AB9	2ABE	SelectionCursorTargets
+00	2ABF	2B4F	QueueSelectionPageIndicators
+00	2B50	2BB8	QueueSelectionPairedCursor
+00	2BB9	2BFD	QueueSelectionJitterCursor
 00	2BFE	2D45	DrawQueuedTextFrame
 00	2D46	2D52	ResidualROM00_2D46
 07	6F0C	6F5B	A0FGridFooterNonzero

@@ -1066,3 +1066,65 @@ unchanged; both full planes remain compared.
 No arbitrary terminated corpus, zero dimensions, high page/overflow domain,
 unterminated scan safety, natural menu, Japanese interpretation or hardware
 execution/timing proof. Remaining selection input294E..2BFD stays literal.
+
+## Selection input, cursor modes and notification ($294E–$2BFD)
+
+PROBABLE original controller contracts. Direction priority in FF98 is
+40 >80 >20 >10; FF97 bit0 confirms only if no direction branch was taken.
+Vertical movement may redraw via the original DrawSelectionText; horizontal
+movement wraps columns. Confirmation stores the byte-wrapped combined index
+in C214 and clears C213. C215 caches the incoming page before movement.
+
+297984 complete traced calls:98304 calls over eight bounded row/page/column
+states, both modes0/2,all256 FF98 bytes,edge0/1,four frames and capacities0/15/16;
+3072 calls cover all256 frame bytes at two states,both modes,three capacities;
+131072 calls cover the entire FF98/FF97 byte product at one fixed state and
+both modes;65536 confirmations cover all page/row pairs with rows7,columns13,
+column=(page+row)mod256 and mode derived from page. No full state Cartesian
+product or natural validity for high confirmation fields is asserted.
+
+The independent model compares page/row/column,activation,page/row caches,
+redraw count, actual sound request A at024F, callback calls/counter, mapped
+window bytes and guards. Original sound request and native A1E installer
+execute against a disposable zero-channel WRAM header: no audible stream
+or real SFX claim. Original redraw and synthetic callback body execute in
+full; no core state forcing or instruction skip replaces these calls.
+
+Compare all64 descriptor bytes, prefix/unused bytes and queue saturation.
+Mode0 emits paired cursors; mode2 emits one cursor with original frame jitter.
+Common page indicators blink on bit4; their early return can defer the C216
+update and callback until a later frame. Check all four jitter phases and
+cursor/page tile animations across full frame byte domain. Geometry remains
+fixed in this matrix; field/queue checks do not claim a new full VRAM domain.
+
+8192 inactive calls cover all256 initial A values,16flags,two key presets,
+with mode derived from A among0/1/2/255. The inactive guard returnsAF0080,
+preservesBC/DE/HL and leaves guarded fields unchanged. Another256 mode prefixes
+execute the real return-table dispatcher, stopping at0600 before jpHL. Index(mode*2) wraps as a byte with no range guard;
+mode1 and129 read literal0000, not a no-op. ADD HL,DE replaces H/C while
+retaining Z from doubling A. This tests selection of raw targets, not safety
+or admissibility of arbitrary modes/callback targets.
+
+306176 complete calls plus256 prefixes add910848 assertions,total9057579,
+plus24 verifier tests. Initial equivalence caught using the sound body symbol
+instead of the original024F thunk; the call now names ResidentJump024F and
+retains original bytes. A raw-mode oracle was corrected for ADD HL flags. A process fault was traced to source/runtime ABI drift: current source
+3bae8be adds an mCore function pointer absent from loaded431041 runtime.
+The runner now compares tracked include headers with the runtime Git commit
+before compiling and reports exit status/artifacts on failure. Tests use a
+private source checkout at431041; documentation-only source changes remain
+allowed when headers match. Raw-mode prefixes stop before jpHL so invalid
+mode targets are not executed; valid modes0/2 run in full elsewhere.
+No original ROM modification, real saves, Japanese translation, natural IRQ,
+audible SFX, hardware or universal parameter validity is established.
+
+To reproduce the431041 ABI source without changing another chat's checkout:
+
+```sh
+git clone --shared --no-checkout /path/to/mgba /tmp/netdeget-mgba-source-431041ac6
+git -C /tmp/netdeget-mgba-source-431041ac6 checkout --detach 431041ac6
+# Pass this checkout as MGBA_SOURCE with the matching431041 build.
+```
+
+A changed tracked include tree is rejected before compiling/executing the
+probe. This is an ABI provenance gate, not a verdict on the newer mGBA build.

@@ -24,6 +24,14 @@ library = (a.mgba_build / 'libmgba.so').resolve()
 loaded = ctypes.CDLL(str(library))
 version = ctypes.c_char_p.in_dll(loaded, 'projectVersion').value.decode()
 commit = ctypes.c_char_p.in_dll(loaded, 'gitCommit').value.decode()
+# Compare tracked headers with the loaded runtime, permitting documentation-only commits.
+# An extra mCore function pointer shifts reset/step offsets and can crash before probes.
+header_check = subprocess.run(['git', '-C', str(a.mgba_source), 'diff', '--quiet',
+                               commit, '--', 'include'], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True)
+if header_check.returncode:
+    raise SystemExit('mGBA header tree differs from loaded runtime commit ' + commit +
+                     '; use a matching source checkout.\n' + header_check.stderr)
 subprocess.run(['cc', '-O2', *defines, '-I'+str(a.mgba_source/'include'),
                 '-I'+str(a.mgba_build/'include'),
                 '-I'+str(a.mgba_source/'src/third-party/libmobile'),
@@ -37,7 +45,9 @@ result = subprocess.run([str(root/'probe'), str(a.reference_rom.resolve())], cwd
 (root/'run.log').write_text(result.stdout)
 if digest() != expected:
     raise SystemExit('Reference ROM hash changed')
-if result.returncode or f'version={version} commit={commit}' not in result.stdout:
-    raise SystemExit(result.stdout)
+if result.returncode:
+    raise SystemExit(f'Probe process exited with status {result.returncode}; artifacts: {root}\n' + result.stdout)
+if f'version={version} commit={commit}' not in result.stdout:
+    raise SystemExit('Probe version/commit marker missing\n' + result.stdout)
 print(result.stdout.strip())
 print(f'Artifacts: {root}; original ROM unchanged; no disk save loaded')

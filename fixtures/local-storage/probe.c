@@ -69,6 +69,60 @@ static void probeSelectionFields(struct mCore *c,unsigned pointer,unsigned b,uns
  require(cpu->a==255&&cpu->f.packed==0x80&&cpu->bc==(r2?divisorE:divisorC)&&cpu->de==(q1<<8|divisorE)&&cpu->hl==0xC217,
   "Original selection initializer complete register contract",index);
 }
+struct SelectionModel {unsigned rows,columns,lastRows,pages,page,row,col,limit;};
+static unsigned rol3(unsigned x){x&=255;return ((x<<3)|(x>>5))&255;}
+static void probeSelectionInput(struct mCore *c,struct SelectionModel old,unsigned repeat,unsigned edge,unsigned mode,unsigned frame,unsigned capacity,bool callback,unsigned index){
+ struct GB *g=c->board;struct SM83Core *cpu=g->cpu;struct SelectionModel next=old;
+ unsigned sound=0,redraw=0,active=1;
+ if(repeat&0x40){sound=old.limit>=((old.columns+1)&255)?0x9B:0;
+  if(old.row)next.row=(old.row-1)&255;
+  else if(old.pages==1)next.row=(old.lastRows-1)&255;
+  else if(old.page){next.page=(old.page-1)&255;next.row=(old.rows-1)&255;redraw=1;}
+ }else if(repeat&0x80){sound=old.limit>=((old.columns+1)&255)?0x9B:0;
+  if(old.page==((old.pages-1)&255)){if(old.row!=((old.lastRows-1)&255))next.row=(old.row+1)&255;else if(old.pages==1)next.row=0;}
+  else if(((old.rows-1-old.row)&255)!=0)next.row=(old.row+1)&255;
+  else{if(((old.pages-1-old.page)&255)!=0){next.page=(old.page+1)&255;next.row=0;}redraw=1;}
+ }else if(repeat&0x20){sound=old.columns>=2?0x9C:0;next.col=old.col?(old.col-1)&255:(old.columns-1)&255;
+ }else if(repeat&0x10){sound=old.columns>=2?0x9C:0;next.col=old.col<((old.columns-1)&255)?(old.col+1)&255:0;
+ }else if(edge&1){next.row=(old.page*old.rows*old.columns+old.row*old.columns+old.col)&255;active=0;}
+ unsigned records[4][4],count=0,notify=0;
+ #define SELECTION_REC(x,y,t) do{records[count][0]=(x)&255;records[count][1]=(y)&255;records[count][2]=255;records[count++][3]=(t);}while(0)
+ if(active){unsigned x=8+rol3(next.col*2),y=(2*next.row+4)*8,tile=0x76+((frame>>3)&1);
+  if(mode==0){SELECTION_REC(x,y,tile);SELECTION_REC(rol3(2)+rol3(next.col*2),y,tile);}
+  else{int jitter=(int)(((frame>>2)&3)^3)-2;SELECTION_REC(x+jitter,y,tile);}
+  bool early=false;
+  if(next.page){if(!(frame&16))early=true;else{SELECTION_REC(81,24,0x7C);}}
+  if(!early&&next.page!=((next.pages-1)&255)){if(!(frame&16))early=true;else{SELECTION_REC(81,80,0x7D);}}
+  notify=!early&&next.row!=255;
+ }
+ #undef SELECTION_REC
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0xFF4F,0);
+ wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);wr(c,0xC113,0x0F);wr(c,0xC114,0);
+ wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);
+ unsigned aBytes[8],bBytes[8];for(unsigned i=0;i<8;i++){aBytes[i]=rd(c,0x4000+i);bBytes[i]=rd(c,0x6000+i);}
+ wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xCF92,0);wr(c,0xCF93,0xD3);wr(c,0xCF82,0x55);wr(c,0xCF89,0);
+ for(unsigned i=0;i<128;i++){wr(c,0xD300+2*i,0x10);wr(c,0xD301+2*i,0xD6);}wr(c,0xD610,0);
+ for(unsigned i=0;i<256;i++)wr(c,0xD800+i,0);
+ const unsigned cb[]={0xFA,0x20,0xD9,0x3C,0xEA,0x20,0xD9,0xC9};for(unsigned i=0;i<8;i++)wr(c,0xD900+i,cb[i]);wr(c,0xD920,0);
+ wr(c,0xC1A3,0x23);wr(c,0xC1A4,1);wr(c,0xC1A7,2);wr(c,0xC1A8,8);wr(c,0xC1A9,4);wr(c,0xC1AA,1);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1B9,0);
+ wr(c,0xC1C4,capacity);wr(c,0xC1C9,0x3C);for(unsigned i=0;i<64;i++)wr(c,0xC1CA+i,0xA5);
+ wr(c,0xC20A,0);wr(c,0xC20B,0xD8);wr(c,0xC20D,0);wr(c,0xC20E,old.rows);wr(c,0xC20F,old.limit);wr(c,0xC210,old.columns);
+ wr(c,0xC211,old.lastRows);wr(c,0xC212,old.page);wr(c,0xC213,1);wr(c,0xC214,old.row);wr(c,0xC215,0xA5);wr(c,0xC216,255);wr(c,0xC217,old.pages);wr(c,0xC218,mode);wr(c,0xC219,0);wr(c,0xC21A,callback?0xD9:0);wr(c,0xC21B,old.col);wr(c,0xC21C,0x5A);
+ wr(c,0xFF98,repeat);wr(c,0xFF97,edge);wr(c,0xFF8B,frame);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+ cpu->af=0x5AF0;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x1F8;
+ unsigned steps=0,sounds=0,soundCode=0,draws=0,callbacks=0;
+ while(cpu->pc!=0xC100&&steps++<100000){if(cpu->pc==0x24F){sounds++;soundCode=cpu->a;}if(cpu->pc==0x30BC)draws++;if(cpu->pc==0xD900)callbacks++;c->step(c);}
+ require(cpu->pc==0xC100&&cpu->sp==0xD000,"Selection input traced bounded complete return",index);
+ bool exact=rd(c,0xC212)==next.page&&rd(c,0xC214)==next.row&&rd(c,0xC21B)==next.col&&rd(c,0xC213)==active&&rd(c,0xC215)==old.page&&rd(c,0xC216)==(notify?next.row:255)&&
+  sounds==(sound!=0)&&soundCode==sound&&draws==redraw&&callbacks==(notify&&callback)&&rd(c,0xD920)==(notify&&callback)&&rd(c,0xCF82)==(sound?0:0x55)&&
+  rd(c,0xC21C)==0x5A&&rd(c,0xC1C9)==0x3C&&rd(c,0xC20A)==0&&rd(c,0xC20B)==0xD8&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;
+ for(unsigned i=0;i<8;i++){exact&=rd(c,0x4000+i)==aBytes[i];exact&=rd(c,0x6000+i)==bBytes[i];}
+ if(!exact)fprintf(stderr,"Selection input case=%u repeat=%02X edge=%02X page=%u/%u row=%u/%u col=%u/%u sounds=%u/%u draw=%u/%u cb=%u/%u\n",index,repeat,edge,rd(c,0xC212),next.page,rd(c,0xC214),next.row,rd(c,0xC21B),next.col,sounds,sound,draws,redraw,callbacks,notify&&callback);
+ require(exact,"Selection input independent priority state redraw sound actual callback mapper guards",index);
+ unsigned accepted=capacity<16?(count<16-capacity?count:16-capacity):0;
+ exact=rd(c,0xC1C4)==capacity+accepted;for(unsigned i=0;i<64;i++){unsigned entry=i/4,expected=entry>=capacity&&entry<capacity+accepted?records[entry-capacity][i%4]:0xA5;exact&=rd(c,0xC1CA+i)==expected;}
+ require(exact,"Selection input whole descriptor queue blink arrows jitter capacity guards",index);
+}
 /* Independent byte-state model, including the core's explicit opposing-key policy. */
 struct JoypadState {unsigned previous,repeat,counter;};
 static unsigned sampledKeys(unsigned keys,bool opposing){
@@ -3533,6 +3587,42 @@ int main(int argc,char **argv){
    if(i==0x1841)expected=bank?0x23:0x6B;if(bank==1&&i>=0x16B0&&i<0x16C0)expected=font[i-0x16B0];
    unsigned actual=rd(c,0x8000+i);if(actual!=expected&&exact)fprintf(stderr,"Selection glyph VRAM bank=%u offset=%04X actual=%02X expected=%02X glyph=%u skip=%u\n",bank,i,actual,expected,glyph,skip);exact&=actual==expected;
   }}require(exact,"Original selection draw whole VRAM glyph font upload original bytes",index++);
+ }
+ }
+ { /* Full original input, sound requests, redraw, cursors and callback bodies. */
+ const struct SelectionModel states[]={
+  {1,1,1,1,0,0,0,1},{3,1,2,2,0,0,0,5},{3,1,2,2,0,2,0,5},{3,2,2,2,1,0,0,8},
+  {3,2,2,2,1,1,1,8},{2,3,2,1,0,1,2,6},{2,2,1,3,1,0,0,9},{2,2,1,3,2,0,1,9}};
+ unsigned index=0;const unsigned capacities[]={0,15,16},frames[]={0,8,16,24};
+ for(unsigned state=0;state<8;state++)for(unsigned mode=0;mode<2;mode++)for(unsigned repeat=0;repeat<256;repeat++)for(unsigned edge=0;edge<2;edge++)
+ for(unsigned f=0;f<4;f++)for(unsigned cap=0;cap<3;cap++)probeSelectionInput(c,states[state],repeat,edge,mode*2,frames[f],capacities[cap],state&1,index++);
+ for(unsigned state=0;state<2;state++)for(unsigned mode=0;mode<2;mode++)for(unsigned frame=0;frame<256;frame++)for(unsigned cap=0;cap<3;cap++)
+  probeSelectionInput(c,states[state?6:5],0,0,mode*2,frame,capacities[cap],true,index++);
+ struct SelectionModel fixed={2,2,2,2,0,0,0,8};
+ for(unsigned mode=0;mode<2;mode++)for(unsigned repeat=0;repeat<256;repeat++)for(unsigned edge=0;edge<256;edge++)probeSelectionInput(c,fixed,repeat,edge,mode*2,16,0,true,index++);
+ for(unsigned page=0;page<256;page++)for(unsigned row=0;row<256;row++){
+  struct SelectionModel state={7,13,1,3,page,row,(page+row)&255,255};probeSelectionInput(c,state,0,1,(page&1)*2,0,0,false,index++);
+ }
+ }
+ { /* Inactive guard and full raw mode-index dispatch prefixes. */
+ struct GB *g=c->board;const unsigned modes[]={0,1,2,255};
+ for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++)for(unsigned keys=0;keys<2;keys++){
+  wr(c,0xC213,0);wr(c,0xC215,0xA5);wr(c,0xC216,0x3C);wr(c,0xC218,modes[a&3]);wr(c,0xC1C4,0x5A);wr(c,0xFF98,keys?255:0);wr(c,0xFF97,keys?255:0);
+  cpu->a=a;cpu->f.packed=flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x1F8);
+  require(cpu->a==0&&cpu->f.packed==0x80&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xC215)==0xA5&&rd(c,0xC216)==0x3C&&rd(c,0xC1C4)==0x5A,
+   "Selection inactive guard full AF domain preserves BC DE HL and fields",a*32+flags*2+keys);
+ }
+ for(unsigned mode=0;mode<256;mode++){
+  wr(c,0xC213,1);wr(c,0xC212,0);wr(c,0xC215,0);wr(c,0xC218,mode);wr(c,0xFF98,0);wr(c,0xFF97,0);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x1F8;
+  unsigned steps=0;while(cpu->pc!=0x5F5&&steps++<1000)c->step(c);
+  require(cpu->pc==0x5F5&&cpu->sp==0xCFFC,"Selection raw mode prefix reaches original table dispatcher",mode);
+  unsigned offset=(mode*2)&255,target=rd(c,0x2AB9+offset)|(rd(c,0x2ABA+offset)<<8);
+  for(unsigned instruction=0;instruction<10;instruction++)c->step(c);
+  unsigned expectedFlags=(!offset?0x80:0); /* ADD HL,DE replaces H/C, retains Z. */
+  if(!(cpu->pc==0x600&&cpu->sp==0xCFFE&&cpu->hl==target&&cpu->de==target&&cpu->a==offset&&cpu->f.packed==expectedFlags))fprintf(stderr,"Raw mode=%u pc=%04X target=%04X SP=%04X HL=%04X DE=%04X A=%02X F=%02X expectedF=%02X\n",mode,cpu->pc,target,cpu->sp,cpu->hl,cpu->de,cpu->a,cpu->f.packed,expectedFlags);
+  require(cpu->pc==0x600&&cpu->sp==0xCFFE&&cpu->hl==target&&cpu->de==target&&cpu->a==offset&&cpu->f.packed==expectedFlags,
+   "Selection raw modes byte-wrapped index no range guard stop before JP HL",mode);
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",

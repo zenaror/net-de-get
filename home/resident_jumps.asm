@@ -42,7 +42,7 @@ ResidentJump01F2::
 ResidentJump01F5::
 	jp ActivateSelectionText
 ResidentJump01F8::
-	jp $294E
+	jp UpdateSelectionInput
 ResidentJump01FB::
 	jp DrawQueuedTextFrame
 ResidentJump01FE::
