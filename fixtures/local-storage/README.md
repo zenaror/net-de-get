@@ -1500,3 +1500,26 @@ use53B2+128*C5A8 in mode4 and incrementC5A3. No clamp.
 they check arithmetic/stack/arguments without asserting natural palette validity
 or executing those arbitrary resources. Adds53248 asserts,total26640830.
 No natural handler/resource flow, Japanese meaning, IRQ/timing or hardware proof.
+
+
+## Input mode and nested dispatch (470F,4764,485A,4940)
+
+PROBABLE static plus synthetic contracts. Whole input entry tests1048576 pairs
+of all mode/edge bytes and16 flags:1045504 complete guard returns and3072 actual
+first-audio-call boundaries. C600 must be1; bit0 overrides bit1. Bit0 selects9D
+and confirmation, bit1 alone selects9E and cancellation, neither returns.
+16384 raw dispatcher prefixes test all indices/flags through original pushed
+returns, stopping before JP HL. Wrapped doubled offsets are not clamped.
+16384 isolated return-label calls test every AF and preserved register.
+The initial table has three targets; each subdispatcher has six action pointers.
+No fourth initial pointer is inferred from following code.
+
+12288 confirmations execute actual upper audio then stop before the selected
+variant, checking three targets, all prior C214 bytes/flags and bit0+bit1 priority.
+4096 complete cancellations cover64 eligible edge bytes,16 flags,both VBK/LCD,
+with real audio/hide/copy bodies. Whole8192-byte VRAM planes and immutable320-byte
+synthetic WRAM7 source/guard are compared independently. Cancellation clears
+C213/input/mode and preserves the tested neighboring fields/mapping state.
+Audio tables/source image are synthetic; no natural saves or injected returns.
+Adds2166784 assertions,total28807614. Confirmation target bodies, natural input/menu,
+Japanese meaning, index validity, physical timing/IRQ and hardware remain unproven.

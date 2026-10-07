@@ -4273,6 +4273,40 @@ int main(int argc,char **argv){
   require(cpu->pc==0x17A&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x4B68&&cpu->af==(0x0400|f)&&cpu->bc==0xBEEF&&cpu->de==0x53B2&&cpu->hl==0x53B2+128*variant&&rd(c,0xC213)==0&&rd(c,0xC1C4)==0&&rd(c,0xC5A3)==0x3C&&rd(c,0xC5A8)==variant,"A12 forced color suffix all raw variants flags pointer no clamp actual transition boundary",variant*16+flags);
  }
  }
+ { /* Full input guard entry, exact first callee; no fake returns. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ for(unsigned mode=0;mode<256;mode++)for(unsigned edge=0;edge<256;edge++)for(unsigned flags=0;flags<16;flags++){
+  bool audio=mode==1&&(edge&3);unsigned target=audio?0x24F:0xC100,a=mode!=1?mode:audio?(edge&1?0x9D:0x9E):edge,f=mode!=1?0x40|((mode&15)<1?0x20:0)|(mode<1?0x10:0):audio?0x20:0xA0;
+  wr(c,0xC600,mode);wr(c,0xFF97,edge);wr(c,0xC732,0x37);wr(c,0xC213,0x39);wr(c,0xC214,0x3C);wr(c,0xC5A8,0x5A);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x470F;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<100)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(audio?0xCFFC:0xD000)&&(!audio||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(edge&1?0x473F:0x4728))&&cpu->af==(a<<8|f)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678,"A12 input full entry all mode edge bytes flags priority returns actual audio boundary",mode*4096+edge*16+flags);
+  require(rd(c,0xC600)==mode&&rd(c,0xFF97)==edge&&rd(c,0xC732)==0x37&&rd(c,0xC213)==0x39&&rd(c,0xC214)==0x3C&&rd(c,0xC5A8)==0x5A,"A12 input entry guards no writes before real audio call",mode*4096+edge*16+flags);
+ }
+ const unsigned entries[]={0x473F,0x4764,0x485A,0x4940},tables[]={0x475E,0x477A,0x4870,0x4956},stops[]={0x475C,0x4778,0x486E,0x4954},returns[]={0x475D,0x4779,0x486F,0x4955};
+ for(unsigned family=0;family<4;family++)for(unsigned index=0;index<256;index++)for(unsigned flags=0;flags<16;flags++){
+  unsigned offset=(index*2)&255,target=rd(c,tables[family]+offset)|(rd(c,tables[family]+offset+1)<<8);
+  wr(c,0xC5A8,family?0x37:index);wr(c,0xC214,family?index:0x39);wr(c,0xC732,0x5A);wr(c,0xFF97,0xA5);wr(c,0xC600,1);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=entries[family];
+  unsigned steps=0;while(cpu->pc!=stops[family]&&steps++<100)c->step(c);
+  require(cpu->pc==stops[family]&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==returns[family]&&cpu->af==(offset<<8|(offset?0:0x80))&&cpu->bc==0xBEEF&&cpu->de==target&&cpu->hl==target&&rd(c,0xC732)==(family?0x5A:0x39)&&rd(c,0xFF97)==(family?0xA5:0)&&rd(c,0xC600)==1,"A12 raw nested dispatcher all indices flags original pushed return stop before arbitrary target",family*4096+index*16+flags);
+ }
+ for(unsigned family=0;family<4;family++)for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++){
+  cpu->af=a<<8|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,returns[family]);require(cpu->af==(a<<8|flags<<4)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678,"A12 nested return labels preserve every AF and register",family*4096+a*16+flags);
+ }
+ /* Confirm executes actual upper audio, stopping before selected variant. */
+ const unsigned targets[]={0x4764,0x485A,0x4940};
+ for(unsigned variant=0;variant<3;variant++)for(unsigned state=0;state<256;state++)for(unsigned flags=0;flags<16;flags++){
+  prepareA12EffectMapping(c,0x63);prepareA12EffectAudio(c);wr(c,0xC600,1);wr(c,0xFF97,3);wr(c,0xC214,state);wr(c,0xC5A8,variant);wr(c,0xC732,0x37);wr(c,0xC213,0x39);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x470F;
+  unsigned steps=0;while(cpu->pc!=0x475C&&steps++<10000)c->step(c);
+  require(cpu->pc==0x475C&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x475D&&cpu->hl==targets[variant]&&cpu->de==targets[variant]&&cpu->bc==0xBEEF&&cpu->af==(variant*2<<8|(variant?0:0x80))&&rd(c,0xC732)==state&&rd(c,0xFF97)==0&&rd(c,0xC600)==1&&rd(c,0xC213)==0x39&&rd(c,0xCF82)==0&&rd(c,0xCF89)==0x11&&rd(c,0xC113)==0x12&&rd(c,0xC115)==5,"A12 confirm real audio all states flags three original variant targets priority original stack",variant*4096+state*16+flags);
+ }
+ /* Complete cancellation with real hide/two-plane copy, synthetic source. */
+ for(unsigned edge=0;edge<256;edge++)if(!(edge&1)&&(edge&2))for(unsigned flags=0;flags<16;flags++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++){
+  prepareA12EffectMapping(c,0x63);prepareA12EffectAudio(c);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF70,7);for(unsigned i=0;i<320;i++)wr(c,0xD000+i,(i*13+edge)&255);wr(c,0xD140,0x37);wr(c,0xFF70,2);wr(c,0xFF4F,plane);wr(c,0xC600,1);wr(c,0xFF97,edge);wr(c,0xC213,0x39);wr(c,0xC732,0x3C);wr(c,0xC214,0x37);wr(c,0xC5A8,0x39);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;if(lcd)wr(c,0xFF40,0xF1);callWithLimit(c,0x470F,2000000);
+  bool exact=cpu->af==0x0080&&rd(c,0xC600)==0&&rd(c,0xFF97)==0&&rd(c,0xC213)==0&&rd(c,0xC732)==0x3C&&rd(c,0xC214)==0x37&&rd(c,0xC5A8)==0x39&&rd(c,0xFF40)==(lcd?0x91:0)&&rd(c,0xCF82)==0&&rd(c,0xC113)==0x12&&rd(c,0xC115)==5&&(rd(c,0xFF70)&7)==2&&(rd(c,0xFF4F)&1)==0;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned y=i>=0x1C00?(i-0x1C00)/32:256,x=i%32,expected=y<8&&x<20?((bank*160+y*20+x)*13+edge)&255:0xA5;exact&=rd(c,0x8000+i)==expected;}}wr(c,0xFF70,7);for(unsigned i=0;i<320;i++)exact&=rd(c,0xD000+i)==((i*13+edge)&255);exact&=rd(c,0xD140)==0x37;wr(c,0xFF70,2);
+  require(exact,"A12 complete cancel every bit1 edge flags both VBK LCD actual audio hide full VRAM source guards",edge*64+flags*4+plane*2+lcd);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

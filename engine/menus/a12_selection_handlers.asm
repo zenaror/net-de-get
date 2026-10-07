@@ -41,7 +41,7 @@ A12SelectionVariant0::
 A12Handler_418F::
 	call UpdateA12TextModeController
 	call $459F
-	call $470F
+	call UpdateA12InputMode
 	call ResidentJump0261
 	call $4A36
 	call DispatchA12ResourceCommand
@@ -67,7 +67,7 @@ A12SelectionVariant1::
 A12Handler_41BF::
 	call UpdateA12TextModeController
 	call $459F
-	call $470F
+	call UpdateA12InputMode
 	call ResidentJump0261
 	call $4A66
 	call DispatchA12ResourceCommand
@@ -93,7 +93,7 @@ A12SelectionVariant2::
 A12Handler_41EF::
 	call UpdateA12TextModeController
 	call $459F
-	call $470F
+	call UpdateA12InputMode
 	call ResidentJump0261
 	call $4A8A
 	call DispatchA12ResourceCommand
