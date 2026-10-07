@@ -1,14 +1,16 @@
 ; Fixed vector bytes and explicitly measured zero-filled reserved regions.
-; Jump targets are literal until their bodies are reconstructed.
-SECTION "Reset and interrupt vectors", ROM0[$0000]
+; Known resident bodies use symbols; WRAM stub addresses remain literal.
+SECTION "RST and interrupt vectors", ROM0[$0000]
+; Legacy ResetVector alias retained; this is the RST $00 table dispatch.
 ResetVector::
-	jp $05F5
+RST00Vector::
+	jp DispatchReturnTable
 	ds $0040 - @, 0
 VBlankVector::
-	jp $0601
+	jp DispatchVBlankCallback
 	ds 5, 0
 LCDStatVector::
-	jp $061B
+	jp DispatchLCDStatCallback
 	ds 5, 0
 TimerVector::
 	jp $C67F
@@ -30,6 +32,6 @@ ASSERT JoypadVector == $0060
 SECTION "Cartridge entry", ROM0[$0100]
 CartridgeEntry::
 	nop
-	jp $02B8
+	jp StartCartridgeProgram
 .end:
 ASSERT .end - CartridgeEntry == 4

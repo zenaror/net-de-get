@@ -641,3 +641,23 @@ checks all address symbols and image equality. Real negative builds mutate a
 literal byte or delete a zero page. The latter retains the original hash through
 matching linker padding but fails the explicit-source-coverage gate. No original
 ROM include, real save, translation, programming/erase or new network feature.
+
+
+### Startup and return-table/interrupt refinement
+
+$02B8-$03A7 is now instruction source with a separate ten-word table at
+$03A8-$03BB. Four forced prefix cases check all WRAM windows/HRAM and explicit
+model/selector/stub writes, stopping at $0373 before A $16:$4000 initialization.
+They do not establish natural startup or complete main-loop execution.
+$05F5-$0660 and $0699-$06A5 expose the return-address table dispatcher and
+callback/register-return paths. $0000 is a RST-table entry, not the cartridge's
+hardware entry at $0100; the legacy ResetVector symbol is retained as an alias.
+256 synthetic indices cover A*2 wrap. Six callback cases and a return-only
+case cover register restoration; two VBlank cases stop before maintenance $2242.
+Roles remain **PROBABLE**, without natural interrupt/timing or universal indices.
+
+Complete matching source: 249 sections, 1,048,576 bytes; 87 analyzed sections
+(15,166 bytes), 162 uninterpreted ranges (1,033,410 bytes). All 546 published
+symbols from 3d465b0 preserved in private validation. 24 checker tests and 3053
+synthetic CPU assertions pass; original ROM hash and compiled image hash remain
+unchanged. There is no translation, real save or new Mobile Adapter/REON feature.

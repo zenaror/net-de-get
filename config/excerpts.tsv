@@ -13,13 +13,14 @@ bank	start	end	symbol
 00	01A7	01A9	CopyBankedTwoPlaneTilemap
 00	01AA	01B5	ResidualROM00_01AA
 00	01B6	01BB	OpenLocalStorageRecord
-00	01BC	051D	ResidualROM00_01BC
+00	01BC	02B7	ResidualROM00_01BC
 00	051E	0563	LocalMinigameSelectionGate
 00	0564	05D9	ResidualROM00_0564
 00	05DA	05DF	RuntimeCallback_6
-00	05E0	0660	ResidualROM00_05E0
+00	05E0	05F4	ResidualROM00_05E0
 00	0661	0698	StoreRuntimeCallback0Body
-00	0699	0798	ResidualROM00_0699
+00	0699	06A5	RestoreInterruptRegisters
+00	06A6	0798	ResidualROM00_06A6
 00	0799	07E6	UploadBackgroundPaletteEntryBody
 00	07E7	0994	ResidualROM00_07E7
 00	0995	09EA	UploadPendingCGBPalettesBody
@@ -243,3 +244,7 @@ bank	start	end	symbol
 3E	6000	7FFF	ResidualROM3E_6000
 3F	4000	5FFF	ResidualROM3F_4000
 3F	6000	7FFF	ResidualROM3F_6000
+00	05F5	0660	DispatchReturnTable
+00	02B8	03A7	StartCartridgeProgram
+00	03A8	03BB	MainStatePointers
+00	03BC	051D	ResidualROM00_03BC

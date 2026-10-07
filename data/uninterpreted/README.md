@@ -1,6 +1,6 @@
 # Uninterpreted source ranges
 
-These 161 ranges complete the initial matching build, alongside the existing
+The initial 161 bootstrap ranges completed the matching build, alongside the existing
 hand-analyzed sources. They contain literal `db` bytes and explicitly sized
 constant `ds` runs. They are not reference-ROM includes and do not require the
 original file to assemble.
@@ -18,3 +18,7 @@ The one-time private bootstrap is retained in `tools/bootstrap_remaining.py` as
 provenance. It refuses writes into this project and refuses a second import.
 Refine the committed sources and canonical manifest, preserving complete byte
 coverage and all published symbols. The canonical work plan is in the root README.
+
+After the first refinements, 162 residual ranges contain 1,033,410 bytes.
+Startup and interrupt fragments now use named instruction sources; their old
+range-start symbols remain as aliases at their original addresses.

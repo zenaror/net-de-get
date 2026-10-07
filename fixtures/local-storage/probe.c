@@ -730,6 +730,80 @@ int main(int argc,char **argv){
   }
   require(ok,"box-name copy termination wrap and other record bytes",row*3+mode);
  }
+ /* RST $00 dispatcher consumes its return-address table pointer. */
+ for(unsigned slot=0;slot<128;slot++){
+  unsigned target=0xC200+slot*4;
+  wr(c,0xD800+slot*2,target&255);wr(c,0xD801+slot*2,target>>8);
+ }
+ for(unsigned index=0;index<256;index++){
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  wr(c,0xCFFE,0);wr(c,0xCFFF,0xD8);cpu->a=index;cpu->bc=0x1234;cpu->pc=0x05F5;
+  unsigned target=0xC200+(index&127)*4,steps=0;
+  while(cpu->pc!=target&&steps++<1000)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xD000&&cpu->hl==target&&cpu->de==target&&
+          cpu->a==((index*2)&255)&&cpu->bc==0x1234,
+          "RST table index byte wrap and consumed return pointer",index);
+ }
+ /* Forced interrupt dispatch with null and WRAM callback targets. */
+ const unsigned interruptEntries[]={0x061B,0x0630,0x0645};
+ const unsigned interruptSlots[]={0xFF92,0xFF8C,0xFF90};
+ for(unsigned entry=0;entry<3;entry++)for(unsigned active=0;active<2;active++){
+  unsigned slot=interruptSlots[entry];wr(c,slot,0);wr(c,slot+1,active?0xC2:0);
+  wr(c,0xC200,0x21);wr(c,0xC201,0x10);wr(c,0xC202,0xC2);
+  wr(c,0xC203,0x34);wr(c,0xC204,0xC9);wr(c,0xC210,0xA5);wr(c,0xFF8A,0x37);
+  cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;
+  call(c,interruptEntries[entry]);
+  require(cpu->af==0x5AB0&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800&&
+          rd(c,0xC210)==(active?0xA6:0xA5)&&rd(c,0xFF8A)==0x37,
+          "interrupt null/callback register restoration",entry*2+active);
+ }
+ cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;call(c,0x065A);
+ require(cpu->af==0x5AB0&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
+         "return-only interrupt restores registers",0);
+ /* Stop VBlank before $069E maintenance: no natural interrupt claim. */
+ for(unsigned active=0;active<2;active++){
+  wr(c,0xFF8E,0);wr(c,0xFF8F,active?0xC2:0);wr(c,0xFF8A,0x37);wr(c,0xC210,0xA5);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);
+  cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;cpu->pc=0x0601;
+  unsigned steps=0;while(cpu->pc!=0x069E&&steps++<1000)c->step(c);
+  require(cpu->pc==0x069E&&cpu->sp==0xCFF6&&rd(c,0xFF8A)==1&&
+          rd(c,0xC210)==(active?0xA6:0xA5)&&
+          rd(c,0xCFF6)==0&&rd(c,0xCFF7)==0xD8&&rd(c,0xCFF8)==0xEF&&rd(c,0xCFF9)==0xBE&&
+          rd(c,0xCFFA)==0x34&&rd(c,0xCFFB)==0x12&&rd(c,0xCFFC)==0xB0&&rd(c,0xCFFD)==0x5A,
+          "VBlank dispatch before maintenance",active);
+ }
+ /* Forced cartridge startup, stopped before the bank-A $16 init call. */
+ const unsigned startupA[]={0x11,0,0x80,255};
+ for(unsigned mode=0;mode<4;mode++){
+  wr(c,0xFF40,0);wr(c,0xFFFF,0);wr(c,0xFF0F,0);
+  for(unsigned i=0;i<4096;i++)wr(c,0xC000+i,0xA5);
+  for(unsigned bank=1;bank<8;bank++){
+   wr(c,0xFF70,bank);for(unsigned i=0;i<4096;i++)wr(c,0xD000+i,0xA5);
+  }
+  for(unsigned i=0;i<127;i++)wr(c,0xFF80+i,0xA5);
+  struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->a=startupA[mode];cpu->pc=0x02B8;
+  unsigned steps=0;while(cpu->pc!=0x0373&&steps++<400000)c->step(c);
+  require(cpu->pc==0x0373&&cpu->sp==0xFFFE&&rd(c,0xFF9C)==(startupA[mode]==0x11)&&
+          rd(c,0xFFAB)==0x16&&rd(c,0xFFAC)==0&&rd(c,0xFFFF)==0,
+          "startup prefix registers model byte and A selector",mode);
+  unsigned ok=1;
+  for(unsigned i=0;i<4096;i++){
+   unsigned expected=(i==0x67F||i==0x682)?0xD9:0;
+   ok&=rd(c,0xC000+i)==expected;
+  }
+  for(unsigned bank=1;bank<8;bank++){
+   wr(c,0xFF70,bank);for(unsigned i=0;i<4096;i++)ok&=rd(c,0xD000+i)==0;
+  }
+  for(unsigned i=0;i<127;i++){
+   unsigned address=0xFF80+i,expected=address==0xFF9C?(startupA[mode]==0x11):address==0xFFAB?0x16:0;
+   ok&=rd(c,address)==expected;
+  }
+  require(ok,"startup clears WRAM banks and HRAM with explicit fields",mode);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
