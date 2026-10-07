@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1029815 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1029523 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 282 seções**, todos comparados byte a byte com a referência externa. Os 117 trechos analisados somam 18761 bytes; os demais 1029815 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 283 seções**, todos comparados byte a byte com a referência externa. Os 118 trechos analisados somam 19053 bytes; os demais 1029523 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 282 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 283 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -109,7 +109,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **9.145 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **10.473 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -305,3 +305,10 @@ A confiança é `PROBABLE`. 256 despachos param antes dos corpos; 19 streams `$B
 `engine/startup/bank_a1e_slot2.asm` extrai `$4752-$48EB` (410 bytes), preservando `ResidualROM0F_4752`; a chamada pelo tick agora é simbólica. O ponteiro do stream fica em `$CF20/$CF21`. `$B1` modifica os bits 2 e 6 de `$CF88`, sem o campo adicional do slot 1. `$C0` guarda o índice mascarado em `$CF27`, lê um ponteiro de dois bytes pela base `$CF98/$CF99` e copia 16 bytes para `$FF30-$FF3F`. A indexação usa `2*(parâmetro & 31)`, sem o incremento do slot 1.
 
 A interpretação é `PROBABLE`. 256 despachos param antes dos corpos; 19 streams `$B0`, todos os 256 parâmetros `$B1`, todos os 256 parâmetros `$C0` com tabela/ondas WRAM sintéticas e canal desabilitado, e um tick até `$B0` adicionam 1.320 asserts. O contador curto preserva `$CF25` e o sentinela `$CF14` permanece intacto. Não há prova dos demais corpos, tabelas/streams arbitrários, comportamento de wave RAM com canal ativo, áudio audível ou fluxo natural. Os 834 símbolos publicados em `69f2a73` permanecem no mesmo endereço na cópia privada; imagem inteira e negativos reais passam.
+
+
+### Handler do slot 3 e limpeza compartilhada em A $1E
+
+`engine/startup/bank_a1e_slot3.asm` extrai `$48EC-$4A0F` (292 bytes), preservando `ResidualROM0F_48EC`. O slot 3 usa `$CF30/$CF31`, aceita `$B1/$C0/$FD/$FE/$FF` e os ranges `$80-$9F`; `$B0/$E0` retornam sem executar os corpos presentes nos slots anteriores. `$B1` modifica bits 3/7 de `$CF88` e `$CF39`. `$C0` apenas consome o parâmetro antes de ler o contador. O comando `$FF` dos quatro slots inferiores chega ao helper `$4A07`, que limpa 16 bytes por HL; todos esses consumidores agora usam o símbolo compartilhado.
+
+A confiança é `PROBABLE`. 256 despachos parados, 19 contadores curtos/estendidos via `$C0`, todos os 256 parâmetros `$B1` e `$C0`, um tick até `$C0` e quatro streams `$FF` completos adicionam 1.328 asserts. A limpeza dos quatro slots mantém os demais 112 bytes de `$CF00-$CF7F`. Os probes não cobrem os demais corpos, fluxo natural ou áudio correto. A base numérica `$4A0E` das leituras de palavras nos slots anteriores sobrepõe o operando do `JR` e o `RET` de `$4A0F`: bytes `$FC/$C9`. Essa sobreposição foi preservada; extensão e uso natural do objeto continuam desconhecidos. A cópia privada preservou os 862 símbolos publicados em `2526dfb`, com imagem inteira idêntica e negativos reais passando.

@@ -1221,6 +1221,57 @@ int main(int argc,char **argv){
  wr(c,0xD800,0xB0);wr(c,0xD801,7);wr(c,0xD802,5);call(c,0x4000);
  require(rd(c,0xCF2D)==7&&rd(c,0xCF24)==5&&rd(c,0xCF20)==3&&rd(c,0xCF21)==0xD8,
          "A1E integrated tick invokes slot2 B0",0);
+ /* Slot3 supports B1/C0 and loop commands; B0/E0 return as unknown. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);
+ for(unsigned opcode=0;opcode<256;opcode++){
+  wr(c,0xCF30,0);wr(c,0xCF31,0xD8);wr(c,0xD800,opcode);
+  unsigned target=opcode<0x80?0xC100:opcode<0x90?0x49E4:opcode<0xA0?0x4979:
+   opcode==0xB1?0x4948:opcode==0xC0?0x4974:opcode==0xFD?0x4920:
+   opcode==0xFE?0x4930:opcode==255?0x4A07:0xC100;
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);
+  cpu->de=0xBEEF;cpu->pc=0x48EC;unsigned steps=0;while(cpu->pc!=target&&steps++<200)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(target==0xC100?0xD000:0xCFFE)&&cpu->bc==0xD801&&
+          cpu->a==opcode&&cpu->de==0xBEEF&&rd(c,0xCF30)==0&&rd(c,0xCF31)==0xD8,
+          "A1E slot3 all opcode dispatches",opcode);
+ }
+ for(unsigned index=0;index<19;index++){
+  unsigned first=index<3?shortCounts[index]:extendedPrefixes[(index-3)/4];
+  unsigned low=index<3?0:extendedLow[(index-3)%4];
+  wr(c,0xCF30,0);wr(c,0xCF31,0xD8);wr(c,0xCF35,0x77);wr(c,0xCF24,0xA5);
+  wr(c,0xD800,0xC0);wr(c,0xD801,7);wr(c,0xD802,first);wr(c,0xD803,low);call(c,0x48EC);
+  require(rd(c,0xCF30)==(index<3?3:4)&&rd(c,0xCF31)==0xD8&&
+          rd(c,0xCF34)==(index<3?first:(low|((first&1)<<7)))&&
+          rd(c,0xCF35)==(index<3?0x77:((first&0x7F)>>1))&&rd(c,0xCF24)==0xA5,
+          "A1E slot3 C0 countdown preserves slot2",index);
+ }
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xCF30,0);wr(c,0xCF31,0xD8);wr(c,0xCF88,0x25);wr(c,0xCF19,0x37);
+  wr(c,0xD800,0xB1);wr(c,0xD801,value);wr(c,0xD802,1);call(c,0x48EC);
+  require(rd(c,0xCF88)==(value<0x40?0xA5:value==0x40?0xAD:0x2D)&&
+          rd(c,0xCF39)==(value==0x40?0:255)&&rd(c,0xCF19)==0x37,
+          "A1E slot3 B1 bits3 and7 own field",value);
+ }
+ for(unsigned value=0;value<256;value++){
+  for(unsigned i=2;i<16;i++)wr(c,0xCF30+i,0x50+i);
+  wr(c,0xCF30,0);wr(c,0xCF31,0xD8);wr(c,0xD800,0xC0);wr(c,0xD801,value);wr(c,0xD802,3);
+  call(c,0x48EC);bool fields=true;for(unsigned i=2;i<16;i++)if(i!=4&&rd(c,0xCF30+i)!=0x50+i)fields=false;
+  require(fields&&rd(c,0xCF30)==3&&rd(c,0xCF31)==0xD8&&rd(c,0xCF34)==3,
+          "A1E slot3 C0 skips parameter without field writes",value);
+ }
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xCF30,0);wr(c,0xCF31,0xD8);wr(c,0xCF34,1);
+ wr(c,0xD800,0xC0);wr(c,0xD801,7);wr(c,0xD802,5);call(c,0x4000);
+ require(rd(c,0xCF34)==5&&rd(c,0xCF30)==3&&rd(c,0xCF31)==0xD8,
+         "A1E integrated tick invokes slot3 C0",0);
+ const unsigned lowerHandlers[]={0x43E7,0x45A1,0x4752,0x48EC};
+ for(unsigned slot=0;slot<4;slot++){
+  for(unsigned i=0;i<0x80;i++)wr(c,0xCF00+i,0x5A);
+  wr(c,0xCF00+slot*16,0);wr(c,0xCF01+slot*16,0xD8);wr(c,0xD800,255);call(c,lowerHandlers[slot]);
+  bool exact=true;for(unsigned i=0;i<0x80;i++)if(rd(c,0xCF00+i)!=(i/16==slot?0:0x5A))exact=false;
+  require(exact&&cpu->hl==0xCF10+slot*16&&cpu->b==0&&cpu->a==0,
+          "A1E FF clears exact16 bytes for each lower slot",slot);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

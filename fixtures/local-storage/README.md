@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **9,145 assertions**.
+and stack assertions, the maintained fixture reports **10,473 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -258,3 +258,13 @@ wave RAM. Synthetic WRAM supplies32 pointers and32 distinct16-byte waves; the
 wave channel is disabled before each case. Short durations retain CF25 and the
 slot1 CF14 sentinel. No active-channel wave-RAM behavior, natural playback,
 other opcode bodies, universal stream/table safety or audible correctness proof.
+
+
+Slot3/shared-clear adds 1,328 assertions: 256 dispatch stops (including B0/E0
+returning as unknown), 19 countdowns through C0, all256 B1/C0 parameters, one
+tick->C0 chain and four complete FF streams through the lower-slot handlers.
+B1 edits bits3/7 and CF39; C0 consumes a parameter without other slot-field
+writes. FF clears exactly its16-byte slot while preserving the other112 bytes
+in CF00-CF7F. These do not prove other command bodies, natural playback or audio
+correctness. The numeric word-read base4A0E overlaps shared-clear instructions;
+no total table extent is assumed or substituted into the binary.

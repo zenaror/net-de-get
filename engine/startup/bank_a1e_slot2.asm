@@ -30,7 +30,7 @@ A1ESlot2_475A::
 	jp z, A1ESlot2_47A0
 	ld hl, $CF20
 	cp a, $FF
-	jp z, $4A07
+	jp z, ClearA1ESlot16Bytes
 	ret
 A1ESlot2_4790::
 	ld a, [bc]

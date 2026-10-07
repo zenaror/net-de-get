@@ -925,3 +925,24 @@ active-channel wave-RAM behavior, arbitrary table/stream bounds or audible
 correctness. Full/private/negative gates preserve834 published69f2a73 symbols
 and whole hash, with24 checker tests.282 sections:117 analyzed/18761 bytes,
 165 unknown/1029815 bytes.
+
+
+### A1E slot3 and shared FF clear, with overlapping word-read base
+
+**PROBABLE**, tick and lower-slot FF consumers: extract $48EC-$4A0F (292 bytes),
+retain ResidualROM0F_48EC. Slot3 uses CF30/CF31. B1 edits CF88 bits3/7 and CF39;
+C0 consumes its parameter then reads duration, unlike the other slots. B0/E0
+are unknown returns. Shared4A07 clears16 bytes through HL and returns.
+
+The word-read base4A0E used by prior handlers is inside this helper: byteFC is
+the JR displacement at4A0D, and byteC9 at4A0F is RET. Thus initial wordC9FC
+overlaps code. Static bytes/instruction boundaries establish the overlap, not
+a natural meaning, complete table extent or admissibility of arbitrary indices.
+The base stays numeric and no separate overlapping source section is introduced.
+
+**SYNTHETIC**: 256 dispatch stops,19 C0 duration streams,all256 B1/C0 parameters,
+one tick->C0 chain and four complete lower-slot FF streams add1328 assertions,
+total10473. Shared clear preserves the other112 bytes of CF00-CF7F. No other
+bodies, natural playback, universal stream bounds or audio correctness.
+Full/private/negative gates preserve862 published2526dfb symbols and whole
+hash,24checker tests.283 sections:118 analyzed/19053 bytes,165 unknown/1029523.

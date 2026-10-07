@@ -168,7 +168,8 @@ bank	start	end	symbol
 0F	43CB	45A0	ClampA1EValueByGlobalPhase
 0F	45A1	4751	HandleA1ESlot1Commands
 0F	4752	48EB	HandleA1ESlot2Commands
-0F	48EC	5FFF	ResidualROM0F_48EC
+0F	48EC	4A0F	HandleA1ESlot3Commands
+0F	4A10	5FFF	ResidualROM0F_4A10
 0F	6000	7FFF	ResidualROM0F_6000
 10	4000	5FFF	ResidualROM10_4000
 10	6000	7FFF	ResidualROM10_6000
