@@ -857,3 +857,32 @@ CF86 is held for two extra waits, then explicitly released. No natural audio,
 IRQ handler or frame producer executes. Reading 128 bytes at 4E20 crosses 4E68;
 this is not a claim about an independent palette object's extent. The 5888
 semantic calls plus DMA installer add 20987 assertions, total 3702286.
+
+
+## Complete A0F display entry and input exit
+
+32 complete original4000 calls cover modes0/1/2/255, both initialVBKs,
+choice0 with empty/one-glyph lists, choice1 with one glyph, and choice1 rejection
+on an empty list followed by release/repress and choice0. One original09EB
+DMA installer also runs. The core setKeys API supplies A; original polling
+generates edges. No forced FF97 flag substitutes for polling.
+
+Check original font source selected before empty-list mode3 mutation, the exact
+448-byte consecutive font copy on plane1, indexed record order0,1+modebit0,
+optional3, setup/grid/redraw/indicator state, preserved list, stack/return,
+cleared callbacks, loop counter, actual restored A/B mappings and completed HDMA.
+LCD is active for original STAT/HDMA waits; the font snapshot explicitly stops
+and restarts LCD. LCD-off initially stopped at2F9E; this was a fixture
+precondition failure. Source bytes are unchanged.
+
+Scheduled fixture wakes observe HALT with IME false; CF86 is held at2 during
+eight addition ticks and explicitly released. Return addresses47C2/409A separate
+fade waits from main-loop waits: state63 receives one extra main wait before
+the next iteration clears it. The rejected-choice family also samples an actual
+A release for one loop before repressing. Addition leaves the startup subtraction
+counter pending; the final main-loop tick subtracts once. Check all192 accumulator
+and delta words,64 packed output colors, subtraction count6 or4,dirty1 and128
+unchanged hardware palette bytes. No original IRQ uploader/frame producer/audio
+progress or natural menu timing is asserted. Reading448 bytes at50E0 crosses
+published text/object records and does not establish an exclusive font extent.
+These33 complete calls add789 assertions,total3703075; PROBABLE/SYNTHETIC only.

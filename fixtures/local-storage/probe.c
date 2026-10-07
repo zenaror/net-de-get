@@ -3223,6 +3223,65 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Full original A0F entry/input exit chain; explicit fixture producers. */
+ const unsigned modes[]={0,1,2,255};
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);call(c,0x09EB);
+ for(unsigned m=0;m<4;m++)for(unsigned family=0;family<4;family++)for(unsigned plane=0;plane<2;plane++){
+  unsigned mode=modes[m],length=(family==1||family==2),choice=family>=2,finalChoice=family==2;
+  unsigned effective=mode&&!length?3:mode,pointer=mode?0x50E0:0x4F60,font[448],colors[64],restored[8];
+  wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);
+  wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);
+  for(unsigned i=0;i<448;i++)font[i]=rd(c,pointer+i);
+  for(unsigned i=0;i<64;i++){unsigned p=(mode?0x52EC:0x4E20)+2*i;colors[i]=rd(c,p)|(rd(c,p+1)<<8);}
+  for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+  for(unsigned p=0;p<2;p++)for(unsigned i=0;i<64;i++){wr(c,p?0xFF6A:0xFF68,i);wr(c,p?0xFF6B:0xFF69,0x19);}
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC765,mode);wr(c,0xC764,0xA5);wr(c,0xC74E,length?17:0);wr(c,0xC74F,0);
+  wr(c,0xC1B8,0);wr(c,0xC1B9,0);wr(c,0xC1BA,0);wr(c,0xCF86,0);wr(c,0xC21F,0);wr(c,0xC220,0);c->setKeys(c,0);wr(c,0xFF96,0);wr(c,0xFF99,0);wr(c,0xFF97,0);wr(c,0xFF98,0);wr(c,0xFF8A,0);wr(c,0xFF8B,0);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4000;wr(c,0xFF40,0x91);
+  unsigned steps=0,loops=0,wakes=0,fadeWakes=0,records=0;bool fontSeen=false;
+  while((cpu->pc!=0xC100||cpu->executionState!=SM83_CORE_FETCH)&&steps++<2000000){
+   if(cpu->executionState==SM83_CORE_FETCH){
+    if(cpu->pc==0x4031){require(cpu->hl==pointer&&rd(c,0xC765)==effective,"Entry original font source selected before mode3 fallback",m*8+family*2+plane);}
+    if(cpu->pc==0x4034){wr(c,0xFF40,0);bool exact=(rd(c,0xFF4F)&1)==0;wr(c,0xFF4F,1);
+     for(unsigned i=0;i<288;i++)exact&=rd(c,0x96C0+i)==font[i];for(unsigned i=0;i<160;i++)exact&=rd(c,0x8760+i)==font[288+i];wr(c,0xFF4F,0);wr(c,0xFF40,0x91);
+     require(exact,"Entry original consecutive font copies exact448 bytes on plane1",m*8+family*2+plane);fontSeen=true;
+    }
+    if(cpu->pc==0x403B||cpu->pc==0x4049||cpu->pc==0x405C){unsigned expected=records==0?0:records==1?1+(effective&1):3;
+     require(cpu->a==expected&&cpu->c==0&&cpu->de==0x5268,"Entry actual indexed preparation record order",m*8+family*2+plane);records++;
+    }
+    if(cpu->pc==0x4077){loops++;
+     if(loops==1){require(rd(c,0xC76C)==length&&rd(c,0xC76D)==0&&rd(c,0xC76A)==(mode?2:0)&&rd(c,0xC772)==1&&rd(c,0xC21F)==8&&rd(c,0xC220)==0,
+       "Entry complete setup grid redraw indicator subtract transition precedes loop",m*8+family*2+plane);
+      wr(c,0xC766,choice?8:6);wr(c,0xC767,4);c->setKeys(c,1);
+     }else if(family==3&&loops==2){require(rd(c,0xC772)==1&&rd(c,0xC764)==1&&rd(c,0xC74E)==0,
+       "Entry empty list choice1 rejected by original input before fixture selects choice0",m*8+family*2+plane);wr(c,0xC766,6);c->setKeys(c,0);}
+     else if(family==3&&loops==3){require(rd(c,0xFF96)==0&&rd(c,0xFF97)==0,"Entry actual input poll sampled release before second press",m*8+family*2+plane);c->setKeys(c,1);}
+    }
+    if(cpu->pc==0x47D5){wakes++;unsigned caller=rd(c,cpu->sp)|(rd(c,cpu->sp+1)<<8);bool inFade=caller==0x47C2;if(inFade){fadeWakes++;if(rd(c,0xC220)!=(fadeWakes<8?8-fadeWakes:0)||rd(c,0xCF86)!=2)fprintf(stderr,"Entry fade wake=%u add=%u sub=%u busy=%u PC=%04X SP=%04X\n",fadeWakes,rd(c,0xC220),rd(c,0xC21F),rd(c,0xCF86),cpu->pc,cpu->sp);require(rd(c,0xC220)==(fadeWakes<8?8-fadeWakes:0)&&rd(c,0xCF86)==2,
+      "Entry input starts actual countdown and completes eight fade ticks",m*8+family*2+plane);if(fadeWakes==8)wr(c,0xCF86,0);}
+     g->memory.ime=false;require((caller==0x47C2||caller==0x409A)&&wakeSyntheticHalt(c,true),"Entry original HALT receives scheduled fixture wake without IRQ handler",m*8+family*2+plane);continue;
+    }
+   }
+   c->step(c);
+  }
+  bool exact=cpu->pc==0xC100&&cpu->sp==0xD000&&cpu->a==finalChoice&&rd(c,0xC764)==finalChoice&&rd(c,0xC765)==effective&&
+   rd(c,0xC772)==0&&rd(c,0xC21F)==(family==3?4:6)&&rd(c,0xC220)==0&&rd(c,0xCF86)==0&&rd(c,0xC74E)==(length?17:0)&&rd(c,0xC74F)==0&&fontSeen&&records==2+(effective&1)&&
+   fadeWakes==8&&wakes==9+2*(family==3)&&loops==2+2*(family==3)&&rd(c,0xFF8A)==0&&rd(c,0xFF8B)==loops&&g->memory.ime&&
+   rd(c,0xC67F)==0xD9&&rd(c,0xC682)==0xD9&&rd(c,0xFF8E)==0&&rd(c,0xFF8F)==0&&rd(c,0xFF92)==0&&rd(c,0xFF93)==0&&rd(c,0xC221)==1&&g->memory.hdmaRemaining==0&&
+   rd(c,0xC113)==0x0F&&rd(c,0xC114)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];
+  for(unsigned i=0;i<64;i++){unsigned packed=0;for(unsigned channel=0;channel<3;channel++){unsigned component=(colors[i]>>(5*channel))&31,delta=(31-component)*256,word=0xF800-delta,index=i*3+channel;
+   exact&=rd(c,0xC2A2+2*index)==(word&255)&&rd(c,0xC2A3+2*index)==word>>8&&rd(c,0xC422+2*index)==(delta&255)&&rd(c,0xC423+2*index)==delta>>8;packed|=((word>>11)&31)<<(5*channel);}
+   exact&=rd(c,0xC222+2*i)==(packed&255)&&rd(c,0xC223+2*i)==packed>>8;
+  }
+  wr(c,0xFF40,0);for(unsigned p=0;p<2;p++)for(unsigned i=0;i<64;i++){wr(c,p?0xFF6A:0xFF68,i);exact&=rd(c,p?0xFF6B:0xFF69)==0x19;}
+  if(!exact)fprintf(stderr,"Entry end mode=%u family=%u loops=%u wakes=%u fade=%u PC=%04X A=%u state=%u flags=%u ticks=%u records=%u IME=%u\n",mode,family,loops,wakes,fadeWakes,cpu->pc,cpu->a,rd(c,0xC772),rd(c,0xFF8B),rd(c,0xC220),records,g->memory.ime);
+  require(exact,"Complete original entry returns choice clears callbacks and preserves list after forced frame/audio producers",m*8+family*2+plane);
+ }
+ c->setKeys(c,0);wr(c,0xFF40,0);wr(c,0xFF97,0);wr(c,0xFF98,0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
