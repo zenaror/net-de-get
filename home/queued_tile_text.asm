@@ -143,7 +143,7 @@ QueuedTileText_2892::
 	ldh a, [$FF97]
 	and a, $01
 	ret z
-	call $2D53
+	call FillQueuedTextRectangle
 	ld a, $01
 	ld [$C1B8], a
 	xor a, a

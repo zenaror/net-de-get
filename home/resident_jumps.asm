@@ -48,7 +48,7 @@ ResidentJump01FB::
 ResidentJump01FE::
 	jp $2D46
 ResidentJump0201::
-	jp $2D53
+	jp FillQueuedTextRectangle
 ResidentJump0204::
 	jp $2DC3
 ResidentJump0207::

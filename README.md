@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 422 seções**, todos comparados byte a byte com a referência externa. Os 226 trechos analisados somam 35570 bytes; os demais 1013006 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 423 seções**, todos comparados byte a byte com a referência externa. Os 227 trechos analisados somam 35682 bytes; os demais 1012894 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 422 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 423 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -451,3 +451,14 @@ O renderer desabilita interrupções, salva VBK, seleciona A `$02` e configura f
 Os 196.680 novos asserts verificam todos os 65.536 pares linha/coluna no helper, 65.536 prefixos renderer (todos os glyphs e contadores) e 36 chamadas completas com LCD ativo. Os prefixos param antes do helper de tilemap/disparo e conferem valores brutos dos registradores HDMA, registradores CPU e seleção de janela. A fixture inicialmente presumiu máscara no readback de HDMA3; a comparação foi corrigida para o byte bruto preservado pelo core, distinguindo-o do destino efetivo da transferência. Os completos usam glyphs 0/15/16/127/254/255, contadores 0/1/106 e VBK inicial 0/1; conferem todos os 8.192 bytes dos dois planos, 16 bytes de glyph da fonte realmente mapeada, tile/atributo, ausência de transferência pendente, contador e restauração do mapper/VBK.
 
 A fixture soma 1.246.987 asserts; o privado preserva os 1.248 símbolos publicados em `248d658`. Imagem integral e negativos reais passam. LCD ativo nos probes é uma condição sintética controlada, não um menu natural, prova de temporização física ou confirmação do significado visual japonês. Os demais índices, bases, estilos e contadores não recebem garantia de admissibilidade natural. O consumidor da fila `$11AA` e o helper `$2D53` continuam pendentes.
+
+
+### Preenchimento original do retângulo de texto
+
+`home/queued_text_fill.asm` extrai `$2D53-$2DC2` (112 bytes). O residual `$28BE-$2D52` mantém seu símbolo; o thunk `$0201`, o controle 4 e o estado 2 usam `FillQueuedTextRectangle`, com o helper de offset já simbólico. A interpretação é `PROBABLE`, sustentada por chamadas estáticas e probes sintéticos.
+
+O helper salva VBK, seleciona o plano 0, escolhe tile `$70` quando `$C1AA=1` ou `$79` nos demais casos e zera `$C1BC/$C1BD`. A origem usa B=`$C1A4`, C=`$C1A7-1`, o helper `$2FE0` e a base `$C1B5/$C1B6`. Preenche largura `$C1A8` e contagem de linhas `(2*$C1A9)&$FF`, gravando tile no plano 0 e atributo `$C1A3` no plano 1, com stride 32, esperas STAT e DI/EI originais. Restaura VBK ao retornar; EI não preserva o estado anterior de IME.
+
+Dimensões byte zero não representam retângulo vazio: largura zero decrementa por 256 colunas; contagem de linhas zero decrementa por 256 linhas, inclusive alturas 0/128. Os probes executam somente combinações cujo destino inteiro fica em VRAM. O caso de 32×256 excedeu o limite padrão de 100.000 passos da fixture; os casos maiores passaram com limite específico de 2.000.000 passos. Esse limite finito é separado do padrão mantido para os outros calls, sem afirmar admissibilidade natural dessas dimensões.
+
+Os 184 novos asserts cobrem 56 chamadas completas com LCD desligado (larguras 1/4/32/0, alturas 1/2/0/128 dentro do limite de VRAM, dois tiles e VBK 0/1) e 36 chamadas diretas, pelo controle 4 ou pelo estado 2, com LCD desligado/ativo. As últimas usam origem (3,2), tamanho 4×4, três valores de `$C1AA` e os dois VBKs. Conferem todos os 8.192 bytes de ambos os planos, regiões sobrepostas da largura zero, guards, campos, HL/BC finais nos casos diretos e transições dos chamadores. A fixture soma 1.247.171 asserts; o privado preserva os 1.257 símbolos publicados em `a27c33d`. Imagem integral e negativos reais passam. São entradas forçadas; significado de tela, geometria natural, IRQ e timing físico continuam sem confirmação. O consumidor da fila `$11AA` permanece pendente.

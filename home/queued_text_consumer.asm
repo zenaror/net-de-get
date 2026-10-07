@@ -166,7 +166,7 @@ QueuedText_2EA4::
 QueuedText_2EA7::
 	cp a, $04
 	jr nz, QueuedText_2EAF
-	call $2D53
+	call FillQueuedTextRectangle
 	ret
 QueuedText_2EAF::
 	cp a, $0F

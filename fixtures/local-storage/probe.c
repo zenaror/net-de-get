@@ -13,14 +13,15 @@ static void require(int ok,const char *name,unsigned index){
 }
 static void wr(struct mCore *c,unsigned address,unsigned value){c->busWrite8(c,address,value);}
 static unsigned rd(struct mCore *c,unsigned address){return c->busRead8(c,address);}
-static void call(struct mCore *c,unsigned entry){
+static void callWithLimit(struct mCore *c,unsigned entry,unsigned limit){
  struct GB *g=c->board;struct SM83Core *cpu=g->cpu;
  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
  wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=entry;
- unsigned steps=0;while(cpu->pc!=0xC100&&steps++<100000)c->step(c);
+ unsigned steps=0;while(cpu->pc!=0xC100&&steps++<limit)c->step(c);
  require(cpu->pc==0xC100&&cpu->sp==0xD000,"bounded return",entry);
 }
+static void call(struct mCore *c,unsigned entry){callWithLimit(c,entry,100000);}
 /* Independent bounded model of lower-slot straight-line command framing.
    It stops before FE; it does not model loop control or natural IRQ timing. */
 struct A1EEvent {unsigned pointer,low,high;};
@@ -2197,6 +2198,53 @@ int main(int argc,char **argv){
    }
   }
   require(exact,"glyph LCD-on full renderer exact two-plane maps and16byte HDMA",gi*6+ci*2+initial);
+ }
+ wr(c,0xFF40,0);
+ }
+ { /* Rectangle fill; zero byte dimensions are wrap counters, not empty. */
+ const unsigned widths[]={1,4,32,0},heights[]={1,2,0,128};
+ for(unsigned w=0;w<4;w++)for(unsigned h=0;h<4;h++)for(unsigned kind=0;kind<2;kind++)for(unsigned initial=0;initial<2;initial++){
+  if(w==3&&h>=2)continue; /* Would extend beyond VRAM; not executed. */
+  unsigned width=widths[w]?widths[w]:256,rows=(heights[h]*2)&255;if(!rows)rows=256;
+  unsigned base=h>=2?0x8000:0x9800,tile=kind?0x70:0x79;
+  wr(c,0xFF40,0);
+  for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,initial);wr(c,0xC1AA,kind);wr(c,0xC1A4,0);wr(c,0xC1A7,1);
+  wr(c,0xC1B5,base&255);wr(c,0xC1B6,base>>8);wr(c,0xC1A8,widths[w]);wr(c,0xC1A9,heights[h]);
+  wr(c,0xC1A3,0x23);wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x5A);callWithLimit(c,0x201,2000000);
+  bool exact=rd(c,0xC1BC)==0&&rd(c,0xC1BD)==0&&rd(c,0xC1C3)==tile&&
+   (rd(c,0xFF4F)&1)==initial&&cpu->hl==base+32*rows&&cpu->bc==(widths[w]<<8);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned address=0x8000;address<0xA000;address++){
+    bool filled=false;
+    for(unsigned row=0;row<rows;row++)if(address>=base+row*32&&address<base+row*32+width)filled=true;
+    exact&=rd(c,address)==(filled?(plane?0x23:tile):0xA5);
+   }
+  }
+  require(exact,"text rectangle LCD-off exact planes zero-width and doubled-height wrap",w*16+h*4+kind*2+initial);
+ }
+ for(unsigned lcd=0;lcd<2;lcd++)for(unsigned entry=0;entry<3;entry++)for(unsigned kind=0;kind<3;kind++)for(unsigned initial=0;initial<2;initial++){
+  wr(c,0xFF40,0);
+  for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,initial);wr(c,0xC1AA,kind==2?255:kind);wr(c,0xC1A4,3);wr(c,0xC1A7,3);
+  wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1A8,4);wr(c,0xC1A9,2);wr(c,0xC1A3,0x23);
+  wr(c,0xC1B8,2);wr(c,0xC1B4,0xA5);wr(c,0xC1C4,16);wr(c,0xFF97,1);
+  wr(c,0xC655,entry==1?4:1);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1B9,0);
+  wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x5A);if(lcd)wr(c,0xFF40,0x91);
+  call(c,entry==0?0x201:entry==1?0x20D:0x1EC);
+  bool exact=(rd(c,0xFF4F)&1)==initial&&rd(c,0xC1BC)==0&&rd(c,0xC1BD)==0&&
+   rd(c,0xC1B8)==(entry==2?1:2)&&rd(c,0xC1B4)==(entry==2?0:0xA5)&&
+   (entry!=1||rd(c,0xC1AB)==0x56);
+  wr(c,0xFF40,0);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned address=0x8000;address<0xA000;address++){
+    bool filled=address>=0x9843&&address<0x9843+4*32&&((address-0x9843)%32)<4;
+    exact&=rd(c,address)==(filled?(plane?0x23:kind==1?0x70:0x79):0xA5);
+   }
+  }
+  require(exact,"text fill complete direct control4 and state2 LCD-off/on guards",lcd*18+entry*6+kind*2+initial);
  }
  wr(c,0xFF40,0);
  }

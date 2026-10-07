@@ -502,3 +502,19 @@ counter, saved mapper pair andVBK restoration plus finalIME are checked.
 196680 assertions are added. Forced LCD-on calls are SYNTHETIC; they do not
 prove natural menu/glyph meaning, physical timing or arbitrary caller
 admissibility. EI is original and does not restore prior IME state.
+
+
+### Original queued-text rectangle fill
+
+56 complete LCD-off calls cover widths1/4/32/0 and heights1/2/0/128, two
+tile-selection values and initialVBK0/1. Combinations of zero width with
+256 rows are excluded because they would extend beyond VRAM. Zero width
+executes256 columns; doubled byte height0 executes256 rows. The32x256 case
+exceeded the default100000-step call cap; this group uses an explicit finite
+2000000-step cap, leaving the other calls at their default.36 further cases
+use direct0201, control4 through020D and state2 through01EC, with LCD-off/on,
+C1AA0/1/FF and bothVBKs. Every byte of both8KiB planes, overlaps, guards,
+restoredVBK, fields and caller transitions is checked.184 assertions are
+added. The tests preserve decrement wrap and exact stride rather than
+normalizing zero dimensions. These are SYNTHETIC forced inputs, not natural
+screen geometry, IRQ or physical timing evidence; semantics remain PROBABLE.

@@ -65,7 +65,7 @@ bank	start	end	symbol
 00	25CB	2612	ResidualROM00_25CB
 00	2613	261B	CopyBytesHLToDE
 00	261C	27A9	ResidualROM00_261C
-00	28BE	2DC2	ResidualROM00_28BE
+00	28BE	2D52	ResidualROM00_28BE
 00	2DC3	2DCF	LocalCursorHorizontalJitter
 00	3031	38AF	ResidualROM00_3031
 00	38B0	391B	CheckLocalMinigameChecksum
@@ -421,3 +421,4 @@ bank	start	end	symbol
 00	2F1C	2FDF	RenderQueuedTileGlyph
 00	2FE0	2FF0	GetQueuedTilemapOffset
 00	2FF1	3030	QueuedTilemapRowOffsets
+00	2D53	2DC2	FillQueuedTextRectangle
