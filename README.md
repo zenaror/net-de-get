@@ -73,7 +73,7 @@ Objetivo binário autorizado pelo Operador: uma ROM montável a partir do fonte 
 
 ### Trabalho a fazer
 
-1. Seguir os callees da inicialização A `$16:$4000`, agora extraída até `$41E9` em `engine/startup/bank_a16.asm`, os callees dos dez estados já extraídos da tabela `$03A8` e a manutenção de VBlank `$2242`; fechar os callees ainda numéricos dos menus, incluindo as dependências dos quatro handlers A `$12:$4175/$41A2/$41D2/$4202` e da inicialização já extraídos, em especial `$459F` e os alvos de ação dos três subdispatchers de input já extraídos, a integração natural dos tails de texto já extraídos `$5C2F/$5C55` e os consumidores/recursos de `InitializeA12TileFrames`, preservando fronteiras e símbolos.
+1. Seguir os callees da inicialização A `$16:$4000`, agora extraída até `$41E9` em `engine/startup/bank_a16.asm`, os callees dos dez estados já extraídos da tabela `$03A8` e a manutenção de VBlank `$2242`; fechar os callees ainda numéricos dos menus, incluindo as dependências dos quatro handlers A `$12:$4175/$41A2/$41D2/$4202` e da inicialização já extraídos, em especial `$459F` e a integração natural dos três fluxos de input/ação já extraídos, a integração natural dos tails de texto já extraídos `$5C2F/$5C55` e os consumidores/recursos de `InitializeA12TileFrames`, preservando fronteiras e símbolos.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Refinar os intervalos `ResidualROM` por consumidores e fluxo, preservando seus símbolos de início quando extraídos; `make coverage` informa o volume ainda não interpretado.
@@ -901,3 +901,20 @@ Os probes incluem 16.384 chamadas completas (quatro variantes, todos os 256 coma
 As 1.048.576 entradas completas cobrem todos os pares modo/input e 16 flags: 1.045.504 retornos pelas guards e 3.072 prefixes no primeiro call real de áudio. Outros 16.384 prefixes conferem todos os índices/flags até os jumps reais nos quatro dispatchers; os 16.384 retornos isolados preservam AF/registradores. As 12.288 confirmações executam áudio real e param antes de despachar os três alvos, cobrindo todos os valores anteriores de `$C214` e 16 flags, inclusive bit 0 com bit 1 simultâneo. As 4.096 chamadas completas de cancelamento cobrem os 64 bytes de input com bit 1 sem bit 0, 16 flags, ambos VBK/LCD; comparam as duas planes inteiras de VRAM, os bytes sintéticos de origem, guards e estado após áudio/ocultação/cópia reais. Os tables de áudio e a imagem copiada são sintéticos, não saves.
 
 São 2.166.784 novos asserts, total 28.807.614, além dos 24 testes do verificador. Não há retorno de callee injetado. O caminho de confirmação para antes dos corpos de variante/ação, e os índices arbitrários param antes de consumir os alvos. A integração natural dos handlers/ações, significado japonês, validade natural dos índices, IRQ/ritmo e hardware continuam sem prova.
+
+
+### Corpos de ação A12 — 18 alvos (2026-10-07)
+
+`engine/menus/a12_input_actions.asm` extrai 620 bytes em 18 seções: `$4786-$4859`, `$487C-$493F`, `$4962-$4A35`. Os aliases `ResidualROM09_4786/487C/4962` permanecem em seus endereços, e as três tabelas publicadas agora usam nomes de ação. `$4A36-$4AC8` continua residual. São 575 seções: 371 analisadas (45.782 bytes), 204 residuais (1.002.794 bytes). Interpretação `PROBABLE`, sem trace natural.
+
+Todos os corpos ocultam/copiam a janela, limpam `$C213`, gravam `$C600=2`, configuram tiles com `$5093`, escolhem fase e chamam o reset real `$4CFD`. As ações 0/1 usam o mesmo header, com fases 7/8. As ações 2/3 podem escolher header por limiares de `$C5A4`, com fases 3/5. As ações 4/5 usam fases 4/6 nas variantes 0/1, mas 6/4 na variante 2. Headers e sequências são lidos da ROM original nas janelas B `$61/$63/$65`; os dados japoneses permanecem intactos.
+
+| Variante | Ação 0/1 | Ação 2 | Ação 3 | Ação 4 | Ação 5 |
+| --- | --- | --- | --- | --- | --- |
+| 0 | `$6895` | `<3: $68EF`, demais `$6939` | `<6: $69AC`, demais `$69CB` | `$6B74` | `$6B9E` |
+| 1 | `$6866` | `<6: $689D`, demais `$68B4` | `$68CB` | `$6A7F` | `$6A51` |
+| 2 | `$6800` | `<2: $6837`, demais `$6846` | `<3: $6855`, demais `$6874` | `$6ACE` | `$6AA8` |
+
+As 4.608 chamadas diretas cobrem todos os 256 valores de `$C5A4` nos 18 corpos, com flags variadas. As 576 cadeias completas desde `$470F` cobrem todos os alvos, valores 0/1/2/3/5/6/7/255, ambos VBK/LCD e flags variadas; usam áudio real com tabelas sintéticas e comparam as duas planes inteiras de VRAM contra a composição da janela copiada e dos tiles originais. A origem WRAM7 é sintética e seus 320 bytes/guard são preservados. Headers, ponteiros/avanço de payload, registros de recursos, normalização/distâncias, fases, counters, registradores e guards são comparados por modelos independentes. Os primeiros registros de reset são ordinários; o lookahead mantém o skip real de markers sem promover isso a efeito executado. Nenhum retorno de callee é injetado.
+
+São 21.312 novos asserts, total 28.828.926, além dos 24 testes do verificador. A integração sintética percorre os corpos antes pendentes, mas não demonstra input natural, significado japonês, hardware ou ritmo/IRQ. O caminho de confirmação com índices arbitrários continua limitado pelas tabelas medidas; os índices fora delas não são tratados como naturalmente válidos.

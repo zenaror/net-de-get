@@ -1523,3 +1523,24 @@ C213/input/mode and preserves the tested neighboring fields/mapping state.
 Audio tables/source image are synthetic; no natural saves or injected returns.
 Adds2166784 assertions,total28807614. Confirmation target bodies, natural input/menu,
 Japanese meaning, index validity, physical timing/IRQ and hardware remain unproven.
+
+
+## Eighteen input action bodies (4786-4859,487C-493F,4962-4A35)
+
+PROBABLE whole original-code contracts.4608 direct calls cover all256 C5A4
+values across18 bodies with varied flags.576 complete470F->variant->action chains
+cover values0/1/2/3/5/6/7/255, bothVBK/LCD and varied flags, with actual upper audio,
+hide/two-plane copy,tile setup and resource reset/read bodies. No fake return.
+Original resources are mapped in B61/63/65; original Japanese bytes are retained.
+All actions clearC213,setC600=2,configure tiles and set a phase before reset.
+Actions0/1 share a header,phases7/8; actions2/3 use phases3/5, including five
+threshold header branches. Actions4/5 use phases4/6 for variants0/1,6/4 for2.
+Headers and first/next resource records are modeled independently; all reset
+first records are ordinary. Lookahead FF/FE skips are modeled without claiming
+an executed effect. Geometry,payload pointer advance,normalization/distances,
+registers,phase/counter/field/guard contracts are checked.
+Whole VRAM comparison composes original tile payload over the synthetic320-byte
+WRAM7 window image; both8192-byte planes and immutable source/guard are checked.
+Audio/window inputs synthetic. Adds21312 assertions,total28828926. No natural
+input/menu trace, Japanese meaning, arbitrary-index validity, IRQ/timing/hardware
+proof. Original resource data remains unextracted; bodies alone are refined.

@@ -337,6 +337,33 @@ static void probeA12ResourceCommand(struct mCore *c,unsigned command,unsigned va
  exact&=cpu->de==(transition?last:0x1234);
  require(exact,"A12 full resource commands real countdown palettes state fields registers flags no command clear",index);
 }
+static unsigned a12ActionEntry(unsigned v,unsigned a){const unsigned e[3][6]={{0x4786,0x47D2,0x47F0,0x47A4,0x481E,0x483C},{0x487C,0x48B8,0x48D6,0x489A,0x4904,0x4922},{0x4962,0x49AE,0x49CC,0x4980,0x49FA,0x4A18}};return e[v][a];}
+static unsigned a12ActionHeader(unsigned v,unsigned a,unsigned value){
+ const unsigned h[3][6]={{0x6895,0x6895,0x68EF,0x69AC,0x6B74,0x6B9E},{0x6866,0x6866,0x689D,0x68CB,0x6A7F,0x6A51},{0x6800,0x6800,0x6837,0x6855,0x6ACE,0x6AA8}};
+ if(v==0&&a==2&&value>=3)return 0x6939;if(v==0&&a==3&&value>=6)return 0x69CB;if(v==1&&a==2&&value>=6)return 0x68B4;if(v==2&&a==2&&value>=2)return 0x6846;if(v==2&&a==3&&value>=3)return 0x6874;return h[v][a];
+}
+static void probeA12InputAction(struct mCore *c,unsigned v,unsigned action,unsigned value,unsigned flags,unsigned plane,unsigned lcd,bool whole,bool nested,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;const unsigned selectors[]={0x61,0x63,0x65},tables[]={0x6BBD,0x6AD0,0x6AE5},phases[3][6]={{7,8,3,5,4,6},{7,8,3,5,4,6},{7,8,3,5,6,4}};
+ unsigned sel=selectors[v],phase=phases[v][action],header=a12ActionHeader(v,action,value);
+ prepareA12EffectMapping(c,sel);prepareA12EffectAudio(c);wr(c,0x37FF,sel);wr(c,0xFFAD,sel);wr(c,0xC115,sel);
+ unsigned h[7];for(unsigned i=0;i<7;i++)h[i]=rd(c,header+i);unsigned area=h[2]*h[3],end=header+7+2*(area&255),origin=0x9800+h[1]*32+h[0];
+ require(area>0&&area<=255&&h[0]+h[2]<=32&&origin+h[3]*32<=0xA000,"A12 original action header measured bounded geometry",index);
+ unsigned payload[510];for(unsigned i=0;i<2*area;i++)payload[i]=rd(c,header+7+i);
+ unsigned ptr=rd(c,tables[v]+phase*2)|(rd(c,tables[v]+phase*2+1)<<8),count=rd(c,ptr),p=ptr+1,record[4];for(unsigned i=0;i<4;i++)record[i]=rd(c,p+i);
+ require(record[0]!=255&&record[0]!=254,"A12 action original reset first record ordinary no fake effect skip",index);
+ unsigned q=p+4;if(rd(c,q)==255)q+=4;if(rd(c,q)==254)q+=4;unsigned next[4];for(unsigned i=0;i<4;i++)next[i]=rd(c,q+i);
+ if(whole)for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+ wr(c,0xFF70,7);for(unsigned i=0;i<320;i++)wr(c,0xD000+i,(i*13+v*17+action)&255);wr(c,0xD140,0x37);wr(c,0xFF70,2);wr(c,0xFF4F,plane);
+ wr(c,0xC5A8,v);wr(c,0xC5A4,value);wr(c,0xC214,action);wr(c,0xC732,0x37);wr(c,0xC601,0x39);wr(c,0xC5A3,0x3C);wr(c,0xC600,1);wr(c,0xC213,0x5A);wr(c,0xC5CF,1);wr(c,0xC5CC,0x5A);wr(c,0xC5CE,0x39);wr(c,0xC5E5,0x3C);wr(c,0xC5E7,0x37);wr(c,0xC5E1,0x39);cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;
+ if(nested)wr(c,0xFF97,3);if(lcd)wr(c,0xFF40,0xF1);callWithLimit(c,nested?0x470F:a12ActionEntry(v,action),2000000);
+ unsigned x=(record[1]-0xC9)&255,y=(record[2]-0xD0)&255,nx=(next[1]-0xC9)&255,ny=(next[2]-0xD0)&255,lo=y<ny?y:ny,hi=y>ny?y:ny,dy=hi-lo,f=0x40|(!dy?0x80:0)|((hi&15)<(lo&15)?0x20:0);
+ bool exact=cpu->af==(dy<<8|f)&&cpu->bc==(lo<<8|h[3])&&cpu->de==p&&cpu->hl==q+4&&rd(c,0xC213)==0&&rd(c,0xC600)==2&&rd(c,0xC5CF)==phase&&rd(c,0xC5CC)==0&&rd(c,0xC5CE)==0&&rd(c,0xC5A8)==v&&rd(c,0xC5A4)==value&&rd(c,0xC214)==action&&rd(c,0xC732)==(nested?action:0x37)&&rd(c,0xC601)==0x39&&rd(c,0xC5A3)==0x3C&&rd(c,0xC5CD)==count&&rd(c,0xC5D0)==record[0]&&rd(c,0xC5D7)==x&&rd(c,0xC5D8)==y&&rd(c,0xC5CB)==record[3]&&rd(c,0xC5D1)==next[0]&&rd(c,0xC5D9)==nx&&rd(c,0xC5DA)==ny&&rd(c,0xC5FD)==next[3]&&rd(c,0xC5DD)==(x>nx?x-nx:nx-x)&&rd(c,0xC5DE)==dy&&rd(c,0xC5E5)==0&&rd(c,0xC5E7)==0&&rd(c,0xC5E1)==0x39&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==end&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==header+7&&rd(c,0xC5F9)==h[0]&&rd(c,0xC5FA)==h[1]&&rd(c,0xC5E2)==h[2]&&rd(c,0xC5E3)==h[3]&&rd(c,0xC5E6)==h[4]&&rd(c,0xC5E4)==h[5]&&rd(c,0xC5E8)==h[6]&&rd(c,0xFF40)==(lcd?0x91:0)&&(rd(c,0xFF4F)&1)==0&&rd(c,0xFFAD)==sel&&rd(c,0xC115)==sel&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&(rd(c,0xFF70)&7)==2;
+ if(nested)exact&=rd(c,0xFF97)==0&&rd(c,0xCF82)==0&&rd(c,0xCF89)==0x11;
+ require(exact,"A12 complete original action hide header copy reset mapped resource coordinates registers fields guards",index);
+ if(whole){wr(c,0xFF40,0);exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned address=0x8000+i,row=i>=0x1C00?(i-0x1C00)/32:256,col=i%32,expected=row<8&&col<20?((bank*160+row*20+col)*13+v*17+action)&255:0xA5;if(address>=origin){unsigned j=address-origin,y0=j/32,x0=j%32;if(y0<h[3]&&x0<h[2])expected=payload[bank*area+y0*h[2]+x0];}exact&=rd(c,address)==expected;}}
+  wr(c,0xFF70,7);for(unsigned i=0;i<320;i++)exact&=rd(c,0xD000+i)==((i*13+v*17+action)&255);exact&=rd(c,0xD140)==0x37;wr(c,0xFF70,2);require(exact,"A12 complete action composition both full VRAM planes unchanged synthetic source guard",index);
+ }
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4306,6 +4333,11 @@ int main(int argc,char **argv){
   wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned y=i>=0x1C00?(i-0x1C00)/32:256,x=i%32,expected=y<8&&x<20?((bank*160+y*20+x)*13+edge)&255:0xA5;exact&=rd(c,0x8000+i)==expected;}}wr(c,0xFF70,7);for(unsigned i=0;i<320;i++)exact&=rd(c,0xD000+i)==((i*13+edge)&255);exact&=rd(c,0xD140)==0x37;wr(c,0xFF70,2);
   require(exact,"A12 complete cancel every bit1 edge flags both VBK LCD actual audio hide full VRAM source guards",edge*64+flags*4+plane*2+lcd);
  }
+ }
+ { /* Complete original action bodies and whole input/variant/action integrations. */
+ for(unsigned v=0;v<3;v++)for(unsigned action=0;action<6;action++)for(unsigned value=0;value<256;value++)probeA12InputAction(c,v,action,value,(value&15)<<4,0,0,false,false,v*1536+action*256+value);
+ const unsigned values[]={0,1,2,3,5,6,7,255};
+ for(unsigned v=0;v<3;v++)for(unsigned action=0;action<6;action++)for(unsigned val=0;val<8;val++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeA12InputAction(c,v,action,values[val],val<<4,plane,lcd,true,true,4608+v*192+action*32+val*4+plane*2+lcd);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
