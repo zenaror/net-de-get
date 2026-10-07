@@ -804,3 +804,32 @@ footer, marked cells and indicator writes in original order. Verify both
 entire8192-byte planes, state/pointers/counters/VBK and guards.
 1072 complete calls add2144 assertions. Semantics remain PROBABLE and
 SYNTHETIC, without natural menu, palette visibility, audio or hardware timing.
+
+
+## Original selected list insertion and marker compatibility
+
+43F0..4495 chooses a glyph by mode and byte coordinate remap/rotations,
+with glyph10 for nonzero global/odd mode/row>=3. Target is C74E+C76C.
+Plain glyphs require wrapped nonmarker count below capacity. FE/FF read
+target-2 and reject an existing marker; otherwise classify target-1 with
+offset0 then40. On acceptance, move the previous glyph, insert marker,
+increment marker count, append zero and redraw with incremented total.
+44D7..451E compares C against B+85/96/8A/9A/9F/A4 byte thresholds. E=FF
+uses the final interval only; other E values use earlier branches too.
+Independent oracle checks final A/flags/D and preserved BC/E/HL.
+131072 B/C pairs with E0/FF cover both branches;4096 additional cases
+cover all E bytes with four B offsets and four C values.65536 coordinate
+prefixes use derived mode/count and global0/1, stopping444B before mutation.
+Check actual mapped source byte (high domains can read beyond measured
+resources), destination saved on stack, fields and whole VRAM unchanged.
+3840 full insertion/redraw calls cover modes0..3, global0/1/2/255,15x4
+coordinates,two capacities,bothVBKs;16 dispatcher chains also return.
+Model post-list, capacity/marker acceptance and rejection, original font
+payloads/HDMA, cursor/state/counters, mapper restoration and both8192-byte
+VRAM planes in write order. Sixteen complete early-rejection calls cover existing FE/FF at target-2,
+both selected markers, bothVBKs and LCDoff/on with unchanged wholeVRAM.
+Four artificial length0/1 FE/FF prefixes stop
+445D before the backward read at C74C/C74D; no further execution/natural
+defect claim.139040 full calls and65540 prefixes add409161 assertions.
+SYNTHETIC/PROBABLE only: no natural menu, universal metadata/stream domains
+or hardware timing. Japanese bytes and published symbols are preserved.

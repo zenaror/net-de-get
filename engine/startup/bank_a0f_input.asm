@@ -149,7 +149,7 @@ A0FInput_42C6::
 A0FInput_42D3::
 	ld a, $84
 	call ResidentJump024F
-	call $43F0
+	call InsertA0FSelectedListGlyph - $2000
 	jr A0FInput_4305
 A0FInput_42DD::
 	ldh a, [$FF97]

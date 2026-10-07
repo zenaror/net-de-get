@@ -12,6 +12,19 @@ static unsigned checks;
 static void require(int ok,const char *name,unsigned index){
  if(!ok){fprintf(stderr,"FAIL %s case=%u\n",name,index);exit(10);}checks++;
 }
+/* Independent wrapped-threshold oracle; no natural character names asserted. */
+static unsigned markerModel(unsigned b,unsigned c,unsigned e,unsigned *d,unsigned *flags){
+ #define MARKER_CP(v) do{*d=(b+(v))&255;*flags=0x40|(c==*d?0x80:0)|((c&15)<(*d&15)?0x20:0)|(c<*d?0x10:0);}while(0)
+ if(e<255){
+  if(b){MARKER_CP(0x85);if(c==*d)return 1;}
+  MARKER_CP(0x96);if(c==*d)return 0;
+  MARKER_CP(0x8A);if(c<*d)return 0;
+  MARKER_CP(0x9A);if(c<*d)return 1;
+ }
+ MARKER_CP(0x9F);if(c<*d)return 0;
+ MARKER_CP(0xA4);return c<*d;
+ #undef MARKER_CP
+}
 static void wr(struct mCore *c,unsigned address,unsigned value){c->busWrite8(c,address,value);}
 static unsigned rd(struct mCore *c,unsigned address){return c->busRead8(c,address);}
 static void callWithLimit(struct mCore *c,unsigned entry,unsigned limit){
@@ -2748,6 +2761,103 @@ int main(int argc,char **argv){
   require(exact,"A0F three indicator pairs original attributes both full VRAM planes",lcd*512+seed*2+initial);
  }
  wr(c,0xFF40,0);
+ }
+ { /* Original marker classification and pre-mutation insertion coordinates. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ for(unsigned family=0;family<2;family++)for(unsigned sample=0;sample<(family?4096:131072);sample++){
+  const unsigned offsets[]={0,0x40,0x80,255},values[]={0x85,0x96,0x9F,255};
+  unsigned b=family?offsets[(sample>>8)&3]:(sample>>9),value=family?values[(sample>>10)&3]:(sample>>1)&255,e=family?sample&255:(sample&1)?255:0,d,flags;
+  unsigned result=markerModel(b,value,e,&d,&flags);cpu->bc=(b<<8)|value;cpu->de=0x5A00|e;cpu->hl=0xC123;call(c,0x44D7);
+  require(cpu->a==result&&cpu->f.packed==flags&&cpu->bc==((b<<8)|value)&&cpu->de==((d<<8)|e)&&cpu->hl==0xC123,
+   "Marker classifier all offset value pairs both E branches and every E byte flags registers",family*131072+sample);
+ }
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+ const unsigned starts[]={0x5334,0x537C,0x53C4,0x540C};
+ for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++){
+  unsigned mode=(x+y)&255,global=(x^y)&1,n=(x*73+y*29)&255,col=x;if(col>=5)col=(col+1)&255;if(col>=11)col=(col+1)&255;
+  unsigned r4=((y<<4)|(y>>4))&255,r1=((y<<1)|(y>>7))&255,row=(r4+r1)&255,effective=global?2+(mode&1):mode;
+  unsigned address=starts[effective<3?effective:3]+col+row,glyph=global&&(mode&1)&&y>=3?16:rd(c,address);
+  wr(c,0xC765,global);wr(c,0xC76A,mode);wr(c,0xC766,x);wr(c,0xC767,y);wr(c,0xC76C,n);cpu->de=0x5A3C;
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x43F0;unsigned steps=0;while(cpu->pc!=0x444B&&steps++<2000)c->step(c);
+  unsigned target=0xC74E + n;
+  require(cpu->pc==0x444B&&cpu->sp==0xCFFC&&rd(c,0xCFFC)==(target&255)&&rd(c,0xCFFD)==target>>8,
+   "Insertion all coordinate prefixes save wrapped list destination before mutation",x*256+y);
+  require(cpu->hl==address&&cpu->a==glyph&&cpu->bc==((y<<8)|r4)&&cpu->de==0x5A3C&&rd(c,0xC76C)==n&&rd(c,0xC766)==x&&rd(c,0xC767)==y,
+   "Insertion original mapped resource byte coordinate remap rotations high metadata prefix",x*256+y);
+ }
+ bool untouched=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)untouched&=rd(c,0x8000+i)==0xA5;}
+ require(untouched,"Insertion coordinate prefixes leave both whole VRAM planes unchanged",0);
+ }
+ { /* Complete original insertion and redraw with independent post-list oracle. */
+ const unsigned globals[]={0,1,2,255},starts[]={0x5334,0x537C,0x53C4,0x540C},previous[]={0x85,0x96,0x8A,0x99,0x9F,0xA3,0xD6,0xE3};
+ unsigned resources[4][72],font[256][16];wr(c,0xFF40,0);wr(c,0x27FF,2);wr(c,0x2800,0);
+ for(unsigned glyph=16;glyph<256;glyph++)for(unsigned i=0;i<16;i++)font[glyph][i]=rd(c,0x3F00+glyph*16+i);
+ wr(c,0x27FF,0x0F);for(unsigned mode=0;mode<4;mode++)for(unsigned i=0;i<72;i++)resources[mode][i]=rd(c,starts[mode]+i);
+ for(unsigned family=0;family<2;family++)for(unsigned sample=0;sample<(family?16:3840);sample++){
+  unsigned plane=sample&1,k=sample>>1,meta,x,y,mode,global,entry=family?0x41C5:0x43F0;
+  if(family){mode=k>>1;global=k&1;meta=0;x=sample%15;y=(sample>>2)%4;}
+  else{meta=k%2;k/=2;x=k%15;k/=15;y=k%4;k/=4;global=globals[k%4];mode=k/4;}
+  unsigned effective=global&1?2+(mode&1):mode,col=x+(x>=5)+(x>=10),glyph=global&&(mode&1)&&y>=3?16:resources[effective][y*18+col];
+  unsigned prev=previous[(x+y+meta)&7],d,flags;bool marker=glyph>=254;
+  bool allowed=marker?(markerModel(0,prev,glyph,&d,&flags)||markerModel(0x40,prev,glyph,&d,&flags)):meta==0;
+  unsigned capacity=meta?2:(global&1)?16:8,n=allowed?3:2,markers=allowed&&marker?1:0,list[4]={16,prev,0,0};
+  if(allowed){if(marker){list[1]=glyph;list[2]=prev;}else list[2]=glyph;}
+  unsigned char expected[2][8192];memset(expected,0xA5,sizeof(expected));unsigned cursor=0,lastTile=0xA5;
+  unsigned rawX=global&1?1:5,origin=0x9880+rawX+1,rowOrigin=0x9860+rawX+1,count=n-markers;
+  if(allowed){for(unsigned i=0;i<n;i++){
+   unsigned g=list[i],dest=0x96B0-16*(70+i),address=origin+cursor-(g>=254?32:0);
+   lastTile=0x6B-(70+i);expected[0][address-0x8000]=lastTile;expected[1][address-0x8000]=0x23;
+   for(unsigned j=0;j<16;j++)expected[1][dest-0x8000+j]=font[g][j];if(g<254)cursor++;
+  }
+  if(count<capacity){expected[0][0x1882+count]=0x89;expected[1][0x1882+count]=0;expected[0][rowOrigin+count-0x8000]=0x88;expected[1][rowOrigin+count-0x8000]=7;
+   for(unsigned i=count+1;i<capacity;i++){expected[0][0x1882+i]=0x8A;expected[1][0x1882+i]=0;}}
+  }
+  wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC765,global);wr(c,0xC76A,mode);wr(c,0xC766,x);wr(c,0xC767,y);wr(c,0xC76C,2);wr(c,0xC76D,0);wr(c,0xC76E,0);wr(c,0xC76F,capacity);
+  wr(c,0xC74C,0x5A);wr(c,0xC74D,0x3C);wr(c,0xC74E,16);wr(c,0xC74F,prev);wr(c,0xC750,0);wr(c,0xC751,0xA5);wr(c,0xC752,0x3C);
+  wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1AF,1);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);wr(c,0xC1B8,0);wr(c,0xC1B9,0);wr(c,0xC1C0,0);wr(c,0xC1C1,0);
+  wr(c,0xC1C2,0x3C);wr(c,0xC1C3,0xA5);wr(c,0xC1BC,0x3C);wr(c,0xC1BD,0x5A);wr(c,0xC1BA,0x3C);wr(c,0xC1AB,0xA5);wr(c,0xC1AC,0x5A);wr(c,0xC770,0xA5);wr(c,0xC771,0x3C);
+  wr(c,0xC1C4,0);wr(c,0xC772,1);wr(c,0xC220,0);wr(c,0xFF97,1);wr(c,0xFF98,0);wr(c,0xFF99,0);wr(c,0xFF40,0x91);callWithLimit(c,entry,2000000);
+  bool decorate=allowed&&count<capacity;unsigned end=0xC74E + n + 1;struct GB *g=c->board;
+  bool exact=rd(c,0xC76C)==n&&rd(c,0xC76D)==markers&&rd(c,0xC76E)==0&&rd(c,0xC76F)==capacity&&rd(c,0xC74C)==0x5A&&rd(c,0xC74D)==0x3C&&rd(c,0xC752)==0x3C&&
+   rd(c,0xC1B8)==0&&rd(c,0xC1B9)==0&&(rd(c,0xFF4F)&1)==plane;
+  for(unsigned i=0;i<4;i++)exact&=rd(c,0xC74E + i)==(i<=n?list[i]:0xA5);
+  if(allowed){exact&=rd(c,0xC1C2)==0&&rd(c,0xC1C3)==lastTile&&rd(c,0xC1AB)==(end&255)&&rd(c,0xC1AC)==end>>8&&rd(c,0xC1BC)==(decorate?0:cursor)&&rd(c,0xC1BD)==0&&
+    rd(c,0xC1BA)==(decorate?0:0x3C)&&rd(c,0xC770)==(decorate?count:0xA5)&&rd(c,0xC771)==(decorate?1:0x3C)&&g->memory.hdmaRemaining==0&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0;
+   for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];
+  }else exact&=rd(c,0xC1C2)==0x3C&&rd(c,0xC1C3)==0xA5&&rd(c,0xC1AB)==0xA5&&rd(c,0xC1AC)==0x5A&&rd(c,0xC1BC)==0x3C&&rd(c,0xC1BD)==0x5A&&rd(c,0xC1BA)==0x3C;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==expected[bank][i];}
+  require(exact,"Complete original selected insertion capacity marker acceptance rejection dispatcher exact VRAM",family*4096+sample);
+ }
+ /* Complete early rejection when target-2 already contains a marker. */
+ for(unsigned selected=0;selected<2;selected++)for(unsigned existing=0;existing<2;existing++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++){
+  unsigned glyph=254+selected,mode=0,index=0;bool found=false;
+  for(unsigned m=0;m<2&&!found;m++)for(unsigned i=0;i<72;i++)if(resources[m][i]==glyph){mode=m;index=i;found=true;break;}
+  if(!found){fprintf(stderr,"Missing marker in original resource\n");exit(10);}
+  unsigned y=index/18,pos=index%18,x=(pos/6)*5+pos%6;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xC765,0);wr(c,0xC76A,mode);wr(c,0xC766,x);wr(c,0xC767,y);
+  wr(c,0xC76C,2);wr(c,0xC76D,1);wr(c,0xC76F,8);wr(c,0xC74E,254+existing);wr(c,0xC74F,0x9F);wr(c,0xC750,0);wr(c,0xC751,0x3C);
+  wr(c,0xC1AB,0xA5);wr(c,0xC1AC,0x5A);wr(c,0xC1C2,0x3C);if(lcd)wr(c,0xFF40,0x91);call(c,0x43F0);
+  bool exact=rd(c,0xC76C)==2&&rd(c,0xC76D)==1&&rd(c,0xC74E)==254+existing&&rd(c,0xC74F)==0x9F&&rd(c,0xC750)==0&&rd(c,0xC751)==0x3C&&
+   rd(c,0xC1AB)==0xA5&&rd(c,0xC1AC)==0x5A&&rd(c,0xC1C2)==0x3C&&(rd(c,0xFF4F)&1)==plane;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==0xA5;}
+  require(exact,"Insertion selected FE FF rejects existing marker two bytes back before redraw LCDoff on",selected*8+existing*4+plane*2+lcd);
+ }
+ /* Short-list marker paths: measure the two-byte backward read before executing it. */
+ for(unsigned which=0;which<2;which++)for(unsigned n=0;n<2;n++){
+  unsigned glyph=254+which,mode=0,index=0;bool found=false;
+  for(unsigned m=0;m<2&&!found;m++)for(unsigned i=0;i<72;i++)if(resources[m][i]==glyph){mode=m;index=i;found=true;break;}
+  require(found,"Original grid contains requested marker for bounded short-list prefix",which*2+n);
+  unsigned y=index/18,position=index%18,x=(position/6)*5+position%6;
+  wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0xC765,0);wr(c,0xC76A,mode);wr(c,0xC766,x);wr(c,0xC767,y);wr(c,0xC76C,n);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x43F0;
+  unsigned steps=0;while(cpu->pc!=0x445D&&steps++<2000)c->step(c);
+  require(cpu->pc==0x445D&&cpu->hl==0xC74C + n&&cpu->e==glyph&&cpu->sp==0xCFFE&&rd(c,0xC76C)==n,
+   "Artificial short-list marker prefix stops before read at list-start minus2 pluscount",which*2+n);
+ }
  }
  { /* Full grid/modecycle: independent glyph/VRAM model, original streams. */
  const unsigned choices[]={0,1,2,255},starts[]={0x5334,0x537C,0x53C4,0x540C};unsigned fonts[256][16],streams[4][72],resource[306],footer[2][40];

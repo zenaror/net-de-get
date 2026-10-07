@@ -457,9 +457,9 @@ bank	start	end	symbol
 00	0180	018B	ResidualROM00_0180
 07	61C5	61F0	DispatchA0FInput
 07	61F1	6305	HandleA0FInput
-07	63F0	6495	ResidualROM07_63F0
+07	63F0	6495	InsertA0FSelectedListGlyph
 07	6496	64AD	IsA0FNonMarkerCountBelowCapacity
-07	64D7	651E	ResidualROM07_64D7
+07	64D7	651E	ClassifyA0FMarkerCompatibility
 07	655D	659F	CycleA0FResourceMode
 07	65A0	6627	RedrawA0FListText
 07	668B	674B	DrawA0FResourceGrid
