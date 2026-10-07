@@ -1658,6 +1658,23 @@ int main(int argc,char **argv){
   call(c,0x2242);exact=true;
   for(unsigned slot=0;slot<4;slot++){unsigned pointer=rd(c,0xCF00+slot*16)|(rd(c,0xCF01+slot*16)<<8);if(pointer!=prefixEnds[index][slot]||rd(c,0xCF04+slot*16)!=prefixDurations[index][slot])exact=false;}
   require(exact&&rd(c,0xC113)==4&&rd(c,0xC115)==8,"actual B first tick consumes bounded command prefixes",bank);
+  const unsigned slot0Records[3][3]={{0,0x40,2},{0,0x83,1},{0,0x83,1}};
+  const unsigned slot1Records[3][2]={{0x83,5},{0x80,2},{0xE0,2}};
+  const unsigned waveIndices[]={4,2,6},wavePointers[]={0x60BB,0x609B,0x60DB};
+  exact=true;
+  for(unsigned i=0;i<3;i++)if(rd(c,0xCF07+i)!=slot0Records[index][i])exact=false;
+  for(unsigned i=0;i<2;i++)if(rd(c,0xCF17+i)!=slot1Records[index][i])exact=false;
+  require(exact&&rd(c,0xCF27)==waveIndices[index],"actual B C0 selected slot0/1 records and slot2 index",bank);
+  /* Separate forced slot2 C0 entry with channel disabled: exact wave copy,
+     without inferring first-tick audio access or audible output. */
+  wr(c,0x27FF,0x1E);wr(c,0x2800,0);wr(c,0x37FF,bank);wr(c,0x3800,0);
+  unsigned wave[16];for(unsigned i=0;i<16;i++)wave[i]=rd(c,wavePointers[index]+i);
+  wr(c,0xFF1A,0);wr(c,0xD800,waveIndices[index]);wr(c,0xD801,7);cpu->bc=0xD800;
+  call(c,0x4825);exact=true;
+  for(unsigned i=0;i<16;i++)if(rd(c,0xFF30+i)!=wave[i])exact=false;
+  require(exact&&rd(c,0xCF27)==waveIndices[index]&&rd(c,0xCF24)==7,
+          "actual B C0 selected pointer copies16 original wave bytes channel disabled",bank);
+
 
  }
  }

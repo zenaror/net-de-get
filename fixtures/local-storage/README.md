@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **26,630 assertions**.
+and stack assertions, the maintained fixture reports **26,639 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -347,3 +347,14 @@ B21 endpoints/counts:6642/0B,691D/0B,6BB2/24,6D3B/18; B5B:65EB/1B,698C/0E,
 6CD1/1D,6ECA/02; B5C:6642/3B,6862/07,7037/05,77BE/01. These execute bounded
 prefixes of original streams, not a natural menu launch, complete playback,
 all future loops, timing or audible correctness.
+
+### Original C0 records and wave bytes
+
+The three original-record cases also check the slot0 three-byte fields,
+slot1 two-byte fields and slot2 masked index after the forced first tick.
+Slot0/1 C0 use index+1 and strides3/2; slot2 uses index directly to fetch a
+little-endian wave pointer. B21 selects6039/6053/6069→60BB, B5B selects
+6024/6043/6065→609B, B5C selects6024/6041/606D→60DB (mapped B addresses).
+A separate forced4825 call with wave channel disabled checks all16 original
+wave bytes and countdown7. Nine additional assertions do not establish
+natural playback, active wave-RAM access or audible correctness.

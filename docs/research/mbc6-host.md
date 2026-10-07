@@ -1107,3 +1107,27 @@ actual command execution, not natural menu playback, complete loops/streams,
 IRQ timing or audio correctness. Full/private/negative gates preserve1036
 publishedce7fda6 symbols and whole hash,24checker tests.325 sections:
 147 analyzed/22099 bytes,178 unknown/1026477 bytes.
+
+## Sparse original C0 records behind the first prefixes
+
+**PROBABLE**, supported by A1E44C6/4682/4825 and forced original-ROM probes.
+Slot0 reads3 bytes at CF94/95 +3*((parameter&31)+1); slot1 reads2 bytes at
+CF96/97 +2*((parameter&31)+1). Slot2 stores parameter&31 in CF27, reads a
+little-endian pointer at CF98/99 +2*(parameter&31), then copies16 bytes to
+FF30..FF3F. These different indexing rules must remain literal.
+
+| Native B | Slot0 selected record | Slot1 selected record | Slot2 pointer /16-byte source |
+| --- | --- | --- | --- |
+|21|6039..603B:00 40 02|6053..6054:83 05|6069..606A /60BB..60CA|
+|5B|6024..6026:00 83 01|6043..6044:80 02|6065..6066 /609B..60AA|
+|5C|6024..6026:00 83 01|6041..6042:E0 02|606D..606E /60DB..60EA|
+
+All addresses above are mapped B addresses. Physical bank2E lower requires
+minus2000 in source placements and plus2000 in its symbolic pointer word.
+Three sparse sources extract69 bytes with exact bounds; intervening ranges
+remain uninterpreted and all published aliases remain at their old addresses.
+The maintained fixture checks slot0/1 fields and slot2 index after the forced
+first tick, then separately calls4825 with channel disabled and checks all16
+original wave bytes. Nine new assertions give26639 total. Private gates retain
+1066 published5d1415a address symbols. This is not a natural menu/audio trace,
+not active wave-RAM behavior, and not proof of complete table extents.
