@@ -730,3 +730,38 @@ Full coverage remains 1,048,576 bytes in 262 sections: 101 analyzed sections
 (16,110 bytes), 161 residual ranges (1,032,466 bytes). The suite has 3858 CPU
 assertions; full/private gates and 24 verifier tests preserve the original hash
 and all symbols published at ddc7cd1. Actual negative builds remain required.
+
+
+### Resident jump interface and banked callback dispatcher
+
+**PROBABLE**, static reconstruction: $01BC-$02B7 contains 84 JP slots, named
+ResidentJumpXXXX in `home/resident_jumps.asm`. Extracted call/jump consumers
+now use these symbols. Targets with established source symbols use those names;
+remaining targets are numeric, without transferring semantics from a thunk.
+The original ResidualROM00_01BC symbol is retained at its published address.
+
+`home/banked_callback_dispatch.asm` extracts $23E4-$24B8 (213 bytes), including
+the isolated RET at $24B8. The dispatcher computes 3*A in an eight-bit accumulator
+and reads records from $05C8: one native selector plus a little-endian CPU word.
+B=0 chooses window A; B!=0 chooses window B. New table fragments $05C8-$05D9
+and $05E0-$05F4 flank the unchanged RuntimeCallback_6/7 fragment. The contiguous
+layout ends before the instruction entry $05F5 and has 15 records; neither
+index checking nor suitability of each CPU target in both windows is proven.
+Save/restore fields use C107/C10E for A and C10D/C10F for B; no general nesting
+capacity is inferred from these bases or the depth-zero fixtures.
+
+**SYNTHETIC**: 84 thunk probes stop before target execution. 512 dispatcher
+prefix probes (256 indices in each window) stop before JP HL and check wrapped
+record offsets, loaded word, selector/type, saved pair and return stack word.
+Restoration tails are entered separately with the saved fields. They restore
+the prior type $08 and selector at depth zero, without running callbacks or
+claiming a natural return. Out-of-table inputs can log invalid flash selectors:
+the original prefix writes the selector while the old type is still flash,
+then forces ROM. This is observed emulator handling of forced invalid inputs,
+not proof of hardware or natural callback admissibility. No program/erase.
+
+Full source: 264 sections; 105 analyzed sections (16,614 bytes), 159 unknown
+residual ranges (1,031,962 bytes). 5478 CPU assertions, 24 checker tests, full
+byte comparison, private symbol/image checks and actual negative builds pass.
+All 629 symbols published at a1fb3c7 are preserved. Original reference remains
+external/unchanged, and its complete hash is unchanged by the reconstruction.

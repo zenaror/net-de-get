@@ -10,7 +10,7 @@ LocalMinigameMenuEntry::
 	xor a, a
 	call $0168
 	call ClearFlashSoftwareFlag
-	call $0279
+	call ResidentJump0279
 	ldh a, [hHeldButtons]
 	and a, BUTTON_SELECT_MASK
 	jr z, .initializeBox

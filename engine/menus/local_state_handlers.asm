@@ -6,7 +6,7 @@ LocalMenuState1::
 	ld a, [$C21F]
 	and a
 	jr nz, .return
-	call $0279
+	call ResidentJump0279
 	call HandleLocalListInput
 	call UpdateLocalListCursor
 	call UpdateLocalListIndicators
@@ -19,7 +19,7 @@ ASSERT .end - LocalMenuState1 == $19
 
 SECTION "Local menu state 2", ROMX[$42E6], BANK[$0A]
 LocalMenuState2::
-	call $0279
+	call ResidentJump0279
 	call HandleLocalListInput
 	call UpdateLocalListIndicators
 	call UpdateLocalMoveCursor
@@ -31,7 +31,7 @@ ASSERT .end - LocalMenuState2 == $13
 
 SECTION "Local menu state 3", ROMX[$42F9], BANK[$0A]
 LocalMenuState3::
-	call $0279
+	call ResidentJump0279
 	call HandleLocalActionInput
 	call UpdateLocalRemoveCursor
 	ret

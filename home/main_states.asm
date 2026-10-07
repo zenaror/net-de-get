@@ -6,19 +6,19 @@ ResidualROM00_03BC::
 MainState00::
 	ld a, $00
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, $01
 	ld [$C623], a
 	ret
 MainState01::
 	ld a, $06
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, $02
 	ld [$C623], a
 	ret
 MainState02::
-	call $0288
+	call ResidentJump0288
 	ld a, [$C706]
 	add a, a
 	ld d, $00
@@ -36,7 +36,7 @@ MainState02::
 	ld b, [hl]
 	ld l, c
 	ld h, b
-	call $0228
+	call ResidentJump0228
 	pop hl
 	jp nz, .at0402
 	ld a, [$C665]
@@ -59,7 +59,7 @@ SECTION "Main states 040D-041C", ROM0[$040D]
 MainState02ConditionalDispatch::
 	and a, a
 	jr z, MainState02ResultDispatch
-	call $0288
+	call ResidentJump0288
 	ld a, [$C706]
 	ld hl, MainState02BranchPointers
 	push hl
@@ -77,27 +77,27 @@ SECTION "Main states 0423-046D", ROM0[$0423]
 MainState02Branches::
 	ld hl, $6000
 	ld de, $0021
-	call $0246
+	call ResidentJump0246
 	ld a, $81
-	call $024C
+	call ResidentJump024C
 	jr MainState02ResultDispatch
 MainState02Branch1::
 	ld hl, $6000
 	ld de, $005B
-	call $0246
+	call ResidentJump0246
 	ld a, $81
-	call $024C
+	call ResidentJump024C
 	jr MainState02ResultDispatch
 MainState02Branch2::
 	ld hl, $6000
 	ld de, $005C
-	call $0246
+	call ResidentJump0246
 	ld a, $81
-	call $024C
+	call ResidentJump024C
 MainState02ResultDispatch::
 	ld a, $07
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, [$C214]
 	ld hl, MainStateResultPointers
 	add a, a

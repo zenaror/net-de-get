@@ -57,7 +57,7 @@ StepLocalMenuText::
 	ld b, a
 	inc a
 	ld [$D01A], a
-	call $01EF
+	call ResidentJump01EF
 	ld a, [$C1C2]
 	ld [$D019], a
 .at46C0:

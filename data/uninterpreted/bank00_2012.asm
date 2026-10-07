@@ -1,8 +1,8 @@
 ; HYPOTHESIS classification: uninterpreted original bytes, not asserted data/code.
 ; Byte preservation is checked; this source needs later consumer/flow analysis.
-; Physical bank $00, address $2012-$254D.
+; Physical bank $00, address $2012-$23E3.
 ; Literal source only; building does not read the external reference ROM.
-SECTION "Uninterpreted 00:2012-254D", ROM0[$2012]
+SECTION "Uninterpreted 00:2012-23E3", ROM0[$2012]
 ResidualROM00_2012::
 	db $D5, $06, $08, $57, $AF, $CB, $27, $CB, $01, $30, $01, $82, $05, $20, $F6, $D1
 	db $C9, $21, $00, $00, $06, $08, $5F, $16, $00, $29, $CB, $01, $30, $01, $19, $05
@@ -65,27 +65,5 @@ ResidualROM00_2012::
 	db $AE, $EA, $00, $38, $EA, $16, $C1, $AF, $EA, $65, $C6, $EA, $66, $C6, $EA, $67
 	db $C6, $EA, $6B, $C6, $FB, $E1, $D1, $C1, $F1, $C9, $3E, $02, $EA, $86, $CF, $3E
 	db $01, $EA, $87, $CF, $AF, $EA, $65, $C6, $EA, $66, $C6, $EA, $67, $C6, $EA, $6B
-	db $C6, $C9, $4F, $87, $81, $5F, $16, $00, $21, $C8, $05, $19, $78, $B7, $20, $63
-	db $E5, $21, $07, $C1, $FA, $0E, $C1, $87, $4F, $06, $00, $09, $F0, $AB, $22, $F0
-	db $AC, $77, $FA, $0E, $C1, $3C, $EA, $0E, $C1, $E1, $2A, $5E, $23, $56, $F3, $EA
-	db $FF, $27, $E0, $AB, $EA, $13, $C1, $AF, $EA, $00, $28, $E0, $AC, $EA, $14, $C1
-	db $FB, $01, $2A, $24, $C5, $6B, $62, $E9, $FA, $0E, $C1, $3D, $EA, $0E, $C1, $21
-	db $07, $C1, $FA, $0E, $C1, $87, $4F, $06, $00, $09, $2A, $E0, $AB, $7E, $E0, $AC
-	db $F3, $F0, $AB, $EA, $FF, $27, $EA, $13, $C1, $F0, $AC, $EA, $00, $28, $EA, $14
-	db $C1, $FB, $C9, $E5, $21, $0D, $C1, $FA, $0F, $C1, $87, $4F, $06, $00, $09, $F0
-	db $AD, $22, $F0, $AE, $77, $FA, $0F, $C1, $3C, $EA, $0F, $C1, $E1, $2A, $5E, $23
-	db $56, $F3, $EA, $FF, $37, $E0, $AD, $EA, $15, $C1, $AF, $EA, $00, $38, $E0, $AE
-	db $EA, $16, $C1, $FB, $01, $8D, $24, $C5, $6B, $62, $E9, $FA, $0F, $C1, $3D, $EA
-	db $0F, $C1, $21, $0D, $C1, $FA, $0F, $C1, $87, $4F, $06, $00, $09, $2A, $E0, $AD
-	db $7E, $E0, $AE, $F3, $F0, $AD, $EA, $FF, $37, $EA, $15, $C1, $F0, $AE, $EA, $00
-	db $38, $EA, $16, $C1, $FB, $C9, $C9, $F5, $E5, $CD, $62, $13, $E1, $F1, $47, $7C
-	db $FE, $60, $30, $3E, $F0, $AB, $EA, $6D, $C6, $F0, $AC, $EA, $6E, $C6, $78, $F3
-	db $EA, $FF, $27, $E0, $AB, $EA, $13, $C1, $3E, $08, $EA, $00, $28, $E0, $AC, $EA
-	db $14, $C1, $FB, $11, $EA, $24, $D5, $E9, $FA, $6D, $C6, $E0, $AB, $F3, $EA, $FF
-	db $27, $EA, $13, $C1, $FA, $6E, $C6, $E0, $AC, $EA, $00, $28, $EA, $14, $C1, $FB
-	db $18, $46, $F0, $AD, $EA, $6D, $C6, $F0, $AE, $EA, $6E, $C6, $FA, $6D, $C6, $E0
-	db $AB, $FA, $6E, $C6, $E0, $AC, $78, $F3, $EA, $FF, $37, $E0, $AD, $EA, $15, $C1
-	db $3E, $08, $EA, $00, $38, $E0, $AE, $EA, $16, $C1, $FB, $11, $32, $25, $D5, $E9
-	db $FA, $6D, $C6, $E0, $AD, $F3, $EA, $FF, $37, $EA, $15, $C1, $FA, $6E, $C6, $E0
-	db $AE, $EA, $00, $38, $EA, $16, $C1, $FB, $CD, $59, $13, $C9
-ASSERT @ == $254E
+	db $C6, $C9
+ASSERT @ == $23E4

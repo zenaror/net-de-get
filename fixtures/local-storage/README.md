@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **3,858 assertions**.
+and stack assertions, the maintained fixture reports **5,478 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -175,3 +175,17 @@ State 9 is split into a mapping-prefix probe stopped before $44AA and a separate
 forced tail at $05C2 that discards a stacked return before jumping to $02B8 with
 A=$11. No external callee is skipped inside a claimed complete execution: these
 are independent forced entries, not natural main-state or restart traces.
+
+
+Resident-jump probes check all 84 JP slots at $01BC+3*i, stopping at their
+literal targets before any target instruction executes (84 assertions).
+Banked dispatcher probes cover 256 byte indices in each of the A/B paths:
+3*A wraps to eight bits, a selector/word is loaded, the prior selector/type
+is saved at depth zero and a return address is pushed. They stop before JP HL
+($2429/$248C). Each restore tail ($242A/$248D) is then entered independently
+with the saved fields, never implying that the original target returned.
+These add 1536 assertions including bounded returns. Previous type $08 tests
+restoration of a flash mapping flag, without programming/erase or saves.
+Out-of-table records can cause invalid-flash-selector diagnostics while the
+original prefix writes the selector before forcing type ROM; no universal
+index, stack depth or callback admissibility is claimed.

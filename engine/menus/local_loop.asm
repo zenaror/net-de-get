@@ -4,7 +4,7 @@ SECTION "Local minigame menu loop", ROMX[$402A], BANK[$0A]
 LocalMinigameMenuLoop::
 	call DispatchLocalMenuState
 	call $017D
-	call $01EC
+	call ResidentJump01EC
 	ld hl, $D006
 	inc [hl]
 	call $517D

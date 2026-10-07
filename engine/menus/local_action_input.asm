@@ -5,7 +5,7 @@ HandleLocalActionInput::
 	and a, $01
 	jr z, .at4C82
 	ld a, $9D
-	call $024F
+	call ResidentJump024F
 	ld a, [$D01D]
 	ld [$D000], a
 	jr .at4CD9
@@ -14,7 +14,7 @@ HandleLocalActionInput::
 	and a, $20
 	jr z, .at4C9B
 	ld a, $9C
-	call $024F
+	call ResidentJump024F
 	ld hl, $D01C
 	ld a, [hl]
 	and a, a
@@ -29,7 +29,7 @@ HandleLocalActionInput::
 	and a, $10
 	jr z, .at4CB4
 	ld a, $9C
-	call $024F
+	call ResidentJump024F
 	ld hl, $D01C
 	inc [hl]
 	ld a, [$D01E]
@@ -42,16 +42,16 @@ HandleLocalActionInput::
 	and a, $02
 	jr z, .at4CD9
 	ld a, $9E
-	call $024F
+	call ResidentJump024F
 	ld a, [$D01D]
 	ld [$D000], a
 	ld a, $FF
 	ld [$D01C], a
 	ld a, $02
 	ld de, $5BEA
-	call $01E3
+	call ResidentJump01E3
 	xor a, a
-	call $01FE
+	call ResidentJump01FE
 	call PrepareLocalDescription
 .at4CD9:
 	ret

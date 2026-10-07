@@ -877,6 +877,40 @@ int main(int argc,char **argv){
  restartSteps=0;while(cpu->pc!=0x02B8&&restartSteps++<50)c->step(c);
  require(cpu->pc==0x02B8&&cpu->sp==0xD000&&cpu->a==0x11&&cpu->hl==0x03A6&&
          cpu->bc==0x1234&&cpu->de==0xBEEF,"state9 tail discards return before restart",0);
+ /* Resident JP slots, stopped at target before executing its body. */
+ for(unsigned entry=0x01BC;entry<0x02B8;entry+=3){
+  unsigned target=rd(c,entry+1)|(rd(c,entry+2)<<8);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;cpu->pc=entry;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<20)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xCFFE&&cpu->af==0x5AB0&&cpu->bc==0x1234&&
+          cpu->de==0xBEEF&&cpu->hl==0xD800,"resident JP preserves registers and stack",entry);
+ }
+ /* Banked dispatch prefixes only; separately force the restore tail. */
+ for(unsigned window=0;window<2;window++)for(unsigned index=0;index<256;index++){
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  unsigned previous=window?0x15:0x14,selectorShadow=window?0xFFAD:0xFFAB;
+  unsigned typeShadow=selectorShadow+1,depth=window?0xC10F:0xC10E;
+  unsigned stackBase=window?0xC10D:0xC107,slot=0x05C8+((index*3)&255);
+  unsigned selected=rd(c,slot),target=rd(c,slot+1)|(rd(c,slot+2)<<8);
+  wr(c,window?0x37FF:0x27FF,previous);wr(c,window?0x3800:0x2800,8);
+  wr(c,selectorShadow,previous);wr(c,typeShadow,8);wr(c,depth,0);
+  cpu->a=index;cpu->b=window;cpu->pc=0x23E4;
+  unsigned stop=window?0x248C:0x2429,ret=window?0x248D:0x242A;
+  unsigned steps=0;while(cpu->pc!=stop&&steps++<200)c->step(c);
+  require(cpu->pc==stop&&cpu->hl==target&&cpu->de==target&&cpu->sp==0xCFFC&&
+          rd(c,0xCFFC)==(ret&255)&&rd(c,0xCFFD)==(ret>>8)&&rd(c,depth)==1&&
+          rd(c,selectorShadow)==selected&&rd(c,typeShadow)==0&&
+          rd(c,stackBase)==previous&&rd(c,stackBase+1)==8,
+          "banked dispatcher triple wrap prefix",window*256+index);
+  /* Original target is not executed: start its restoration tail independently. */
+  call(c,ret);
+  require(rd(c,depth)==0&&rd(c,selectorShadow)==previous&&rd(c,typeShadow)==8&&
+          rd(c,window?0xC115:0xC113)==previous&&rd(c,window?0xC116:0xC114)==8,
+          "banked dispatcher forced restore tail",window*256+index);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

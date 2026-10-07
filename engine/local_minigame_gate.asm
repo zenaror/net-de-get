@@ -11,13 +11,13 @@ EXPORT LocalMinigameSelectionBody
 
 SECTION "Local minigame selection gate", ROM0[$051E]
 LocalMinigameSelectionGate:
-	call $024C
+	call ResidentJump024C
 ASSERT @ == LocalMinigameSelectionBody
 	ld a, [$C624]
 	ld [$C671], a
 	ld a, $08
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 
 	ld hl, $C84B
 	ld bc, $0005
@@ -33,18 +33,18 @@ ASSERT @ == LocalMinigameSelectionBody
 	ld [$C628], a
 	cp $FF
 	jp z, ResetMainState02
-	call $026D
+	call ResidentJump026D
 	ld a, [$C628]
-	call $029D
+	call ResidentJump029D
 	ld a, [$C671]
 	and $10
 	ret nz
 	ld a, $0B
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, $01
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ret
 
 ; Interpretation limits:

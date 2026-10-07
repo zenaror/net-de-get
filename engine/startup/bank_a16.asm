@@ -22,9 +22,9 @@ InitializeBankA16::
 	ld a, $07
 	ldh [$FF4B], a
 	call $016B
-	call $0270
-	call $0282
-	call $0279
+	call ResidentJump0270
+	call ResidentJump0282
+	call ResidentJump0279
 	ldh a, [$FF96]
 	cp a, $0C
 	jr nz, .at4050
@@ -35,22 +35,22 @@ InitializeBankA16::
 	ld a, $0A
 	ld [$0000], a
 	ld a, $01
-	call $01C8
+	call ResidentJump01C8
 	xor a, a
-	call $01C8
+	call ResidentJump01C8
 	xor a, a
 	ld [$0000], a
 .at4050:
-	call $0285
+	call ResidentJump0285
 	ld [$C637], a
-	call $0288
+	call ResidentJump0288
 	call $4AF0
 	ld a, $0B
 	ld de, $4F5A
-	call $01E6
+	call ResidentJump01E6
 	ld bc, $0000
 	ld hl, $4FCA
-	call $01EF
+	call ResidentJump01EF
 	ld a, $04
 	ld hl, $4EDA
 	call $0177
@@ -113,20 +113,20 @@ InitializeBankA16::
 	and a, a
 	jr nz, .at40CB
 	ld de, $41EA
-	call $01D7
+	call ResidentJump01D7
 	ld a, $06
 	ld de, $4F5A
-	call $01E6
+	call ResidentJump01E6
 	xor a, a
 	ld [$C1BC], a
 	ld [$C1BD], a
 	ld hl, $5019
-	call $01E9
+	call ResidentJump01E9
 .at40F9:
-	call $0279
-	call $01EC
+	call ResidentJump0279
+	call ResidentJump01EC
 	call $017D
-	call $0261
+	call ResidentJump0261
 	halt
 	nop
 .at4107:
@@ -142,7 +142,7 @@ InitializeBankA16::
 .at4117:
 	ld a, $0C
 	ld de, $4F5A
-	call $01E6
+	call ResidentJump01E6
 	di
 	ld de, $0000
 	call $0150
@@ -170,7 +170,7 @@ InitializeBankA16::
 	and a, a
 	jp nz, .at413B
 	ld de, $0000
-	call $01D7
+	call ResidentJump01D7
 	call $4B78
 .at4158:
 	ld a, [$C700]
@@ -180,7 +180,7 @@ InitializeBankA16::
 	ld [$C1BA], a
 	ld a, [$C704]
 	ld [$CF84], a
-	call $0246
+	call ResidentJump0246
 	ret
 InitializeDMGFallback::
 	ld a, $1F
@@ -207,7 +207,7 @@ InitializeDMGFallback::
 	ldh [$FF24], a
 	ld a, $FF
 	ldh [$FF25], a
-	call $0252
+	call ResidentJump0252
 	ld hl, $C000
 	ld bc, $1000
 .at41A6:
@@ -223,7 +223,7 @@ InitializeDMGFallback::
 	call $0198
 	ld c, $00
 	ld b, $00
-	call $0219
+	call ResidentJump0219
 	ld bc, $9800
 	add hl, bc
 	push hl

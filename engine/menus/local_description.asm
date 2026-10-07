@@ -5,9 +5,9 @@ PrepareLocalDescription::
 	ld [$D016], a
 	ld a, $02
 	ld de, $5BEA
-	call $01E3
+	call ResidentJump01E3
 	xor a, a
-	call $01FE
+	call ResidentJump01FE
 	ldh a, [$FFAD]
 	ld [$C5C7], a
 	ldh a, [$FFAE]

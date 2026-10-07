@@ -22,12 +22,12 @@ LocalMenuState5::
 	call $517D
 	ld a, $02
 	ld de, $5BEA
-	call $01E3
+	call ResidentJump01E3
 	xor a
-	call $01FE
+	call ResidentJump01FE
 	ld hl, $5C40
 	ld bc, $0000
-	call $01EF
+	call ResidentJump01EF
 	pop hl
 	pop de
 	pop bc
@@ -62,7 +62,7 @@ LocalMenuState5::
 	ld a, [$C5C3]
 	ld b, a
 	sub $10
-	call $02A0
+	call ResidentJump02A0
 	ld bc, $02A3
 	ld de, $3ED8
 	call $01B6
@@ -85,9 +85,9 @@ LocalMenuState5::
 .at4456:
 	ld a, $09
 	ld [$C67E], a
-	call $02A0
+	call ResidentJump02A0
 	ld a, [$D013]
-	call $02AC
+	call ResidentJump02AC
 	call $35D7
 	call $1362
 	ld hl, $6009
@@ -101,7 +101,7 @@ LocalMenuState5::
 	jr nz, .at4472
 	call $1359
 	ld de, $DCF7
-	call $01BC
+	call ResidentJump01BC
 	call $01B3
 .at4484:
 	ld hl, LocalMenuMap450F
@@ -151,7 +151,7 @@ LocalMenuState5::
 	call PrepareLocalDescription
 	call SumLocalFlashHeaderCounts
 	ld a, $91
-	call $024F
+	call ResidentJump024F
 	ld a, [$D005]
 	ld b, a
 	ld a, $70

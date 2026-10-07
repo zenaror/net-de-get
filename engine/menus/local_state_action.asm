@@ -62,23 +62,23 @@ LocalMenuState4::
 	ld [$C1C2], a
 	ld a, $02
 	ld de, $5BEA
-	call $01E3
+	call ResidentJump01E3
 	xor a
-	call $01FE
+	call ResidentJump01FE
 	ld a, $03
 	ld c, $02
 	ld de, $5BEA
-	call $01E6
+	call ResidentJump01E6
 	xor a
-	call $01FE
+	call ResidentJump01FE
 	ld hl, $5C4D
 	call $5152
 	ld a, $02
 	ld de, $5BEA
-	call $01E3
+	call ResidentJump01E3
 	ld hl, $5C36
 	ld bc, $0000
-	call $01EF
+	call ResidentJump01EF
 	ld a, $05
 	ld [$D01D], a
 	ld a, $01

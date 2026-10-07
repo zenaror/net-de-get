@@ -123,7 +123,7 @@ StartCartridgeProgram::
 	ldh [$FF24], a
 	ld a, $FF
 	ldh [$FF25], a
-	call $0252
+	call ResidentJump0252
 	ld a, [$C637]
 	cp a, $02
 	jr nz, DispatchMainState

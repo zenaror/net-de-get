@@ -4,7 +4,7 @@
 SECTION "Main states 04A6-04D6", ROM0[$04A6]
 ResidualROM00_04A6::
 MainState03::
-	call $0288
+	call ResidentJump0288
 	ld a, [$C706]
 	add a, a
 	ld d, $00
@@ -22,7 +22,7 @@ MainState03::
 	ld b, [hl]
 	ld l, c
 	ld h, b
-	call $0228
+	call ResidentJump0228
 	pop hl
 	jp nz, .at04D2
 	ld a, [$C665]
@@ -45,7 +45,7 @@ SECTION "Main states 04DD-04EC", ROM0[$04DD]
 MainState03ConditionalDispatch::
 	and a, a
 	jr z, LocalMinigameSelectionBody
-	call $0288
+	call ResidentJump0288
 	ld a, [$C706]
 	ld hl, MainState03BranchPointers
 	push hl
@@ -63,21 +63,21 @@ SECTION "Main states 04F3-051D", ROM0[$04F3]
 MainState03Branches::
 	ld hl, $6000
 	ld de, $0021
-	call $0246
+	call ResidentJump0246
 	ld a, $81
-	call $024C
+	call ResidentJump024C
 	jr LocalMinigameSelectionBody
 MainState03Branch1::
 	ld hl, $6000
 	ld de, $005B
-	call $0246
+	call ResidentJump0246
 	ld a, $81
-	call $024C
+	call ResidentJump024C
 	jr LocalMinigameSelectionBody
 MainState03Branch2::
 	ld hl, $6000
 	ld de, $005C
-	call $0246
+	call ResidentJump0246
 	ld a, $81
 ASSERT @ == $051E
 
@@ -90,21 +90,21 @@ ResetMainState02::
 MainState04::
 	ld a, $04
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, $02
 	ld [$C623], a
 	ret
 MainState05::
 	ld a, $0A
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ret
 MainState06::
 	xor a, a
 	ld [$C623], a
 	ld a, $03
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, [$C623]
 	cp a, $07
 	jr z, .at0596
@@ -115,14 +115,14 @@ MainState06::
 MainState07::
 	ld a, $02
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, $08
 	ld [$C623], a
 	ret
 MainState08::
 	ld a, $0D
 	ld b, $00
-	call $0264
+	call ResidentJump0264
 	ld a, $02
 	ld [$C623], a
 	ret

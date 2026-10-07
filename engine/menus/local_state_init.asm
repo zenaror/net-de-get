@@ -86,7 +86,7 @@ LocalMenuState0::
 	ld [$D020], a
 	ld a, $FF
 	ld [$D008], a
-	call $0288
+	call ResidentJump0288
 	ld a, [$C703]
 	and a
 	jr z, .at418E
@@ -94,7 +94,7 @@ LocalMenuState0::
 	ld [$D001], a
 	ld a, [$C734]
 	ld c, $05
-	call $0234
+	call ResidentJump0234
 	ld a, h
 	ld [$D007], a
 	ld a, [$C734]
@@ -126,9 +126,9 @@ LocalMenuState0::
 	ld a, $02
 	ld c, $02
 	ld de, $5BEA
-	call $01E6
+	call ResidentJump01E6
 	xor a
-	call $01FE
+	call ResidentJump01FE
 	ld a, [$D004]
 	cp $04
 	jr z, .at41EC

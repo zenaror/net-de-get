@@ -6,7 +6,7 @@ HandleLocalListInput::
 	and a, $80
 	jr z, .at4991
 	ld a, $9B
-	call $024F
+	call ResidentJump024F
 	ld c, $00
 	ld a, [$D004]
 	cp a, $04
@@ -46,7 +46,7 @@ HandleLocalListInput::
 	and a, $40
 	jr z, .at49CD
 	ld a, $9B
-	call $024F
+	call ResidentJump024F
 	ld hl, $D007
 	ld a, [hl]
 	ld [$D008], a
@@ -76,7 +76,7 @@ HandleLocalListInput::
 	and a, $01
 	jp z, .at4B7E
 	ld a, $9D
-	call $024F
+	call ResidentJump024F
 	ld a, [$D000]
 	cp a, $02
 	jp z, .at4A7D
@@ -100,9 +100,9 @@ HandleLocalListInput::
 	ld [$D016], a
 	ld a, $02
 	ld de, $5BEA
-	call $01E3
+	call ResidentJump01E3
 	xor a, a
-	call $01FE
+	call ResidentJump01FE
 	ld a, [$D01B]
 	ld [$C1C2], a
 	ld a, $04
@@ -131,7 +131,7 @@ HandleLocalListInput::
 .at4A51:
 	ld hl, $5C1A
 	ld bc, $0000
-	call $01EF
+	call ResidentJump01EF
 	ld a, $03
 	ld [$D000], a
 	ld a, $02
@@ -140,7 +140,7 @@ HandleLocalListInput::
 .at4A67:
 	ld hl, $5C26
 	ld bc, $0000
-	call $01EF
+	call ResidentJump01EF
 	ld a, $03
 	ld [$D000], a
 	ld a, $03
@@ -280,7 +280,7 @@ HandleLocalListInput::
 .at4B5F:
 	ld a, $09
 	ld [$C67E], a
-	call $02A0
+	call ResidentJump02A0
 	call BuildLocalMinigameTitleList
 	call $50CF
 	call $508A
@@ -297,7 +297,7 @@ HandleLocalListInput::
 	and a, $02
 	jr z, .at4BC7
 	ld a, $9E
-	call $024F
+	call ResidentJump024F
 	ld a, [$D000]
 	cp a, $02
 	jr z, .at4BC0
@@ -305,7 +305,7 @@ HandleLocalListInput::
 	ld [$C671], a
 	xor a, a
 	ld [$C5A3], a
-	call $0288
+	call ResidentJump0288
 	ld a, [$C703]
 	and a, a
 	jp z, .at4C3D
@@ -316,7 +316,7 @@ HandleLocalListInput::
 	ld a, [$D007]
 	add a, b
 	ld [$C734], a
-	call $028B
+	call ResidentJump028B
 	jr .at4C3D
 .at4BC0:
 	ld a, $01
@@ -327,7 +327,7 @@ HandleLocalListInput::
 	and a, $10
 	jr z, .at4BDF
 	ld a, $9C
-	call $024F
+	call ResidentJump024F
 	ld hl, $D001
 	inc [hl]
 	ld a, [hl]
@@ -341,7 +341,7 @@ HandleLocalListInput::
 	and a, $20
 	jr z, .at4C19
 	ld a, $9C
-	call $024F
+	call ResidentJump024F
 	ld hl, $D001
 	dec [hl]
 	ld a, [hl]
