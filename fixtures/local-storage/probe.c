@@ -840,6 +840,43 @@ int main(int argc,char **argv){
           cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
           "main result handler state and preserved register pairs",index);
  }
+ /* State-6 tail only: external callback $0264 has not been executed. */
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xC623,value);cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;call(c,0x058A);
+  require(rd(c,0xC623)==(value==7?7:2)&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
+          "state6 forced post-callback tail",value);
+ }
+ const unsigned tailEntries[]={0x0564,0x0571,0x059E,0x05AB};
+ const unsigned tailStates[]={2,2,8,2};
+ for(unsigned index=0;index<4;index++){
+  wr(c,0xC623,0xA5);cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;call(c,tailEntries[index]);
+  require(rd(c,0xC623)==tailStates[index]&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
+          "remaining state tails preserve register pairs",index);
+ }
+ const unsigned stateEntries[]={0x056A,0x0577,0x057F,0x0597,0x05A4};
+ const unsigned callSites[]={0x056E,0x057B,0x0587,0x059B,0x05A8};
+ const unsigned callbackArgs[]={4,10,3,2,13};
+ for(unsigned index=0;index<5;index++){
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);wr(c,0xC623,0xA5);
+  struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;cpu->pc=stateEntries[index];
+  unsigned steps=0;while(cpu->pc!=callSites[index]&&steps++<50)c->step(c);
+  require(cpu->pc==callSites[index]&&cpu->sp==0xCFFE&&cpu->a==callbackArgs[index]&&
+          cpu->bc==0x0034&&cpu->de==0xBEEF&&cpu->hl==0xD800&&rd(c,0xC623)==(index==2?0:0xA5),
+          "remaining state prefix before external callback",index);
+ }
+ /* State9 mapping prefix and separate restart tail, external $44AA omitted. */
+ wr(c,0xFFFF,0);wr(c,0xFF0F,0);wr(c,0x27FF,0);wr(c,0x2800,0);
+ struct GB *restartGB=c->board;restartGB->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+ cpu->sp=0xCFFE;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;cpu->pc=0x05B1;
+ unsigned restartSteps=0;while(cpu->pc!=0x05BF&&restartSteps++<50)c->step(c);
+ require(cpu->pc==0x05BF&&cpu->sp==0xCFFE&&rd(c,0xFFAB)==0x16&&rd(c,0xFFAC)==0&&
+         rd(c,0x4000)==0xAF&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800,
+         "state9 maps A16 before external call",0);
+ wr(c,0xCFFE,0xA6);wr(c,0xCFFF,3);cpu->pc=0x05C2;
+ restartSteps=0;while(cpu->pc!=0x02B8&&restartSteps++<50)c->step(c);
+ require(cpu->pc==0x02B8&&cpu->sp==0xD000&&cpu->a==0x11&&cpu->hl==0x03A6&&
+         cpu->bc==0x1234&&cpu->de==0xBEEF,"state9 tail discards return before restart",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

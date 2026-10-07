@@ -4,11 +4,11 @@ MainStatePointers::
 	dw MainState00
 	dw MainState01
 	dw MainState02
-	dw $04A6
-	dw $056A
-	dw $0577
-	dw $057F
-	dw $0597
-	dw $05A4
-	dw $05B1
+	dw MainState03
+	dw MainState04
+	dw MainState05
+	dw MainState06
+	dw MainState07
+	dw MainState08
+	dw MainState09
 ASSERT @ == $03BC

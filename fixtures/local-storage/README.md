@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **3,331 assertions**.
+and stack assertions, the maintained fixture reports **3,858 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -165,3 +165,13 @@ reproduced, not declared naturally admissible. Seven forced handlers at
 $047C+6*i check writes of 3/4/5/1/2/7/6 to $C623, bounded returns and preserved
 BC/DE/HL (14 assertions). These 270 added assertions do not establish natural
 main-state execution or the external callees of states 0/1/2.
+
+
+Remaining main-state probes add 527 assertions. All 256 values of $C623 enter
+only the post-callback tail $058A: 7 survives and every other value becomes 2.
+Four return tails check state writes/register pairs; five prefixes stop before
+external $0264 and check arguments (4/10/3/2/13) and the state-6 zero write.
+State 9 is split into a mapping-prefix probe stopped before $44AA and a separately
+forced tail at $05C2 that discards a stacked return before jumping to $02B8 with
+A=$11. No external callee is skipped inside a claimed complete execution: these
+are independent forced entries, not natural main-state or restart traces.

@@ -15,7 +15,8 @@ bank	start	end	symbol
 00	01B6	01BB	OpenLocalStorageRecord
 00	01BC	02B7	ResidualROM00_01BC
 00	051E	0563	LocalMinigameSelectionGate
-00	0564	05D9	ResidualROM00_0564
+00	0564	05C7	ResetMainState02
+00	05C8	05D9	ResidualROM00_05C8
 00	05DA	05DF	RuntimeCallback_6
 00	05E0	05F4	ResidualROM00_05E0
 00	0661	0698	StoreRuntimeCallback0Body
@@ -255,4 +256,8 @@ bank	start	end	symbol
 00	0423	046D	MainState02Branches
 00	046E	047B	MainStateResultPointers
 00	047C	04A5	WriteMainState03
-00	04A6	051D	ResidualROM00_04A6
+00	04A6	04D6	MainState03
+00	04D7	04DC	MainState03CompareWords
+00	04DD	04EC	MainState03ConditionalDispatch
+00	04ED	04F2	MainState03BranchPointers
+00	04F3	051D	MainState03Branches

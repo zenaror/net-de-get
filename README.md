@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1032686 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1032466 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -23,7 +23,7 @@ A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 i
 
 `make` monta e liga todos os fontes, valida cobertura explícita, tamanho e SHA-256, e produz `build/net-de-get.gbc`. O arquivo interno `build/excerpts.gb` é mantido para compatibilidade com os verificadores; agora contém a mesma imagem completa. Não há lacunas preenchidas a partir da referência ou pelo linker. Os arquivos de mapa e símbolos continuam em `build/excerpts.map` e `build/excerpts.sym`.
 
-`data/uninterpreted/` contém 162 intervalos residuais, delimitados por banco físico e páginas nativas de 8 KiB. São fontes literais `db` e runs constantes `ds` com tamanho explícito. A classificação permanece `HYPOTHESIS`: os bytes estão preservados, mas esses intervalos ainda podem misturar código, gráficos, texto e outras tabelas. A base montável permite refiná-los mantendo a igualdade integral.
+`data/uninterpreted/` contém 161 intervalos residuais, delimitados por banco físico e páginas nativas de 8 KiB. São fontes literais `db` e runs constantes `ds` com tamanho explícito. A classificação permanece `HYPOTHESIS`: os bytes estão preservados, mas esses intervalos ainda podem misturar código, gráficos, texto e outras tabelas. A base montável permite refiná-los mantendo a igualdade integral.
 
 Para comparar explicitamente cada seção com a ROM original externa:
 
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 257 seções**, todos comparados byte a byte com a referência externa. Os 95 trechos analisados somam 15890 bytes; os demais 1032686 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 262 seções**, todos comparados byte a byte com a referência externa. Os 101 trechos analisados somam 16110 bytes; os demais 1032466 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 257 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 262 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -109,7 +109,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **3.331 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **3.858 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -233,3 +233,10 @@ A interpretação é `PROBABLE`, baseada no fluxo estático. Quatro probes `SYNT
 `home/main_states.asm` cobre ROM0 `$03BC-$04A5` (234 bytes), separando instruções e três tabelas consumidas pelo código: palavras `$0407-$040C`, ponteiros `$041D-$0422` e ponteiros de resultado `$046E-$047B`. A tabela principal agora usa os símbolos dos estados 0, 1 e 2. O alias `ResidualROM00_03BC` permanece no mesmo endereço; `$04A6-$051D` continua não interpretado.
 
 A confiança é `PROBABLE`: as chamadas externas e os campos mantêm endereços numéricos quando sua semântica não está estabelecida. O dispatcher principal em `$0391` duplica o índice em oito bits e lê um destino sem proteção universal de limites. 256 probes forçados param antes de `JP HL` em `$03A5`, conferindo destino, retorno empilhado e registradores. Sete handlers `$047C-$04A5` retornam após escrever `$C623` com os valores 3/4/5/1/2/7/6; 14 asserts verificam esses retornos e a preservação de BC/DE/HL. Não foi executado o fluxo natural dos estados ou seus callees. A cópia privada preservou os 591 símbolos publicados em `e48a89c`.
+
+
+### Destinos restantes dos estados principais
+
+`home/main_states_remaining.asm` refina `$04A6-$051D` e `$0564-$05C7` (220 bytes), incluindo o estado 3, suas palavras/ponteiros internos e os estados 4 a 9. Todos os dez destinos da tabela `$03A8` agora são simbólicos. O estado 3 pode entrar em `$0521`, após a chamada inicial do trecho existente `$051E`; `LocalMinigameSelectionBody` é um alias que preserva também o símbolo local publicado `LocalMinigameSelectionGate.clearBuffer`. Os aliases residuais `$04A6` e `$0564` permanecem; o sufixo `$05C8-$05D9` continua não interpretado.
+
+Os nomes permanecem `PROBABLE`. 256 probes entram diretamente na cauda `$058A`, após a chamada externa: `$C623 = 7` é preservado, os demais valores viram 2. Outros probes verificam quatro caudas de retorno e os argumentos dos cinco prefixos antes de `$0264`. O estado 9 seleciona A `$16`/ROM antes de `$44AA`; sua cauda separada descarta o retorno empilhado e salta para `$02B8` com A=`$11`. Nenhum probe executa esses callees externos ou demonstra um reinício natural. São 527 asserts sintéticos adicionais; a equivalência integral continua separada da interpretação semântica.

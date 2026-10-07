@@ -706,3 +706,27 @@ Full source: 257 sections, 95 analyzed sections (15,890 bytes), 162 residual
 ranges (1,032,686 bytes). Full/private gates, 24 checker tests and actual
 negative builds pass, preserving all 591 symbols from e48a89c and the full
 reference hash. No Japanese bytes, external original or real saves are changed.
+
+
+### Remaining main-state destinations
+
+**PROBABLE**, static consumers: `home/main_states_remaining.asm` extracts
+$04A6-$051D and $0564-$05C7 (220 bytes). State 3 reads words $04D7-$04DC and
+return-table pointers $04ED-$04F2; its paths join the pre-existing gate at $0521.
+`LocalMinigameSelectionBody` is an address alias, preserving the old gate's local
+clearBuffer symbol and entry at $051E. All ten main pointer-table destinations
+are now named; $05C8-$05D9 remains an unknown literal interval. ResidualROM
+aliases $04A6/$0564 are preserved, and the gate's old extent comment is corrected
+to its actual manifest boundary $051E-$0563.
+
+**SYNTHETIC**, 527 new assertions: 256 post-callback tail values at $058A retain
+state 7 or write state 2, four other return tails check their writes and register
+pairs, five prefixes stop before $0264 with original argument values. State 9's
+prefix maps A $16/type ROM before $44AA; a separate forced tail $05C2 consumes
+one stacked word and jumps to $02B8 with A=$11. No natural callback or restart
+execution, hardware or external-callee behavior is claimed.
+
+Full coverage remains 1,048,576 bytes in 262 sections: 101 analyzed sections
+(16,110 bytes), 161 residual ranges (1,032,466 bytes). The suite has 3858 CPU
+assertions; full/private gates and 24 verifier tests preserve the original hash
+and all symbols published at ddc7cd1. Actual negative builds remain required.

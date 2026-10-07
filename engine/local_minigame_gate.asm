@@ -2,13 +2,17 @@
 ; Source image SHA-256:
 ;   9fb1e6e4a637796b8624bd2de6c9abaa9e758546b620cb5dc8441b07c288bc63
 ;
-; PROBABLE: reconstructed from byte-level decoding at ROM0 $051E-$0566.
+; PROBABLE: reconstructed from byte-level decoding at ROM0 $051E-$0563.
 ; The selected local UI path has now been observed in the mGBA GUI, but this
 ; exact gate has not yet been hit by an instruction trace of that GUI route.
+
+DEF LocalMinigameSelectionBody EQU $0521
+EXPORT LocalMinigameSelectionBody
 
 SECTION "Local minigame selection gate", ROM0[$051E]
 LocalMinigameSelectionGate:
 	call $024C
+ASSERT @ == LocalMinigameSelectionBody
 	ld a, [$C624]
 	ld [$C671], a
 	ld a, $08
@@ -28,7 +32,7 @@ LocalMinigameSelectionGate:
 	ld a, [$C671]
 	ld [$C628], a
 	cp $FF
-	jp z, $0564
+	jp z, ResetMainState02
 	call $026D
 	ld a, [$C628]
 	call $029D
