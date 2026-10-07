@@ -610,3 +610,20 @@ add262144 assertions. These are SYNTHETIC byte domains, not evidence of
 natural menu input bounds. Original bytes are preserved; semantics stay
 PROBABLE. The resources referenced by C773/C774 remain separately bounded
 by their resident consumers, not by these selection routines.
+
+
+## Resident color component conversion
+
+08FB expands packed words to three 16-bit components multiplied by2048;
+0925 emits (31-component)*64. Both ignore input bit15 and use a trailing
+C decrement, so C0 processes256 colors. Complete calls cover all65536
+words per expander and all256 count bytes with patterned inputs. Output
+bytes, source/destination advancement, finalC and guards are checked.
+096F forces64 colors and packs the three high bytes with literal rotations
+and masks, skipping low bytes; 256 patterned384-byte sources cover every
+high-byte value at each position. Arbitrary high bytes are not clamped.
+131840 calls add263680 assertions. All inputs are SYNTHETIC WRAM; this does
+not prove natural palettes, visible colors or timing. Semantics remain
+PROBABLE. Original64-color preparation at07E7/0805 is statically separate:
+its128-byte read starting4E20 overlaps the extracted tilemap at4E68..4E9F.
+The overlap is retained, with no claim of an independent resource object.

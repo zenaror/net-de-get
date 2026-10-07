@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 452 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 455 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -524,3 +524,14 @@ A fixture executa 512 calls com LCD desligado (todos os 256 valores de modo, VBK
 A fixture executa todas as 65.536 combinações de linha/coluna por rotina, conferindo resultado e guards; a primeira também confere A e os 16 padrões válidos dos flags. São 131.072 calls completos, 262.144 novos asserts e total de 2.168.697. O privado preserva os 1.322 símbolos publicados em `1b9ad32`; montagem integral e negativos reais passam. O primeiro manifesto ainda continha a fronteira residual antiga e foi rejeitado por sobreposição; a entrada foi substituída pelas duas fronteiras medidas. O compilador também rejeitou o acesso incorreto ao union de flags da fixture, corrigido para `f.packed`. Os bytes originais não foram alterados.
 
 Os consumidores de `$C773/$C774` foram localizados estaticamente em `$406A/$47AF`: passam o ponteiro a `$0177/$017A` com A=4. A extensão integral dos recursos `$4E20/$52EC` continua pendente dos consumidores residentes, sem inferir o tamanho pela proximidade de dados já extraídos. Os calls acima são sintéticos, sem execução natural do menu ou IRQ.
+
+
+### Componentes de cor e deltas residentes
+
+`home/color_components.asm` extrai `$08FB-$0924/$0925-$096E/$096F-$0994` (154 bytes). O residual `$07E7-$08FA` conserva `ResidualROM00_07E7`; os preparadores e o escalador continuam sem extração. A interpretação é `PROBABLE`: `$08FB` lê words de dois bytes, separa três componentes de cinco bits, ignora o bit 15 e grava cada componente multiplicado por 2.048 em uma word. `$0925` produz `(31-componente)*64`. Ambos usam o contador C com loop posterior: C=0 executa 256 cores, não zero. Consomem dois bytes e produzem seis por cor.
+
+`$096F` força C=64 e lê os bytes altos de três words por cor, partindo de HL no primeiro byte alto. Ignora os bytes baixos. Recompõe dois bytes com as rotações/máscaras originais: vermelho `>>3`, verde RLCA duas vezes e azul RRCA uma vez. O bit 15 do destino fica zero. Não há restrição de entrada nesses helpers; as rotações de bytes altos arbitrários são mantidas, sem substituir por clamp ou aritmética ampliada.
+
+A fixture verifica todas as 65.536 words por expansor, os 256 contadores de cada expansor (inclusive o wrap de C=0) e 256 padrões dos 384 bytes usados pelo empacotador fixo. Confere cada byte produzido, avanço de HL/DE, C final e guards. São 131.840 calls completos e 263.680 novos asserts, somando 2.432.377. O privado preserva os 1.333 símbolos publicados em `0daff8d`; montagem integral e negativos reais passam. Entrada é WRAM sintética, sem paleta visível ou trace natural.
+
+Os preparadores originais `$07E7/$0805` chamam os expansores com C=64; a leitura estática de `$4E20` alcança `$4E9F`, sobrepondo `$4E68-$4E9F` do tilemap já extraído. Essa sobreposição é preservada e não prova um objeto independente de 128 bytes nem o domínio natural do recurso. Falta verificar os preparadores completos, o escalador `$088D` e o consumidor por ticks antes de atribuir significado visual ou temporização.

@@ -22,7 +22,7 @@ bank	start	end	symbol
 00	0661	0698	StoreRuntimeCallback0Body
 00	0699	06A5	RestoreInterruptRegisters
 00	0799	07E6	UploadBackgroundPaletteEntryBody
-00	07E7	0994	ResidualROM00_07E7
+00	07E7	08FA	ResidualROM00_07E7
 00	0995	09EA	UploadPendingCGBPalettesBody
 00	09EB	09F8	InstallOAMDMARoutine
 00	09F9	0A02	OAMDMATemplate
@@ -451,3 +451,6 @@ bank	start	end	symbol
 07	6F0A	6F0B	A0FDisplayRepeatedCell1
 07	631A	633E	SnapA0FColumnForIncomingRow
 07	633F	6389	RemapA0FColumnOnLastRow
+00	08FB	0924	ExpandPackedColorComponents
+00	0925	096E	ExpandInvertedColorDeltas
+00	096F	0994	Pack64ColorComponents

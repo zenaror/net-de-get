@@ -2502,6 +2502,43 @@ int main(int argc,char **argv){
    "A0F last row six exact column remaps full byte domains",row*256+column);
  }
  }
+ { /* Original packed colors and fixed-point components; forced WRAM input. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);
+ for(unsigned inverse=0;inverse<2;inverse++)for(unsigned word=0;word<65536;word++){
+  wr(c,0xD000,word);wr(c,0xD001,word>>8);wr(c,0xC5FF,0xA5);wr(c,0xC606,0x5A);
+  cpu->hl=0xD000;cpu->de=0xC600;cpu->c=1;call(c,inverse?0x925:0x8FB);
+  bool exact=cpu->hl==0xD002&&cpu->de==0xC606&&cpu->c==0&&rd(c,0xC5FF)==0xA5&&rd(c,0xC606)==0x5A;
+  for(unsigned channel=0;channel<3;channel++){
+   unsigned value=(word>>(channel*5))&31;value=inverse?(31-value)*64:value*2048;
+   exact&=rd(c,0xC600+channel*2)==(value&255)&&rd(c,0xC601+channel*2)==(value>>8);
+  }
+  require(exact,"Packed color expansion full16bit input ignores bit15",inverse*65536+word);
+ }
+ for(unsigned inverse=0;inverse<2;inverse++)for(unsigned count=0;count<256;count++){
+  unsigned length=count?count:256;
+  for(unsigned i=0;i<length;i++){unsigned word=(i*7919+count*257)&65535;wr(c,0xD000+2*i,word);wr(c,0xD001+2*i,word>>8);}
+  wr(c,0xC5FF,0xA5);wr(c,0xC600+6*length,0x5A);
+  cpu->hl=0xD000;cpu->de=0xC600;cpu->c=count;call(c,inverse?0x925:0x8FB);
+  bool exact=cpu->hl==0xD000+2*length&&cpu->de==0xC600+6*length&&cpu->c==0&&rd(c,0xC5FF)==0xA5&&rd(c,0xC600+6*length)==0x5A;
+  for(unsigned i=0;i<length;i++)for(unsigned channel=0;channel<3;channel++){
+   unsigned value=(((i*7919+count*257)&65535)>>(channel*5))&31;value=inverse?(31-value)*64:value*2048;
+   exact&=rd(c,0xC600+6*i+channel*2)==(value&255)&&rd(c,0xC601+6*i+channel*2)==(value>>8);
+  }
+  require(exact,"Color expansion count byte zero means256 original do loop",inverse*256+count);
+ }
+ for(unsigned seed=0;seed<256;seed++){
+  for(unsigned i=0;i<384;i++)wr(c,0xD000+i,(seed+i*73)&255);
+  wr(c,0xC5FF,0xA5);wr(c,0xC680,0x5A);cpu->hl=0xD001;cpu->de=0xC600;cpu->c=seed;call(c,0x96F);
+  bool exact=cpu->hl==0xD181&&cpu->de==0xC680&&cpu->c==0&&rd(c,0xC5FF)==0xA5&&rd(c,0xC680)==0x5A;
+  for(unsigned i=0;i<64;i++){
+   unsigned red=(seed+(6*i+1)*73)&255,green=(seed+(6*i+3)*73)&255,blue=(seed+(6*i+5)*73)&255;
+   unsigned rotated=((green<<2)|(green>>6))&255;
+   exact&=rd(c,0xC600+2*i)==((red>>3)|(rotated&224));
+   exact&=rd(c,0xC601+2*i)==((rotated&3)|(((blue>>1)|(blue<<7))&124));
+  }
+  require(exact,"Pack64 color components raw highbyte rotations and fixed count",seed);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

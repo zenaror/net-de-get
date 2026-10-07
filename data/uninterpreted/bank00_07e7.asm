@@ -1,8 +1,8 @@
 ; HYPOTHESIS classification: uninterpreted original bytes, not asserted data/code.
 ; Byte preservation is checked; this source needs later consumer/flow analysis.
-; Physical bank $00, address $07E7-$0994.
+; Physical bank $00, address $07E7-$08FA.
 ; Literal source only; building does not read the external reference ROM.
-SECTION "Uninterpreted 00:07E7-0994", ROM0[$07E7]
+SECTION "Uninterpreted 00:07E7-08FA", ROM0[$07E7]
 ResidualROM00_07E7::
 	db $F5, $11, $22, $C4, $0E, $40, $CD, $25, $09, $0E, $C0, $21, $A2, $C2, $AF, $22
 	db $3E, $F8, $22, $0D, $20, $F8, $F1, $CD, $8D, $08, $EA, $1F, $C2, $C9, $F5, $11
@@ -21,14 +21,5 @@ ResidualROM00_07E7::
 	db $0E, $C0, $21, $22, $C4, $FA, $A2, $C5, $47, $5E, $23, $56, $2B, $CB, $3A, $CB
 	db $1B, $05, $20, $F9, $73, $23, $72, $23, $0D, $20, $EA, $FA, $A2, $C5, $C6, $F8
 	db $6F, $3E, $08, $CE, $00, $67, $7E, $C9, $3E, $20, $C9, $20, $10, $08, $04, $02
-	db $01, $20, $40, $80, $AF, $12, $13, $2A, $47, $E6, $1F, $07, $07, $07, $12, $13
-	db $AF, $12, $13, $78, $E6, $E0, $0F, $0F, $47, $7E, $E6, $03, $0F, $0F, $B0, $12
-	db $13, $AF, $12, $13, $2A, $E6, $7C, $07, $12, $13, $0D, $20, $D7, $C9, $7E, $E6
-	db $1F, $47, $3E, $1F, $90, $0F, $0F, $47, $E6, $C0, $12, $13, $78, $E6, $07, $12
-	db $13, $2A, $E6, $E0, $CB, $37, $0F, $47, $7E, $E6, $03, $CB, $37, $0F, $B0, $47
-	db $3E, $1F, $90, $0F, $0F, $47, $E6, $C0, $12, $13, $78, $E6, $07, $12, $13, $2A
-	db $E6, $7C, $0F, $0F, $47, $3E, $1F, $90, $0F, $0F, $47, $E6, $C0, $12, $13, $78
-	db $E6, $07, $12, $13, $0D, $20, $B7, $C9, $0E, $40, $2A, $23, $E6, $F8, $0F, $0F
-	db $0F, $47, $2A, $23, $07, $07, $E0, $9D, $E6, $E0, $B0, $12, $13, $F0, $9D, $E6
-	db $03, $47, $2A, $23, $0F, $E6, $7C, $B0, $12, $13, $0D, $20, $DD, $C9
-ASSERT @ == $0995
+	db $01, $20, $40, $80
+ASSERT @ == $08FB
