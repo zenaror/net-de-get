@@ -89,7 +89,9 @@ bank	start	end	symbol
 07	6000	609B	ResidualROM07_6000
 07	6E20	6E67	ResidualROM07_6E20
 07	728A	729D	ResidualROM07_728A
-07	72EC	7FFF	ResidualROM07_72EC
+07	72EC	7333	ResidualROM07_72EC
+07	7334	7465	A0FGridStreams0
+07	7466	7FFF	ResidualROM07_7466
 08	4000	5FFF	ResidualROM08_4000
 08	6000	7FFF	ResidualROM08_6000
 09	4000	5FFF	ResidualROM09_4000
@@ -458,9 +460,9 @@ bank	start	end	symbol
 07	63F0	6495	ResidualROM07_63F0
 07	6496	64AD	IsA0FNonMarkerCountBelowCapacity
 07	64D7	651E	ResidualROM07_64D7
-07	655D	659F	ResidualROM07_655D
+07	655D	659F	CycleA0FResourceMode
 07	65A0	6627	RedrawA0FListText
-07	668B	674B	ResidualROM07_668B
+07	668B	674B	DrawA0FResourceGrid
 07	674C	67A9	DrawA0FMarkedTextRow
 07	67AA	67DF	ResidualROM07_67AA
 07	63BF	63EF	SelectA0FModeResourcePointer
@@ -471,7 +473,7 @@ bank	start	end	symbol
 00	28E3	2BFD	ResidualROM00_28E3
 00	2BFE	2D45	DrawQueuedTextFrame
 00	2D46	2D52	ResidualROM00_2D46
-07	6F0C	6F5B	ResidualROM07_6F0C
+07	6F0C	6F5B	A0FGridFooterNonzero
 07	6F5C	6F5F	A0FListFirstVacantCell
 07	6F60	7267	ResidualROM07_6F60
 00	2753	2798	ConfigureQueuedTextFromIndexedRecord

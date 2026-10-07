@@ -108,7 +108,7 @@ A0FInput_4275::
 	jr nz, A0FInput_4295
 	ld a, $84
 	call ResidentJump024F
-	call $455D
+	call CycleA0FResourceMode - $2000
 	jr A0FInput_4305
 A0FInput_4295::
 	cp a, $06
@@ -169,7 +169,7 @@ A0FInput_42F7::
 	jr z, A0FInput_4305
 	ld a, $84
 	call ResidentJump024F
-	call $455D
+	call CycleA0FResourceMode - $2000
 A0FInput_4305::
 	ret
 ASSERT @ == $6306

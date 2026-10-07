@@ -16,20 +16,20 @@ A0FAction_43D0::
 A0FAction_43D1::
 	cp a, $00
 	jr nz, A0FAction_43DA
-	ld hl, $5334
+	ld hl, A0FGridStreams0 - $2000
 	jr A0FAction_43EF
 A0FAction_43DA::
 	cp a, $01
 	jr nz, A0FAction_43E3
-	ld hl, $537C
+	ld hl, A0FGridStreams1 - $2000
 	jr A0FAction_43EF
 A0FAction_43E3::
 	cp a, $02
 	jr nz, A0FAction_43EC
-	ld hl, $53C4
+	ld hl, A0FGridStreams2 - $2000
 	jr A0FAction_43EF
 A0FAction_43EC::
-	ld hl, $540C
+	ld hl, A0FGridStreams3 - $2000
 A0FAction_43EF::
 	ret
 ASSERT @ == $63F0

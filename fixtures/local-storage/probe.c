@@ -2749,6 +2749,59 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Full grid/modecycle: independent glyph/VRAM model, original streams. */
+ const unsigned choices[]={0,1,2,255},starts[]={0x5334,0x537C,0x53C4,0x540C};unsigned fonts[256][16],streams[4][72],resource[306],footer[2][40];
+ wr(c,0xFF40,0);wr(c,0x27FF,2);wr(c,0x2800,0);
+ for(unsigned glyph=16;glyph<256;glyph++)for(unsigned i=0;i<16;i++)fonts[glyph][i]=rd(c,0x3F00+glyph*16+i);
+ wr(c,0x27FF,0x0F);for(unsigned variant=0;variant<4;variant++)for(unsigned i=0;i<72;i++)streams[variant][i]=rd(c,starts[variant]+i);
+ for(unsigned i=0;i<306;i++)resource[i]=rd(c,0x5334+i);
+ for(unsigned which=0;which<2;which++)for(unsigned i=0;i<40;i++)footer[which][i]=rd(c,(which?0x4F0C:0x4F34)+i);
+ for(unsigned family=0;family<3;family++)for(unsigned sample=0;sample<(family==0?32:family==1?1024:16);sample++){
+  unsigned plane=sample&1,global,old,input,entry;
+  if(family==0){old=choices[sample>>3];global=choices[(sample>>1)&3];input=old;entry=0x468B;}
+  else{old=family==1?sample>>2:choices[sample>>2];global=(sample>>1)&1;input=(old+1)&255;if(input==4)input=0;entry=family==1?0x455D:0x41C5;}
+  unsigned effective=global&1?2+(input&1):input,variant=effective<3?effective:3;
+  unsigned char expected[2][8192];memset(expected,0xA5,sizeof(expected));
+  unsigned left=input<2?0x30:0x10,right=left+0x40;
+  expected[0][0x18E1+left]=0x88;expected[1][0x18E1+left]=7;expected[0][0x18E1+right]=0x88;expected[1][0x18E1+right]=7;
+  for(unsigned i=0;i<20;i++){expected[0][0x19E0+i]=footer[global!=0][i];expected[1][0x19E0+i]=footer[global!=0][20+i];}
+  unsigned pointer=starts[variant],counter=0,lastTile=0,lastCol=0,lastRow=0,end=0,workD=0;
+  for(unsigned row=0;row<4;row++)for(unsigned column=0;column<3;column++){
+   if(column==0)workD=row;
+   bool fallback=global!=0&&(input&1)&&workD>=3;if(fallback)pointer=0x5454;
+   unsigned col=column*6,localRow=row*2,n=0;
+   while(pointer+n<0x5466&&resource[pointer+n-0x5334]!=0)n++;
+   for(unsigned i=0;i<n;i++){
+    unsigned glyph=resource[pointer+i-0x5334];
+    if(glyph<16){fprintf(stderr,"Unexpected grid control in glyph oracle\n");exit(10);}
+    unsigned address=0x9800+32*(8+localRow-(glyph>=254?1:0))+1+col,dest=0x96B0-counter*16;
+    workD=(8+localRow-(glyph>=254?1:0))>>3;
+    lastTile=(0x6B-counter)&255;expected[0][address-0x8000]=lastTile;expected[1][address-0x8000]=0x23;
+    for(unsigned j=0;j<16;j++)expected[1][dest-0x8000+j]=fonts[glyph][j];counter++;
+    if(glyph<254){col++;if(col>=18){col=0;localRow+=2;if(localRow==10)localRow=0;}}
+   }
+   pointer+=n+1;end=pointer;
+   lastCol=col;lastRow=localRow;if(column<2)counter++;
+  }
+  if(family){unsigned base=effective==1?0x96:effective==2?0x98:effective==3?(global?0x96:0x92):0x94;
+   const unsigned addresses[]={0x1A02,0x1A08,0x1A0E},tiles[]={base,0x8E,0x90};
+   for(unsigned i=0;i<3;i++){expected[0][addresses[i]]=tiles[i];expected[0][addresses[i]+1]=tiles[i]+1;expected[1][addresses[i]]=0x23;expected[1][addresses[i]+1]=0x5A;}
+  }
+  wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC765,global);wr(c,0xC76A,old);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1AF,1);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);
+  wr(c,0xC1B8,0);wr(c,0xC1B9,0);wr(c,0xC1C0,0);wr(c,0xC1C1,0);wr(c,0xC775,0xA5);wr(c,0xC776,0x3C);wr(c,0xC777,0x23);wr(c,0xC778,0x5A);
+  wr(c,0xC772,1);wr(c,0xC220,0);wr(c,0xFF97,4);wr(c,0xFF98,0);wr(c,0xFF99,0);cpu->a=input;wr(c,0xFF40,0x91);callWithLimit(c,entry,10000000);
+  struct GB *g=c->board;bool exact=rd(c,0xC76A)==input&&rd(c,0xC765)==global&&rd(c,0xC1C2)==0&&rd(c,0xC1C3)==lastTile&&rd(c,0xC1B8)==0&&rd(c,0xC1B9)==0&&
+   rd(c,0xC1AB)==(end&255)&&rd(c,0xC1AC)==end>>8&&rd(c,0xC1BC)==lastCol&&rd(c,0xC1BD)==lastRow&&rd(c,0xC1BA)==0&&
+   rd(c,0xC1A4)==1&&rd(c,0xC1A7)==8&&rd(c,0xC1A8)==18&&rd(c,0xC1A9)==5&&rd(c,0xC1AA)==1&&rd(c,0xC770)==right&&rd(c,0xC771)==1&&
+   (rd(c,0xFF4F)&1)==0&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0&&g->memory.hdmaRemaining==0&&rd(c,0xC777)==0x23&&rd(c,0xC778)==0x5A;
+  exact&=rd(c,0xC775)==(family?0x90:0xA5)&&rd(c,0xC776)==(family?0x91:0x3C);for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];
+  if(!exact)fprintf(stderr,"Grid fields family=%u sample=%u ptr=%02X%02X/%04X cursor=%u,%u/%u,%u tile=%u/%u mode=%u/%u mark=%u/%u\n",family,sample,rd(c,0xC1AC),rd(c,0xC1AB),end,rd(c,0xC1BC),rd(c,0xC1BD),lastCol,lastRow,rd(c,0xC1C3),lastTile,rd(c,0xC76A),input,rd(c,0xC770),right);
+  wr(c,0xFF40,0);bool reported=false;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned actual=rd(c,0x8000+i);if(actual!=expected[bank][i]&&!reported){fprintf(stderr,"Grid VRAM family=%u sample=%u bank=%u address=%04X actual=%02X expected=%02X\n",family,sample,bank,0x8000+i,actual,expected[bank][i]);reported=true;}exact&=actual==expected[bank][i];}}
+  require(exact,"Original grid streams full modecycle dispatcher all old bytes exact VRAM glyph HDMA mapper",family*2048+sample);
+ }
+ }
  { /* Full original redraw and nonempty trim/action chains; no stubbed callees. */
  const unsigned modes[]={0,1,2,255},glyphs[]={16,127,253,254,255};unsigned font[5][16];
  wr(c,0xFF40,0);wr(c,0x27FF,2);wr(c,0x2800,0);

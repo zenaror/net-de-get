@@ -778,3 +778,29 @@ of both planes, fields/state/pointer/VBK and real A-window restoration/HDMA.
 760 complete calls add 1520 assertions. Null callbacks, bounded streams
 and chosen VRAM geometry remain SYNTHETIC; semantics PROBABLE. Natural
 menu, arbitrary streams, metadata admissibility and physical timing remain open.
+
+
+## Original resource grid and mode cycle
+
+468B..474B configures record0, marks offsets30/70 or10/50 by input<2,
+copies a20x1 two-plane footer by global mode zero/nonzero, then renders
+a4x3 grid at columns0/6/12 and rows0/2/4/6. Resource selection uses global
+bit0; footer/fallback conditions use global zero/nonzero. Footer forces
+VBK0. Original glyph streams and Japanese bytes remain unmodified.
+455D..459F increments C76A as a byte and resets only result4 to0, then
+draws the grid and indicator. High inputs are not normalized modulo4.
+The first oracle failed case10: it assumed three fallback text repeats.
+D is saved once per row but glyph rendering clobbers D within a row. The
+first fallback returns D=1 here, so subsequent columns continue at5464
+and5465 empty terminators; final pointer5466. The corrected oracle follows
+D and stream pointer, and explicit source includes those reached bytes.
+No original byte changed and no natural defect is asserted.
+32 full grid calls cover inputs0/1/2/255 and global0/1/2/255 with bothVBKs.
+1024 full mode cycles cover every old mode byte, global0/1 and bothVBKs.
+16 dispatcher chains execute the complete cycle. All have LCD on, null
+callbacks, real font payloads and unchanged mapper window after HDMA.
+The memory model applies marker glyphs, cursor advances/wrap, font uploads,
+footer, marked cells and indicator writes in original order. Verify both
+entire8192-byte planes, state/pointers/counters/VBK and guards.
+1072 complete calls add2144 assertions. Semantics remain PROBABLE and
+SYNTHETIC, without natural menu, palette visibility, audio or hardware timing.
