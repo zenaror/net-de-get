@@ -58,7 +58,7 @@ QueuedTileText_27F9::
 QueuedTileText_2801::
 	xor a, a
 	ld [$C1BB], a
-	call $2E15
+	call AdvanceQueuedTileText
 	ld a, [$C1BA]
 	and a, a
 	jr nz, QueuedTileText_281E
@@ -139,7 +139,7 @@ QueuedTileTextState2::
 	ld [$C1B8], a
 	ret
 QueuedTileText_2892::
-	call $2DD0
+	call QueueTextCursorDisplayRecord
 	ldh a, [$FF97]
 	and a, $01
 	ret z
@@ -160,7 +160,7 @@ ASSERT @ == $28AC
 
 SECTION "Queued tile text 28AC-28BD", ROM0[$28AC]
 QueuedTileTextState4::
-	call $2DD0
+	call QueueTextCursorDisplayRecord
 	ldh a, [$FF97]
 	and a, $01
 	ret z

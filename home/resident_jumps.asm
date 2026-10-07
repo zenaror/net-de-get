@@ -52,15 +52,15 @@ ResidentJump0201::
 ResidentJump0204::
 	jp $2DC3
 ResidentJump0207::
-	jp $2DD0
+	jp QueueTextCursorDisplayRecord
 ResidentJump020A::
-	jp $2DE7
+	jp ComputeQueuedTextCursorDE
 ResidentJump020D::
-	jp $2E15
+	jp AdvanceQueuedTileText
 ResidentJump0210::
-	jp $2EE9
+	jp AdvanceQueuedTextColumn
 ResidentJump0213::
-	jp $2EFA
+	jp AdvanceQueuedTextLine
 ResidentJump0216::
 	jp $2F1C
 ResidentJump0219::
@@ -108,9 +108,9 @@ ResidentJump0255::
 ResidentJump0258::
 	jp $1186
 ResidentJump025B::
-	jp $118F
+	jp AppendFourByteDisplayRecord
 ResidentJump025E::
-	jp $118F
+	jp AppendFourByteDisplayRecord
 ResidentJump0261::
 	jp $11AA
 ResidentJump0264::

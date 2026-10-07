@@ -465,3 +465,22 @@ four-count wrap. The unit adds3221 assertions. Unknown renderers are not
 stubbed or called; no full state1/4 path, natural display or input timing is
 established. PROBABLE semantic names remain bounded by static callers and
 these SYNTHETIC cases.
+
+
+### Queued controls and four-byte display records
+
+Every count byte exercises118F: counts below16 write E,D,C,B and increment;
+16..255 preserve all64 record bytes and guards.4096 packed coordinate cases
+verify the literal byte arithmetic of2DE7, not widened pixel geometry.512
+cursor-wrapper calls exercise every FF8B byte with empty/full queues.
+Every terminator repeat count and control2 operand completes.512 control3
+cases use a null callback or the original27D5 RET as an artificial callback;
+no natural callback behavior is claimed.25600 column progressions and5120
+control1 calls retain prior-column comparison, zero-column return, row+2,
+8-bit wrap and exact equality with twice the height.2000 ordinary-byte
+prefixes stop before2F1C; FE/FF retain carry, C decrement and C1BE flag.
+Control0F completes; control4 stops before2D53.256 state4 dispatcher calls
+now complete with the real cursor producer; one terminating state1 path
+returns at its four-count boundary.75733 assertions are added. Rendering,
+queue consumption, natural input/LCD timing and actual text callbacks remain
+unverified; all these forced CPU paths are SYNTHETIC, semantics PROBABLE.

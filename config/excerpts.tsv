@@ -39,7 +39,8 @@ bank	start	end	symbol
 00	106D	108D	ComputeStorageDirectoryChecksum
 00	108E	114E	RebuildLocalStorageDirectory
 00	114F	1185	GetStorageDirectoryEntry
-00	1186	12BE	ResidualROM00_1186
+00	1186	118E	ResidualROM00_1186
+00	11AA	12BE	ResidualROM00_11AA
 00	12BF	12CD	MBC6_MapWindowB
 00	12CE	12E8	ResidualROM00_12CE
 00	12E9	12F7	MBC6_MapWindowA
@@ -66,7 +67,7 @@ bank	start	end	symbol
 00	261C	27A9	ResidualROM00_261C
 00	28BE	2DC2	ResidualROM00_28BE
 00	2DC3	2DCF	LocalCursorHorizontalJitter
-00	2DD0	38AF	ResidualROM00_2DD0
+00	2F1C	38AF	ResidualROM00_2F1C
 00	38B0	391B	CheckLocalMinigameChecksum
 00	391C	3CD7	ResidualROM00_391C
 00	3CD8	3CE7	BuiltinGameWindowBSelectors
@@ -411,3 +412,9 @@ bank	start	end	symbol
 00	287B	28A6	QueuedTileTextState2
 00	28A7	28AB	QueuedTileTextState3
 00	28AC	28BD	QueuedTileTextState4
+00	118F	11A9	AppendFourByteDisplayRecord
+00	2DD0	2DE6	QueueTextCursorDisplayRecord
+00	2DE7	2E14	ComputeQueuedTextCursorDE
+00	2E15	2EE8	AdvanceQueuedTileText
+00	2EE9	2EF9	AdvanceQueuedTextColumn
+00	2EFA	2F1B	AdvanceQueuedTextLine

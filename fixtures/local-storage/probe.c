@@ -2050,6 +2050,105 @@ int main(int argc,char **argv){
  wr(c,0xC1BA,0);wr(c,0xC1B3,3);call(c,0x2808);
  require(rd(c,0xC1B3)==0,"queued state1 independent four-count tail returns",0);
  }
+ { /* Queued text consumer: literal controls and display-record producer. */
+ for(unsigned count=0;count<256;count++){
+  for(unsigned i=0;i<66;i++)wr(c,0xC1C9+i,0xA5);
+  wr(c,0xC1C4,count);cpu->de=0x1234;cpu->bc=0x5678;call(c,0x118F);
+  bool exact=rd(c,0xC1C4)==(count<16?count+1:count)&&cpu->de==0x1234&&cpu->bc==0x5678;
+  for(unsigned i=0;i<66;i++){
+   unsigned value=0xA5;
+   if(count<16&&i>=1+count*4&&i<5+count*4){const unsigned record[]={0x34,0x12,0x78,0x56};value=record[i-1-count*4];}
+   exact&=rd(c,0xC1C9+i)==value;
+  }
+  require(exact,"display record all count bytes capacity16 exact four-byte writes",count);
+ }
+ const unsigned values[]={0,1,15,16,31,127,128,255};
+ for(unsigned x=0;x<8;x++)for(unsigned y=0;y<8;y++)for(unsigned w=0;w<8;w++)for(unsigned h=0;h<8;h++){
+  unsigned low=values[x],high=values[y],width=values[w],height=values[h];
+  unsigned e=(8+8*((low+width+1)&31))&255;
+  unsigned d=(8+4*((((low>>4)&14)|((high<<4)&48))+4*(height+1)))&255;
+  wr(c,0xC1A5,low);wr(c,0xC1A6,high);wr(c,0xC1A8,width);wr(c,0xC1A9,height);
+  cpu->bc=0xBEEF;call(c,0x20A);
+  require(cpu->de==((d<<8)|e)&&cpu->hl==0xC1A6&&cpu->bc==0xBEEF,
+   "text cursor literal packed coordinates retain byte wrap",x*512+y*64+w*8+h);
+ }
+ wr(c,0xC1A5,31);wr(c,0xC1A6,255);wr(c,0xC1A8,128);wr(c,0xC1A9,255);
+ for(unsigned phase=0;phase<256;phase++)for(unsigned full=0;full<2;full++){
+  wr(c,0xFF8B,phase);wr(c,0xC1C4,full?16:0);
+  for(unsigned i=0;i<4;i++)wr(c,0xC1CA+i,0xA5);
+  call(c,0x207);
+  require(rd(c,0xC1C4)==(full?16:1)&&rd(c,0xC1CA)==(full?0xA5:8)&&
+   rd(c,0xC1CB)==(full?0xA5:200)&&rd(c,0xC1CC)==(full?0xA5:255)&&
+   rd(c,0xC1CD)==(full?0xA5:0x7E +((phase>>3)&1)),
+   "cursor display wrapper blink bit3 and full queue",phase*2+full);
+ }
+ for(unsigned remaining=0;remaining<256;remaining++){
+  wr(c,0xC655,0);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1AD,0x00);wr(c,0xC1AE,0xD8);
+  wr(c,0xC1B9,remaining);wr(c,0xC1B8,1);wr(c,0xC1BE,0xA5);call(c,0x20D);
+  unsigned pointer=rd(c,0xC1AB)|(rd(c,0xC1AC)<<8);
+  require(pointer==(remaining?0xD800:0xC656)&&rd(c,0xC1B9)==(remaining?remaining-1:0)&&
+   rd(c,0xC1B8)==(remaining?1:3)&&rd(c,0xC1BE)==0,
+   "text zero control complete repeat restore or state3",remaining);
+ }
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xC655,2);wr(c,0xC656,value);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1B8,1);
+  wr(c,0xC1BF,0xA5);call(c,0x20D);
+  require(rd(c,0xC1BF)==value&&rd(c,0xC1AB)==0x57&&rd(c,0xC1AC)==0xC6&&rd(c,0xC1B8)==1,
+   "text control2 consumes one raw operand",value);
+ }
+ for(unsigned operand=0;operand<256;operand++)for(unsigned callback=0;callback<2;callback++){
+  wr(c,0xC655,3);wr(c,0xC656,operand);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1B9,operand);
+  wr(c,0xC1C0,callback?0xD5:0);wr(c,0xC1C1,callback?0x27:0);wr(c,0xC1B8,1);call(c,0x20D);
+  require(rd(c,0xFF9D)==operand&&rd(c,0xC1AB)==0x57&&rd(c,0xC1AC)==0xC6&&
+   rd(c,0xC1AD)==0x57&&rd(c,0xC1AE)==0xC6&&rd(c,0xC1B9)==((operand+1)&255)&&
+   rd(c,0xC1B8)==1&&(!callback||cpu->a==operand),
+   "text control3 repeat pointer and optional original RET callback",operand*2+callback);
+ }
+ const unsigned widths[]={0,1,2,16,255},rows[]={0,1,254,255},heights[]={0,1,127,128,255};
+ for(unsigned col=0;col<256;col++)for(unsigned w=0;w<5;w++)for(unsigned row=0;row<4;row++)for(unsigned h=0;h<5;h++){
+  unsigned next=(col+1)&255,newRow=rows[row],state=1;
+  if(col>=((widths[w]-1)&255)&&next){next=0;newRow=(newRow+2)&255;if(newRow==((heights[h]*2)&255)){newRow=0;state=2;}}
+  wr(c,0xC1BC,col);wr(c,0xC1BD,rows[row]);wr(c,0xC1A8,widths[w]);wr(c,0xC1A9,heights[h]);wr(c,0xC1B8,1);
+  call(c,0x210);
+  require(rd(c,0xC1BC)==next&&rd(c,0xC1BD)==newRow&&rd(c,0xC1B8)==state,
+   "text column progression fallthrough newline literal wrap and equality",col*100+w*20+row*5+h);
+ }
+ for(unsigned col=0;col<256;col++)for(unsigned row=0;row<4;row++)for(unsigned h=0;h<5;h++){
+  unsigned newRow=col?(rows[row]+2)&255:rows[row],state=1;
+  if(col&&newRow==((heights[h]*2)&255)){newRow=0;state=2;}
+  wr(c,0xC655,1);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);
+  wr(c,0xC1BC,col);wr(c,0xC1BD,rows[row]);wr(c,0xC1A9,heights[h]);wr(c,0xC1B8,1);call(c,0x20D);
+  require(rd(c,0xC1BC)==0&&rd(c,0xC1BD)==newRow&&rd(c,0xC1B8)==state&&rd(c,0xC1AB)==0x56,
+   "text control1 complete newline no-op for zero column",col*20+row*5+h);
+ }
+ for(unsigned value=0;value<256;value++)for(unsigned n=0;n<8;n++){
+  if(value==0||value==1||value==2||value==3||value==4||value==15)continue;
+  wr(c,0xC655,value);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1BC,values[n]);wr(c,0xC1BD,values[7-n]);
+  wr(c,0xC1A4,255);wr(c,0xC1A7,128);wr(c,0xC1B8,1);wr(c,0xC1BE,0xA5);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x2E15;
+  unsigned steps=0;while(cpu->pc!=0x2EDB&&steps++<200)c->step(c);
+  require(cpu->pc==0x2EDB&&cpu->sp==0xCFFE&&cpu->a==value&&rd(c,0xFF9D)==value&&
+   cpu->b==((values[n]+255)&255)&&cpu->c==((values[7-n]+128-(value>=254))&255)&&
+   rd(c,0xC1BE)==(value>=254)&&rd(c,0xC1AB)==0x56&&rd(c,0xC1B8)==1,
+   "text ordinary byte prefix stops before glyph renderer",value*8+n);
+ }
+ wr(c,0xC655,15);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1B8,1);call(c,0x20D);
+ require(rd(c,0xC1B8)==4&&rd(c,0xC1AB)==0x56,"text control0F state4",0);
+ wr(c,0xC655,4);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xFFFF,0);wr(c,0xFF0F,0);
+ struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x2E15;
+ unsigned steps=0;while(cpu->pc!=0x2EAB&&steps++<100)c->step(c);
+ require(cpu->pc==0x2EAB&&cpu->sp==0xCFFE&&rd(c,0xC1AB)==0x56,"text control4 stops before helper2D53",0);
+ for(unsigned input=0;input<256;input++){
+  wr(c,0xC1B8,4);wr(c,0xC1B4,0xA5);wr(c,0xFF97,input);wr(c,0xC1C4,0);call(c,0x1EC);
+  require(rd(c,0xC1C4)==1&&rd(c,0xC1B8)==((input&1)?1:4)&&rd(c,0xC1B4)==((input&1)?0:0xA5),
+   "queued state4 now complete with actual cursor queue producer",input);
+ }
+ wr(c,0xC655,0);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC1B9,0);wr(c,0xC1BA,0);
+ wr(c,0xC1B8,1);wr(c,0xC1B3,3);call(c,0x1EC);
+ require(rd(c,0xC1B8)==3&&rd(c,0xC1B3)==0&&rd(c,0xC1AB)==0x56,
+  "queued state1 terminator complete four-count return",0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

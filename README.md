@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 412 seções**, todos comparados byte a byte com a referência externa. Os 217 trechos analisados somam 34934 bytes; os demais 1013642 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 419 seções**, todos comparados byte a byte com a referência externa. Os 223 trechos analisados somam 35293 bytes; os demais 1013283 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 412 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 419 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -427,3 +427,16 @@ A fixture verifica todos os 65.536 pares de bytes nas três operações correspo
 A confiança é `PROBABLE`. O estado 0 retorna; o estado 3 zera o estado. O estado 2 zera o estado quando o byte apontado e `$C1B9` são zero; os demais caminhos chamam `$2DD0`. O prefixo do estado 1 usa `$C1BA`, bit 0 de `$FF96` e contador `$C1BB`: zero ou bit pressionado limpa o contador e chega a `$2E15`; caso contrário incrementa com wrap e compara com 4 para valor 1, ou 10 para os demais valores não zero. As caudas dos estados 2/4 usam bit 0 de `$FF97`, com chamadas externas ainda pendentes. Esses nomes não comprovam apresentação natural ou significado completo dos controles.
 
 Os 3.221 novos asserts conferem quatro ponteiros pelo setter residente, 256 despachos parados antes do salto, três caminhos completos conhecidos, 2.048 prefixos de atraso, todas as 256 máscaras em cada cauda de entrada dos estados 2/4, três prefixos não terminados e duas caudas independentes. Param antes dos callees de renderização, polling e helper desconhecidos; não os substituem por stubs. A fixture soma 974.574 asserts. O privado preservou os 1.216 símbolos publicados em `9537816`; montagem integral, comparação byte a byte e negativos reais passam. Renderização, entrada natural, temporização e estados 1/4 completos permanecem pendentes.
+
+
+### Consumidor de controles e produtor da fila de display
+
+`home/queued_text_consumer.asm` extrai `$118F-$11A9` e `$2DD0-$2F1B` (359 bytes). Os thunks `$0207-$0213`, as duas entradas residentes para `$118F` e os estados anteriores usam símbolos. `ResidualROM00_1186` permanece no gap `$1186-$118E`; `ResidualROM00_2DD0` é alias do produtor do cursor. Os próximos residuais começam em `$11AA/$2F1C`. A interpretação é `PROBABLE`, com chamadas estáticas e probes sintéticos, sem trace natural.
+
+`$118F` aceita somente contagens de `$C1C4` menores que 16, incrementa a contagem e grava E,D,C,B em `$C1CA + 4*contagem`; valores 16–255 não escrevem registros. `$2DE7` calcula DE com máscaras, SWAP e operações de oito bits sobre `$C1A5/$C1A6/$C1A8/$C1A9`; seus overflows são preservados. `$2DD0` usa esse DE, C=`$FF` e B=`$7E + (($FF8B>>3)&1)` e encadeia à fila. A interpretação como cursor não confirma temporização visual nem o consumidor posterior da fila.
+
+`$2E15` consome um byte pelo ponteiro `$C1AB/$C1AC`. Zero define estado 3 quando `$C1B9` é zero; caso contrário decrementa o contador e restaura `$C1AD/$C1AE`. Controle 1 chama a progressão de linha; 2 lê um operando para `$C1BF`; 3 lê operando para `$FF9D`, salva o ponteiro de repetição, incrementa `$C1B9` e chama opcionalmente o ponteiro `$C1C0/$C1C1`; 4 chama `$2D53`, ainda pendente; `$0F` define estado 4. Os demais bytes calculam BC e chegam ao renderer `$2F1C`; `$FE/$FF` mantêm o carry original, decrementam C e marcam `$C1BE`. A extensão dos glyphs e a interpretação dos controles no texto japonês não foram afirmadas.
+
+A progressão de coluna incrementa `$C1BC` e compara a coluna anterior com `$C1A8-1`, ambos em oito bits; a cauda pode cair na progressão de linha. Linha com coluna zero retorna sem avançar; caso contrário zera a coluna, soma 2 a `$C1BD` e define estado 2 apenas quando a nova linha é igual a `2*$C1A9` em oito bits. Comparações e wraps não foram substituídos por geometria ampliada.
+
+Os 75.733 novos asserts conferem todos os 256 valores de contagem da fila, 4.096 combinações de coordenadas, 512 chamadas completas do cursor, todos os 256 contadores de término e operandos do controle 2, 512 controles 3 com callback nulo ou RET original forçado, 25.600 progressões de coluna, 5.120 controles de linha, 2.000 prefixos de glyph parados antes do renderer, controle `$0F`, controle 4 parado, 256 estados 4 completos e um estado 1 completo terminado. A fixture soma 1.050.307 asserts. O callback RET é uma entrada original artificial, sem comprovar callback natural. O privado preserva os 1.231 símbolos publicados em `a38147b`; imagem inteira e negativos reais passam. Permanecem pendentes renderer, helper `$2D53`, consumidores da fila, callbacks naturais, LCD/IRQ e apresentação japonesa completa.
