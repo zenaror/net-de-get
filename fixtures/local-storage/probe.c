@@ -250,6 +250,27 @@ static void probeA12FrameCopy(struct mCore *c,unsigned width,unsigned height,uns
  if(kind==2){exact&=rd(c,0xD7FF)==0x33&&rd(c,source+2*area)==0x5A;for(unsigned i=0;i<2*area;i++)exact&=rd(c,source+i)==payload[i];}
  require(exact,"A12 exact original two-plane tilemap complete VRAM source footprint and payload guards",index);
 }
+static unsigned a12NextState(unsigned state){return (17*state+0x5C93)&65535;}
+static unsigned a12StepFlags(unsigned state){unsigned product=(17*state)&65535,carry=((product&255)+0x93)>255,sum=(product>>8)+0x5C+carry;return (!(sum&255)?0x80:0)|(((product>>8)&15)+12+carry>15?0x20:0)|(sum>255?0x10:0);}
+static void probeA12Random(struct mCore *c,unsigned state,unsigned a,unsigned flags,bool seed,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;wr(c,0xC5D1,0x33);wr(c,0xC5D2,state&255);wr(c,0xC5D3,state>>8);wr(c,0xC5D4,0x5A);
+ cpu->a=a;cpu->f.packed=flags;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=seed?state:0x9ABC;call(c,seed?0x4BDD:0x4BE6);
+ unsigned next=seed?state:a12NextState(state);
+ require((rd(c,0xC5D2)|(rd(c,0xC5D3)<<8))==next&&rd(c,0xC5D1)==0x33&&rd(c,0xC5D4)==0x5A&&cpu->bc==0xBEEF&&cpu->a==(seed?(state>>8):(next>>8))&&cpu->f.packed==(seed?flags:a12StepFlags(state))&&cpu->hl==(seed?state:(17*state)&65535)&&cpu->de==(seed?0x5678:((next&255)<<8|next>>8)),"A12 seed or recurrence independent 16-bit arithmetic ADC flags register guards",index);
+}
+static unsigned a12TriggerChoice(unsigned seed,unsigned *state,unsigned *previous){
+ unsigned first=a12NextState(seed);*previous=seed;*state=first;if(!(first>>8))return 1;
+ *previous=first;*state=a12NextState(first);return ((*state>>8)&15)?0:2;
+}
+static void probeA12TriggerPrefix(struct mCore *c,unsigned seed,unsigned flags,unsigned index){
+ struct GB *g=c->board;struct SM83Core *cpu=g->cpu;unsigned state,previous,choice=a12TriggerChoice(seed,&state,&previous);
+ wr(c,0xC5A4,6);wr(c,0xC5CF,1);wr(c,0xC5E4,0);wr(c,0xC5E5,0xA5);wr(c,0xC5E7,0x5A);wr(c,0xC5D1,0x33);wr(c,0xC5D2,seed&255);wr(c,0xC5D3,seed>>8);wr(c,0xC5D4,0x3C);
+ wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4C11;
+ unsigned target=choice?0x5093:0xC100,steps=0;while(cpu->pc!=target&&steps++<300)c->step(c);
+ unsigned expectedHL=choice?(choice==1?0x6A96:0x6AB1):(17*previous)&65535;
+ require(cpu->pc==target&&cpu->sp==(choice?0xCFFC:0xD000)&&(!choice||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(choice==1?0x4C31:0x4C40)),"A12 guarded consumer original RNG chain returns or reaches actual setup prefix",index);
+ require(cpu->bc==0xBEEF&&cpu->de==((state&255)<<8|state>>8)&&cpu->hl==expectedHL&&cpu->a==(choice?0:(state>>8)&15)&&cpu->f.packed==(choice?0xA0:0x20)&&(rd(c,0xC5D2)|(rd(c,0xC5D3)<<8))==state&&rd(c,0xC5D1)==0x33&&rd(c,0xC5D4)==0x3C&&rd(c,0xC5E4)==0&&rd(c,0xC5E5)==0xA5&&rd(c,0xC5E7)==0x5A,"A12 consumer all seed paths recurrence steps target registers flags and guards",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -3837,6 +3858,65 @@ int main(int argc,char **argv){
  const unsigned shapes[][2]={{1,1},{2,3},{3,2},{16,16},{17,17},{31,9}};unsigned index=0;
  for(unsigned shape=0;shape<6;shape++)for(unsigned kind=0;kind<3;kind++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)for(unsigned entry=0;entry<3;entry++)probeA12FrameCopy(c,shapes[shape][0],shapes[shape][1],kind,plane,lcd,entry,index++);
  for(unsigned shape=0;shape<6;shape++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeA12FrameCopy(c,shapes[shape][0],shapes[shape][1],2,plane,lcd,3,index++);
+ }
+ { /* State seed/step full state domain; eight selected states full AF domain. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);const unsigned states[]={0,1,0x0100,0x7FFF,0x8000,0xFF00,0xFFFE,0xFFFF};unsigned index=0;
+ for(unsigned seed=0;seed<2;seed++){
+  for(unsigned state=0;state<65536;state++)probeA12Random(c,state,state&255,((state>>8)&15)<<4,seed,index++);
+  for(unsigned n=0;n<8;n++)for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++)probeA12Random(c,states[n],a,flags<<4,seed,index++);
+ }
+ }
+ { /* Full guarded trigger seed/flags prefixes, never executing unknown mapping. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);wr(c,0x37FF,0x63);wr(c,0x3800,0);wr(c,0xC21C,0x63);wr(c,0xC21D,0);
+ for(unsigned seed=0;seed<65536;seed++)for(unsigned flags=0;flags<16;flags++)probeA12TriggerPrefix(c,seed,flags<<4,seed*16+flags);
+ }
+ { /* Every guard byte and flags, fixing the other guards and non-trigger seed. */
+ unsigned none=0,state,previous;while(a12TriggerChoice(none,&state,&previous))none++;
+ for(unsigned guard=0;guard<3;guard++)for(unsigned value=0;value<256;value++)for(unsigned flags=0;flags<16;flags++){
+  unsigned stage=guard==0?value:6,phase=guard==1?value:1,threshold=guard==2?value:0,expectedA,expectedF,expectedState=none,expectedDE=0x5678,expectedHL=0x9ABC;
+  if(stage!=6){expectedA=stage;expectedF=0x40|(stage==6?0x80:0)|((stage&15)<6?0x20:0)|(stage<6?0x10:0);}
+  else if(phase!=1){expectedA=phase;expectedF=0x40|((phase&15)<1?0x20:0)|(phase<1?0x10:0);}
+  else if(threshold){expectedA=threshold;expectedF=0x40;}
+  else{a12TriggerChoice(none,&expectedState,&previous);expectedA=(expectedState>>8)&15;expectedF=0x20;expectedDE=(expectedState&255)<<8|expectedState>>8;expectedHL=(17*previous)&65535;}
+  wr(c,0xC5A4,stage);wr(c,0xC5CF,phase);wr(c,0xC5E4,threshold);wr(c,0xC5E5,0xA5);wr(c,0xC5E7,0x5A);wr(c,0xC5D2,none&255);wr(c,0xC5D3,none>>8);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x4C11);
+  require(cpu->a==expectedA&&cpu->f.packed==expectedF&&cpu->bc==0xBEEF&&cpu->de==expectedDE&&cpu->hl==expectedHL&&(rd(c,0xC5D2)|(rd(c,0xC5D3)<<8))==expectedState&&rd(c,0xC5A4)==stage&&rd(c,0xC5CF)==phase&&rd(c,0xC5E4)==threshold&&rd(c,0xC5E5)==0xA5&&rd(c,0xC5E7)==0x5A,"A12 all guard bytes early return CP flags RNG untouched or two real steps",guard*4096+value*16+flags);
+ }
+ }
+ { /* Explicit current B mapping control at header-read boundary. */
+ unsigned selected[3][2]={{0}},counts[3]={0},state,previous;for(unsigned seed=0;seed<65536;seed++){unsigned choice=a12TriggerChoice(seed,&state,&previous);if(counts[choice]<2)selected[choice][counts[choice]++]=seed;}
+ const unsigned headers[2][7]={{7,10,2,1,5,8,0},{5,11,3,1,4,8,0}};
+ for(unsigned choice=1;choice<=2;choice++)for(unsigned bank=0;bank<2;bank++){
+  wr(c,0x37FF,bank?0x63:5);wr(c,0x3800,0);wr(c,0xC21C,0x63);wr(c,0xC21D,0);probeA12TriggerPrefix(c,selected[choice][0],0xF0,choice*2+bank);
+  bool matches=true;for(unsigned i=0;i<7;i++)matches&=rd(c,cpu->hl+i)==headers[choice-1][i];
+  require(matches==(bank!=0)&&rd(c,0xC21C)==0x63,"A12 header positive B63 and negative B05 request field alone does not map header",choice*2+bank);
+ }
+ { /* Full resource consumer and all subsequent frames under prepared B63. */
+ struct GB *g=c->board;unsigned index=0;
+ for(unsigned choice=0;choice<3;choice++)for(unsigned n=0;n<2;n++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++){
+  unsigned seed=selected[choice][n],rng;unsigned actual=a12TriggerChoice(seed,&rng,&previous);require(actual==choice,"A12 selected seed positive controls cover all three paths",index);
+  unsigned header=choice==1?0x6A96:0x6AB1,width=choice?headers[choice-1][2]:0,height=choice?headers[choice-1][3]:0,frames=choice?headers[choice-1][4]:0,area=width*height,payload[32];
+  wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);wr(c,0xFFAB,0x12);wr(c,0xFFAC,0);wr(c,0xC113,0x12);wr(c,0xC114,0);
+  wr(c,0x37FF,0x63);wr(c,0x3800,0);wr(c,0xFFAD,0x63);wr(c,0xFFAE,0);wr(c,0xC115,0x63);wr(c,0xC116,0);wr(c,0xC21C,0x63);wr(c,0xC21D,0);
+  for(unsigned i=0;i<frames*2*area;i++)payload[i]=rd(c,header+7+i);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);
+  wr(c,0xC5A4,6);wr(c,0xC5CF,1);wr(c,0xC5E4,0);wr(c,0xC5E5,0xA5);wr(c,0xC5E7,0x5A);wr(c,0xC5D2,seed&255);wr(c,0xC5D3,seed>>8);wr(c,0xC5D1,0x33);wr(c,0xC5D4,0x5A);wr(c,0xC5FD,0x3C);
+  cpu->af=0x5AF0;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;wr(c,0xFF40,lcd?0x91:0);call(c,0x4C11);wr(c,0xFF40,0);
+  bool exact=(rd(c,0xC5D2)|(rd(c,0xC5D3)<<8))==rng&&rd(c,0xC5D1)==0x33&&rd(c,0xC5D4)==0x5A&&rd(c,0xC5FD)==0x3C&&rd(c,0xC113)==0x12&&rd(c,0xC114)==0&&rd(c,0xC115)==0x63&&rd(c,0xC116)==0&&(rd(c,0xFF4F)&1)==plane;
+  if(choice){unsigned end=header+7+2*area;exact&=cpu->af==0x0080&&cpu->bc==(width<<8|height)&&cpu->de==header+7&&cpu->hl==end&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==end&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==header+7&&rd(c,0xC5E4)==8&&rd(c,0xC5E5)==0&&rd(c,0xC5E6)==frames&&rd(c,0xC5E7)==0&&rd(c,0xC5E8)==0&&g->memory.ime;}
+  else exact&=cpu->a==((rng>>8)&15)&&cpu->f.packed==0x20&&cpu->bc==0xBEEF&&cpu->de==((rng&255)<<8|rng>>8)&&cpu->hl==((17*previous)&65535)&&rd(c,0xC5E4)==0&&rd(c,0xC5E5)==0xA5&&rd(c,0xC5E7)==0x5A;
+  require(exact,"A12 full guarded consumer selects actual B63 resource or returns no trigger registers state",index);
+  for(unsigned frame=0;frame<(choice?frames:1);frame++){
+   if(frame){wr(c,0xFF4F,plane);wr(c,0xC5E5,8);wr(c,0xFF40,lcd?0x91:0);call(c,0x5051);wr(c,0xFF40,0);}
+   exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned x=i%32,y=(i/32)&31;bool tile=choice&&i>=0x1800&&i<0x1C00&&x>=headers[choice-1][0]&&x<headers[choice-1][0]+width&&y>=headers[choice-1][1]&&y<headers[choice-1][1]+height;unsigned expected=tile?payload[frame*2*area+bank*area+(y-headers[choice-1][1])*width+x-headers[choice-1][0]]:0xA5;exact&=rd(c,0x8000+i)==expected;}}
+   require(exact,"A12 full B63 frame sequence exact both complete VRAM planes no font translation",index*8+frame);
+  }
+  if(choice){wr(c,0xFF4F,plane);wr(c,0xC5E5,8);call(c,0x5051);unsigned end=header+7+frames*2*area;
+   require(cpu->af==0x0080&&rd(c,0xC5E4)==0&&rd(c,0xC5E5)==0&&rd(c,0xC5E7)==0&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==end&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==header+7,"A12 original terminal tick clears threshold without copying beyond prepared resource",index);
+  }
+  index++;
+ }
+ }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

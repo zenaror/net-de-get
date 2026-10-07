@@ -55,7 +55,7 @@ A12SelectionVariant1::
 	ld a, $00
 	ld [$C21D], a
 	call TickA12TileFrame
-	call $4C11
+	call TryA12Variant1TileFrames
 	ld hl, $C5E5
 	inc [hl]
 	ld a, [$C73A]

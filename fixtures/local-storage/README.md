@@ -1229,3 +1229,35 @@ disk saves, natural IRQ/audio/menu, hardware timing or Japanese meaning proof.
 2695888 new assertions; total14594077, plus24 verifier tests. Further static
 consumer4C11–4C40 calls setup5093 with6A96/6AB1 after guards; those resources
 and preceding4BE6 remain pending, not a tested complete consumer chain.
+
+
+## A12 state recurrence and variant1 frame trigger
+
+PROBABLE, static and synthetic evidence. New source4BDD–4C40 is100 bytes.
+Seed writes HL into C5D2/C5D3, preserves flags/BC/DE/HL, returns A=H. Step
+uses `(17*state+5C93)&FFFF`; D=newlow/E=newhigh, A=newhigh, BC preserved,
+HL=intermediate17*state. Independent ADC flags include low-byte carry.
+196608 full calls cover both entries, all65536 states with derived AF and
+eight selected states with all4096 AF values.
+
+Consumer guards C5A4=6/C5CF=1/C5E4=0. First step E=0 selects6A96; otherwise
+second step E&15=0 selects6AB1; otherwise returns.1048576 state/flags cases
+have979184 complete non-trigger returns and69392 prefixes to actual5093 setup,
+checking recurrence, steps, target, stack/registers/flags and guards.12288 full
+calls vary each guard byte with16 flags, fixing the other guards; not a full
+Cartesian product. No injected RNG results or instruction bypass.
+
+Four mapping controls use C21C=63 but actualB05 versusB63. Only B63 reads the
+expected two seven-byte headers; wrong-bank cases stop before setup execution.
+Requested resource field is not a current-mapping proof. Candidate27/31-byte
+resource objects remain literal; no natural B63 entry assumption is promoted.
+
+24 integrated cases use two seeds per outcome, both VBKs and LCDoff/on. Under
+explicit B63 preparation, original consumer/setup and all resource frames run:
+five2x1 frames or four3x1 frames, then terminal tick with no extra copy. Fixture
+sets the frame counter to8 between ticks. Compare full two-plane VRAM after
+every frame, original resource bytes, registers/fields, mapping and completion.
+The initial oracle needed A=H for the setter and the9800 tilemap limit (excluding
+9C00); fixed without ROM changes.2515196 new assertions,total17109273,plus24
+verifier tests. Natural mapping/frame timing/random use/menu/IRQ, Japanese
+interpretation and hardware remain unproved; no disk saves or ROM edits.

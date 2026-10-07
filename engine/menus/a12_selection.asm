@@ -100,7 +100,7 @@ A12Selection_40B7::
 	ld l, a
 	ld a, [$C739]
 	ld h, a
-	call $4BDD
+	call SeedA12RandomState
 	call ResidentJump0282
 	ld hl, $C1B5
 	ld de, $9C00
