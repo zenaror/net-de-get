@@ -468,3 +468,24 @@ one-byte descriptor. This adds bounded synthetic full-entry coverage while
 retaining the earlier after-callback fixtures. No natural initialization, LCD-on
 behavior or physical DMA timing is established. Suite: **1734 assertions**;
 source: **52 sections / 6169 byte-exact bytes**.
+
+
+### State-0 graphics source intervals and shared template
+
+**PROBABLE static interpretation:** the banked-copy arguments in state 0 read
+A `$14:$5C0A-$5C19` into VRAM plane 1 at `$9000`, B `$15:$6002-$7801` into
+plane 0 at `$8000`, A `$14:$5CE2-$5D81` into `$8100`, and 32 bytes at B
+`$15:$71B4-$71D3` into `$8000`. All have ROM type. These read intervals are
+not asserted to be the full semantic extent of each graphics object.
+
+The 6144-byte B read overlaps the already reconstructed `$71D4-$7243` list
+template. It is emitted once: the new segments are `$6002-$71D3` (4562 bytes)
+and `$7244-$7801` (1470 bytes), while the existing template contributes 112.
+Both native selectors use physical RGBDS bank `$0A` in independent 8 KiB halves.
+State-0 references use symbols; no bytes or old symbols moved.
+
+Four forced banked-copy calls, LCD off, reproduce the exact original lengths
+and destinations and compare every output byte, trailing sentinel, registers
+and restored selectors. They do not execute the entire state-0 routine, verify
+natural rendering or establish arbitrary pointer/length safety. Suite: **1742
+assertions**. Source: **56 sections / 12377 byte-exact bytes**.

@@ -10,7 +10,7 @@ LocalMenuState0::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	ld hl, $5C0A
+	ld hl, LocalMenuTilePlane1
 	ld de, $9000
 	ld bc, $0010
 	call CopyBankedVRAMBytes
@@ -20,7 +20,7 @@ LocalMenuState0::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	ld hl, $6002
+	ld hl, LocalMenuTilesBeforeTemplate
 	ld de, $8000
 	ld bc, $1800
 	call CopyBankedVRAMBytes
@@ -28,7 +28,7 @@ LocalMenuState0::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	ld hl, $5CE2
+	ld hl, LocalMenuAdditionalTiles
 	ld de, $8100
 	ld bc, $00A0
 	call CopyBankedVRAMBytes
@@ -36,7 +36,7 @@ LocalMenuState0::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	ld hl, $71B4
+	ld hl, LocalMenuTilesBeforeTemplate + $11B2
 	ld de, $8000
 	ld bc, $0020
 	call CopyBankedVRAMBytes

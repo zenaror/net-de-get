@@ -408,6 +408,29 @@ int main(int argc,char **argv){
   integrated&=rd(c,0x9840)==(plane?0xA5:0x67)&&rd(c,0x9841)==0xA5;
  }
  require(integrated,"full pending consumer with installed DMA and palette callback",0);
+ /* Actual state-0 source ranges, isolated banked-copy calls, LCD off. */
+ const unsigned graphicsSource[]={0x5C0A,0x6002,0x5CE2,0x71B4};
+ const unsigned graphicsSize[]={16,0x1800,160,32};
+ const unsigned graphicsDestination[]={0x9000,0x8000,0x8100,0x8000};
+ for(unsigned range=0;range<4;range++){
+  unsigned source=graphicsSource[range],size=graphicsSize[range],destination=graphicsDestination[range];
+  unsigned window=source>=0x6000,select=window?0x15:0x14;
+  unsigned expectedGraphics[0x1800];
+  wr(c,window?0x37FF:0x27FF,select);wr(c,window?0x3800:0x2800,0);
+  for(unsigned i=0;i<size;i++)expectedGraphics[i]=rd(c,source+i);
+  wr(c,0x27FF,4);wr(c,0x2800,0);wr(c,0x37FF,5);wr(c,0x3800,0);
+  wr(c,0xFFAB,4);wr(c,0xFFAC,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);
+  wr(c,0xC113,4);wr(c,0xC114,0);wr(c,0xC115,5);wr(c,0xC116,0);
+  wr(c,0xC21C,select);wr(c,0xC21D,0);wr(c,0xFF4F,range==0?1:0);
+  for(unsigned i=0;i<size+1;i++)wr(c,destination+i,0xA5);
+  cpu->hl=source;cpu->de=destination;cpu->bc=size;call(c,0x019E);
+  unsigned ok=cpu->hl==source+size&&cpu->de==destination+size&&cpu->bc==0&&
+              rd(c,0xFFAB)==4&&rd(c,0xFFAD)==5&&rd(c,0xFFAC)==0&&rd(c,0xFFAE)==0&&
+              rd(c,0xC113)==4&&rd(c,0xC115)==5&&rd(c,destination+size)==0xA5&&
+              (rd(c,0xFF4F)&1)==(range==0?1:0);
+  for(unsigned i=0;i<size;i++)ok&=rd(c,destination+i)==expectedGraphics[i];
+  require(ok,"actual graphics interval, mapper restoration and trailing sentinel",range);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

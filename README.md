@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **6169 bytes em 52 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **12377 bytes em 56 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -70,7 +70,7 @@ Objetivo: ampliar progressivamente o fonte RGBDS legível, preservando os bytes 
 
 ### Trabalho a fazer
 
-1. Extrair os intervalos gráficos lidos por `$019E` na inicialização, preservando os trechos já reconstruídos; seguir chamadores da fila e dependências dos seis estados.
+1. Extrair os produtores de descriptors da fila e os helpers `$5B26/$5B31`; seguir dependências dos seis estados e a preparação natural de gráficos/paletas.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
@@ -94,7 +94,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **1.734 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **1.742 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -136,3 +136,9 @@ A inicialização aponta para largura 1, altura 9 e origem `$4224`: `data/local_
 `home/palette_updates.asm` reconstrói `$018C/$0995-$09EA`: se `$C221` estiver ativo, zera o flag e envia 64 bytes de background e 64 de objetos a partir de `$C222`, preservando AF/BC/HL. `home/oam_dma.asm` reconstrói o instalador `$09EB-$09F8` e o template executável `$09F9-$0A02`, copiado para `$FF80`. O template dispara DMA a partir de `$C000` e mantém seu laço de espera original.
 
 Os probes com LCD desligado cobrem paletas inativas/ativas, cópia exata dos dez bytes para HRAM, DMA dos 160 bytes de OAM e uma entrada completa em `$5A08` com esses callbacks. Isso é execução sintética no core, sem prova de timing em hardware ou atualização natural do menu.
+
+### Intervalos gráficos da inicialização
+
+`data/local_menu_tiles.asm` cobre os intervalos lidos na inicialização: A `$14:$5C0A-$5C19` (16 bytes), A `$14:$5CE2-$5D81` (160 bytes) e B `$15:$6002-$7801` (6 KiB). O intervalo de B inclui o template já emitido em `$71D4-$7243`; os dados novos ocupam somente os segmentos antes/depois dele. A leitura auxiliar de 32 bytes em `$71B4` usa o mesmo segmento. O banco físico RGBDS continua `$0A` para as duas janelas.
+
+Quatro probes reproduzem as cópias desses intervalos reais no core, com registradores/memória forçados e LCD desligado. Conferem todos os bytes, o sentinel após o destino, registradores e restauração dos seletores. Isso não executa o estado 0 inteiro nem demonstra a aparência natural ou a extensão completa de cada objeto gráfico.

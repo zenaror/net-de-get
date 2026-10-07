@@ -51,3 +51,7 @@ bank	start	end	symbol
 00	0995	09EA	UploadPendingCGBPalettesBody
 00	09EB	09F8	InstallOAMDMARoutine
 00	09F9	0A02	OAMDMATemplate
+0A	5C0A	5C19	LocalMenuTilePlane1
+0A	5CE2	5D81	LocalMenuAdditionalTiles
+0A	6002	71D3	LocalMenuTilesBeforeTemplate
+0A	7244	7801	LocalMenuTilesAfterTemplate
