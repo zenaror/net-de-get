@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **10,473 assertions**.
+and stack assertions, the maintained fixture reports **11,801 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -268,3 +268,13 @@ writes. FF clears exactly its16-byte slot while preserving the other112 bytes
 in CF00-CF7F. These do not prove other command bodies, natural playback or audio
 correctness. The numeric word-read base4A0E overlaps shared-clear instructions;
 no total table extent is assumed or substituted into the binary.
+
+
+Slot4 adds 1,328 assertions: all256 opcode stops, 19 B0 durations, all256 B1/C0
+parameters, four FE count cases (0/1/2/FF) and one tick->B0 chain. Every opcode
+below90 selects the audio tail, unlike lower-slot early returns. B1 edits CF89
+bits0/4 retaining CF88; C0 reads three-byte records at3*((value&31)+1). FE reads
+CF4C but stores its decrement in CF0C, retaining CF4C; count1 uses the current
+stream without storing zero, count0 uses the saved stream. Original cross-slot
+writes are preserved. FF stops before external51C7; no external FF helpers,
+other bodies, natural playback, universal stream safety or audio correctness.

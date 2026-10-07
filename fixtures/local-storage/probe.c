@@ -1272,6 +1272,59 @@ int main(int argc,char **argv){
   require(exact&&cpu->hl==0xCF10+slot*16&&cpu->b==0&&cpu->a==0,
           "A1E FF clears exact16 bytes for each lower slot",slot);
  }
+ /* Upper slot4: all sub90 opcodes take its audio tail, not early return. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);
+ for(unsigned opcode=0;opcode<256;opcode++){
+  wr(c,0xCF40,0);wr(c,0xCF41,0xD8);wr(c,0xD800,opcode);
+  unsigned target=opcode<0x90?0x4CF1:opcode<0xA0?0x4C83:
+   opcode==0xB0?0x4C3D:opcode==0xB1?0x4C1F:opcode==0xC0?0x4BFA:opcode==0xE0?0x4C45:
+   opcode==0xFD?0x4BD2:opcode==0xFE?0x4BE2:opcode==255?0x4BC8:0xC100;
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);
+  cpu->de=0xBEEF;cpu->pc=0x4B90;unsigned steps=0;while(cpu->pc!=target&&steps++<200)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(target==0xC100?0xD000:0xCFFE)&&cpu->bc==0xD801&&
+          cpu->a==opcode&&cpu->de==0xBEEF&&rd(c,0xCF40)==0&&rd(c,0xCF41)==0xD8,
+          "A1E slot4 all opcode dispatches",opcode);
+ }
+ for(unsigned index=0;index<19;index++){
+  unsigned first=index<3?shortCounts[index]:extendedPrefixes[(index-3)/4];
+  unsigned low=index<3?0:extendedLow[(index-3)%4];
+  wr(c,0xCF40,0);wr(c,0xCF41,0xD8);wr(c,0xCF45,0x77);wr(c,0xCF34,0xA5);
+  wr(c,0xD800,0xB0);wr(c,0xD801,7);wr(c,0xD802,first);wr(c,0xD803,low);call(c,0x4B90);
+  require(rd(c,0xCF4D)==7&&rd(c,0xCF40)==(index<3?3:4)&&rd(c,0xCF41)==0xD8&&
+          rd(c,0xCF44)==(index<3?first:(low|((first&1)<<7)))&&
+          rd(c,0xCF45)==(index<3?0x77:((first&0x7F)>>1))&&rd(c,0xCF34)==0xA5,
+          "A1E slot4 B0 countdown preserves slot3",index);
+ }
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xCF40,0);wr(c,0xCF41,0xD8);wr(c,0xCF89,0x2A);wr(c,0xCF88,0x37);
+  wr(c,0xD800,0xB1);wr(c,0xD801,value);wr(c,0xD802,1);call(c,0x4B90);
+  require(rd(c,0xCF89)==(value<0x40?0x3A:value==0x40?0x3B:0x2B)&&rd(c,0xCF88)==0x37,
+          "A1E slot4 B1 bits0 and4 in CF89",value);
+ }
+ for(unsigned i=0;i<99;i++)wr(c,0xD900+i,(i*7+1)&255);
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xCF40,0);wr(c,0xCF41,0xD8);wr(c,0xCF94,0);wr(c,0xCF95,0xD9);
+  wr(c,0xD800,0xC0);wr(c,0xD801,value);wr(c,0xD802,3);call(c,0x4B90);
+  unsigned offset=3*((value&31)+1);
+  require(rd(c,0xCF47)==((offset*7+1)&255)&&rd(c,0xCF48)==(((offset+1)*7+1)&255)&&
+          rd(c,0xCF49)==(((offset+2)*7+1)&255)&&rd(c,0xCF40)==3&&rd(c,0xCF41)==0xD8&&rd(c,0xCF44)==3,
+          "A1E slot4 C0 masked three-byte records",value);
+ }
+ const unsigned loopCounts4[]={0,1,2,255};
+ for(unsigned index=0;index<4;index++){
+  unsigned count=loopCounts4[index];wr(c,0xCF40,0);wr(c,0xCF41,0xD8);
+  wr(c,0xCF4C,count);wr(c,0xCF0C,0x77);wr(c,0xCF4A,0);wr(c,0xCF4B,0xD9);
+  wr(c,0xD800,0xFE);wr(c,0xD801,5);wr(c,0xD900,3);call(c,0x4B90);
+  require(rd(c,0xCF4C)==count&&rd(c,0xCF0C)==(count>1?count-1:0x77)&&
+          rd(c,0xCF40)==(count==1?2:1)&&rd(c,0xCF41)==(count==1?0xD8:0xD9)&&rd(c,0xCF44)==(count==1?5:3),
+          "A1E slot4 FE retains own count writes CF0C",index);
+ }
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xCF40,0);wr(c,0xCF41,0xD8);wr(c,0xCF44,1);
+ wr(c,0xD800,0xB0);wr(c,0xD801,7);wr(c,0xD802,5);call(c,0x4000);
+ require(rd(c,0xCF4D)==7&&rd(c,0xCF44)==5&&rd(c,0xCF40)==3&&rd(c,0xCF41)==0xD8,
+         "A1E integrated tick invokes slot4 B0",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

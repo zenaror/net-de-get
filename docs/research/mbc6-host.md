@@ -946,3 +946,22 @@ total10473. Shared clear preserves the other112 bytes of CF00-CF7F. No other
 bodies, natural playback, universal stream bounds or audio correctness.
 Full/private/negative gates preserve862 published2526dfb symbols and whole
 hash,24checker tests.283 sections:118 analyzed/19053 bytes,165 unknown/1029523.
+
+
+### A1E upper slot4 and original cross-slot FE write
+
+**PROBABLE**, static tick consumer: extract $4B90-$4D22 (403 bytes). Keep
+ResidualROM0F_4A10 at4A10, now ending4B8F; next residual begins4D23. Stream
+CF40/CF41; sub90 dispatch includes sub80 instead of an early return. B1 uses
+CF89 bits0/4; C0 uses CF94/CF95 and three-byte records at3*((parameter&31)+1).
+FF calls51C7/51D0/5288, unresolved. FE reads CF4C but writes decremented counts
+into CF0C at4BEC. Preserve that cross-slot effect; no intent or bug diagnosis
+is inferred from the static access alone. Count1 bypasses the write.
+
+**SYNTHETIC**: 256 dispatch stops,19 B0 streams,all256 B1/C0 parameters,fourFE
+counts0/1/2/FF and one tick->B0 add1328 assertions,total11801. FE keeps CF4C,
+changes CF0C only above1, chooses current pointer at1 and saved pointer otherwise.
+No FF helper execution, other bodies, natural playback, arbitrary stream/table
+bounds or audio correctness. Full/private/negative gates preserve884 published
+f995835 symbols and whole hash,24checker tests.285 sections:119 analyzed/19456
+bytes,166 unknown/1029120 bytes.
