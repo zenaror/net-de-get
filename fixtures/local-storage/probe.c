@@ -1039,6 +1039,38 @@ int main(int argc,char **argv){
  for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
  wr(c,0xFF25,0xA5);call(c,0x4000);
  require(rd(c,0xFF25)==0xA5,"A1E inactive slots and routing return",0);
+ /* A1E global helpers: clear lower slots only, retain upper slots. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0xA5);
+ cpu->de=0xBEEF;cpu->bc=0x1234;call(c,0x406E);
+ unsigned lowerOK=1;for(unsigned i=0;i<0x90;i++){
+  unsigned value=i<0x40||i==0x86||i==0x87||i==0x8A?0:0xA5;
+  lowerOK&=rd(c,0xCF00+i)==value;
+ }
+ require(lowerOK&&cpu->hl==0xCF40&&cpu->bc==0x0034&&cpu->de==0xBEEF,
+         "A1E clear leaves upper slots and adjacent globals intact",0);
+ for(unsigned flagValue=0;flagValue<2;flagValue++)for(unsigned mask=0;mask<16;mask++){
+  wr(c,0xFF26,0x80);wr(c,0xFF10,0x7F);wr(c,0xFF12,0xF3);wr(c,0xFF17,0xF2);
+  wr(c,0xFF1A,0x80);wr(c,0xFF1C,0x60);wr(c,0xFF21,0xF1);
+  for(unsigned slot=0;slot<4;slot++)wr(c,0xCF41+slot*16,(mask&(1<<slot))?(flagValue?255:1):0);
+  call(c,0x4082);
+  require((rd(c,0xFF10)&0x7F)==((mask&1)?0x7F:0)&&rd(c,0xFF12)==((mask&1)?0xF3:0)&&
+          rd(c,0xFF17)==((mask&2)?0xF2:0)&&(rd(c,0xFF1A)&0x80)==((mask&4)?0x80:0)&&
+          (rd(c,0xFF1C)&0x60)==((mask&4)?0x60:0)&&rd(c,0xFF21)==((mask&8)?0xF1:0),
+          "A1E audio reset obeys upper-slot flags",flagValue*16+mask);
+ }
+ const unsigned globalCounts[]={0,1,2,255},globalPhases[]={0,14,15,255};
+ for(unsigned periodIndex=0;periodIndex<2;periodIndex++)for(unsigned ci=0;ci<4;ci++)for(unsigned pi=0;pi<4;pi++){
+  unsigned period=periodIndex?255:1,count=globalCounts[ci],phase=globalPhases[pi];
+  for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+  wr(c,0xCF08,0xA5);wr(c,0xCF48,0x5A);wr(c,0xCF86,period);wr(c,0xCF87,count);wr(c,0xCF8A,phase);
+  call(c,0x4000);
+  unsigned reset=count==1&&phase==14;
+  require(rd(c,0xCF86)==(reset?0:period)&&rd(c,0xCF87)==(reset?0:count==1?period:((count-1)&255))&&
+          rd(c,0xCF8A)==(reset?0:count==1?((phase+1)&255):phase)&&
+          rd(c,0xCF08)==(reset?0:0xA5)&&rd(c,0xCF48)==0x5A,
+          "A1E integrated global tick expiry and wrap",periodIndex*16+ci*4+pi);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

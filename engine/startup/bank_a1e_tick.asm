@@ -159,8 +159,8 @@ TickBankA1EState::
 	ld [$CF8A], a
 	cp a, $0F
 	jr nz, UpdateBankA1EAudioRouting
-	call $4082
-	call $406E
+	call ResetInactiveBankA1EAudio
+	call ClearLowerBankA1ESlots
 UpdateBankA1EAudioRouting::
 	ld a, [$CF84]
 	or a, a

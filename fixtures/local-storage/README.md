@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **5,797 assertions**.
+and stack assertions, the maintained fixture reports **5,927 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -221,3 +221,11 @@ eight stops before external handlers; 56 forced routing-tail mask cases; one
 inactive whole body. They check countdown wrap, remainder/reload, untouched slots
 and the exact $FF25 mask expression. No natural VBlank, active CF86 global flow,
 external-handler execution, audible correctness or hardware is established.
+
+
+A1E global-path probes add 130 assertions: exact lower-slot/global clear with
+upper/adjacent sentinels retained, 32 upper-flag combinations using active1/$FF
+and masked readable audio registers, and 32 complete ticks with period1/$FF,
+counter0/1/2/$FF and phase0/14/15/$FF. Incremented phase $0F executes both helpers.
+Slots remain inactive in those integrated cases. These prove only synthetic
+state/register effects; no slot handlers, natural playback, timing or hardware.

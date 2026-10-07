@@ -852,3 +852,20 @@ assertions,total5797; no natural VBlank, external handler, active global flow,
 audible output or hardware claim. Full/private/negative gates preserve 748
 symbols61fca2a and whole hash. 277 sections:113 analyzed/17374 bytes,164 unknown
 ranges/1031202 bytes, plus 24 verifier tests.
+
+
+### A1E global clear and conditional audio reset
+
+**PROBABLE**, consumers $43A2/$43A5: `engine/startup/bank_a1e_global.asm` extracts
+$406E-$40B7 (74 bytes), naming both callees in the tick source. Clear writes
+CF00-CF3F and CF86/87/8A, retaining the upper four slots and adjacent fields.
+Reset tests CF41/51/61/71 and writes the original audio registers only when each
+flag is zero; active means nonzero, without assigning a natural slot purpose.
+
+**SYNTHETIC**: exact clear with sentinels,32 flag combinations (active1/FF),32
+complete global ticks (period1/FF,counter0/1/2/FF,phase0/14/15/FF) pass. The
+phase reaching0F calls reset then clear. Slot handlers remain unexecuted; no
+natural/audio-output/timing/hardware claim.130 added assertions,total5927.
+Full/private/negative gates and24 checker tests preserve all770 c690a56 symbols
+and the whole reference hash.279 sections:114 analyzed/17448 bytes,165 unknown
+ranges/1031128 bytes; no original/reference write or real save.
