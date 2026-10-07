@@ -96,7 +96,7 @@ ResidentJump0243::
 ResidentJump0246::
 	jp $21D7
 ResidentJump0249::
-	jp $2242
+	jp CallBankA1EAndRestoreMapping
 ResidentJump024C::
 	jp $22A7
 ResidentJump024F::

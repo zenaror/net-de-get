@@ -981,6 +981,28 @@ int main(int argc,char **argv){
          "existing SYS0 full store chain",0);
  sysSum=0;for(unsigned i=2;i<59;i++)sysSum+=rd(c,0xA400+i);
  require((rd(c,0xA400)|(rd(c,0xA401)<<8))==(sysSum&65535),"SYS0 store close checksum",0);
+ /* VBlank mapper prefix and separate restore tails, no A1E target. */
+ const unsigned mapperModes[]={0,1,255};
+ for(unsigned index=0;index<3;index++){
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  wr(c,0xFFAB,0x14);wr(c,0xFFAC,0);wr(c,0xFFAD,0x15);wr(c,0xFFAE,0);
+  wr(c,0x27FF,0x14);wr(c,0x2800,0);wr(c,0x37FF,0x15);wr(c,0x3800,0);
+  wr(c,0xC663,0x15);wr(c,0xC664,0);wr(c,0xC672,mapperModes[index]);
+  wr(c,0xCB81,0x10);wr(c,0xCB82,0);wr(c,0xCB83,0x11);wr(c,0xCB84,0);
+  cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;cpu->pc=0x2242;
+  unsigned steps=0;while(cpu->pc!=0x2264&&steps++<100)c->step(c);
+  require(cpu->pc==0x2264&&cpu->sp==0xCFFE&&cpu->bc==0x1234&&cpu->de==0xBEEF&&
+          cpu->hl==0xD800&&rd(c,0xC113)==0x1E&&rd(c,0xC114)==0&&rd(c,0xC115)==0x15&&
+          rd(c,0xC116)==0&&rd(c,0x4000)==0xC3&&rd(c,0x6000)==0x1B&&rd(c,0xFFAB)==0x14,
+          "VBlank mapper prefix before A1E call",index);
+  call(c,0x2267);
+  require(cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800&&
+          rd(c,0xFFAB)==0x14&&rd(c,0xFFAC)==0&&rd(c,0xFFAD)==0x15&&rd(c,0xFFAE)==0&&
+          rd(c,0x4000)==(index?0xEA:0x3E)&&rd(c,0x6000)==(index?0:0x1B)&&
+          rd(c,0xC113)==(index?0x1E:0x14)&&rd(c,0xC114)==0&&rd(c,0xC115)==0x15&&rd(c,0xC116)==0,
+          "VBlank mapper independent tails and shadow difference",index);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

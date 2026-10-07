@@ -100,7 +100,7 @@ RestoreInterruptRegisters::
 	pop af
 	reti
 FinishVBlankCallback::
-	call $2242
+	call CallBankA1EAndRestoreMapping
 	pop hl
 	pop de
 	pop bc

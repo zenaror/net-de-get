@@ -57,7 +57,9 @@ bank	start	end	symbol
 00	17B3	17B6	SYS0RecordName
 00	17B7	1FFF	ResidualROM00_17B7
 00	2000	2011	SubtractDEFromHL
-00	2012	23E3	ResidualROM00_2012
+00	2012	2241	ResidualROM00_2012
+00	2242	22A6	CallBankA1EAndRestoreMapping
+00	22A7	23E3	ResidualROM00_22A7
 00	23E4	24B8	DispatchBankedCallback
 00	24B9	254D	ResidualROM00_24B9
 00	254E	25CA	DispatchLocalMinigame

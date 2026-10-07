@@ -814,3 +814,19 @@ Full source: 272 sections, 110 analyzed sections (16,988 bytes), 162 unknown
 ranges (1,031,588 bytes). Full/private comparison, 24 checker tests, CPU and
 actual negative builds pass; 729 symbols e0cbd96 preserved and original hash
 unchanged. No translation, reference writes, saves or new network feature.
+
+
+### VBlank mapper call and restore branches
+
+**PROBABLE**, static consumer $069E and resident thunk0249: $2242-$22A6 is now
+`home/vblank_mapper.asm`. B comes from C663/C664; A selects native1E/typeROM,
+then calls4000. Afterward C672=0 restores FFAB-FFAE and updates C113-C116;
+nonzero restores CB81-CB84 only to mapper registers, without shadow writes.
+No purpose beyond this observed code is asserted for those alternate fields.
+
+**SYNTHETIC**: three cases C672=0/1/FF stop before call2264 and independently
+enter tail2267. Mapped bytes, BC/DE/HL, HRAM and shadow differences are checked.
+No A1E target, natural IRQ/VBlank or timing evidence. Nine new asserts,total5547.
+Full source: 274 sections,111 analyzed/17089 bytes,163 unknown/1031487 bytes.
+Full/private gates preserve 745 published fabf3fb address symbols, full hash,
+24 verifier tests and actual negative-build rejection.

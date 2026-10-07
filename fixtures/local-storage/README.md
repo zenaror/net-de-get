@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **5,538 assertions**.
+and stack assertions, the maintained fixture reports **5,547 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -207,3 +207,9 @@ original wrappers $1689/$169D through open, copy, close/checksum and A-window
 restore. Payload directions, A=0 result, mapping and stored checksums are checked.
 These add 16 assertions. This remains SYNTHETIC SRAM: no disk saves, SYS0 creation,
 smaller-record safety, initialization $424D, natural menu or hardware claims.
+
+
+Three VBlank mapper cases ($C672=0/1/$FF) stop at $2264 before native A1E's
+target call. Separate forced tails at $2267 check actual mapped bytes, unchanged
+register pairs and HRAM fields, and the C113-C116 shadow-update difference.
+Nine added assertions do not execute A1E:$4000 or natural VBlank/IRQ timing.
