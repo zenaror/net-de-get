@@ -469,7 +469,8 @@ bank	start	end	symbol
 07	651F	655C	TrimA0FListTail
 07	6628	668A	DrawA0FModeIndicatorRow
 00	261C	2684	TickCounterAndPollJoypad
-00	2685	2752	ResidualROM00_2685
+00	2685	269B	ResolveMinigameSelector
+00	269C	2752	InitializeQueuedTextPlane
 00	2799	27A9	ConfigureAndPrepareQueuedTextRegion
 00	28E3	2BFD	ResidualROM00_28E3
 00	2BFE	2D45	DrawQueuedTextFrame

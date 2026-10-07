@@ -18,15 +18,15 @@ ResidentJump01CE::
 ResidentJump01D1::
 	jp $1176
 ResidentJump01D4::
-	jp $269C
+	jp InitializeQueuedTextPlane
 ResidentJump01D7::
-	jp $271C
+	jp SetQueuedTextControlCallback
 ResidentJump01DA::
-	jp $2723
+	jp StoreQueuedTextWordC219
 ResidentJump01DD::
-	jp $272A
+	jp StoreQueuedTextPointer
 ResidentJump01E0::
-	jp $2731
+	jp LoadQueuedTextFontTiles
 ResidentJump01E3::
 	jp ConfigureQueuedTextFromIndexedRecord
 ResidentJump01E6::
@@ -132,7 +132,7 @@ ResidentJump0279::
 ResidentJump027C::
 	jp PollJoypadState
 ResidentJump027F::
-	jp $2685
+	jp ResolveMinigameSelector
 ResidentJump0282::
 	jp CallBankA16_4227
 ResidentJump0285::

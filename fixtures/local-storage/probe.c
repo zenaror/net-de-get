@@ -3333,6 +3333,53 @@ int main(int argc,char **argv){
  bool untouched=true;for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)untouched&=rd(c,0x8000+i)==0xA5;}
  require(untouched,"Whole VRAM remains untouched across exhaustive polling group",0);g->allowOpposingDirections=savedPolicy;c->setKeys(c,0);
  }
+ { /* Resident selector/text plane/setters/font copies, complete bounded calls. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);
+ for(unsigned index=0;index<256;index++)for(unsigned flags=0;flags<16;flags++){
+  cpu->a=index;cpu->f.packed=flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;wr(c,0xC1AF,0xA5);call(c,0x27F);
+  unsigned selector=index<16?rd(c,0x3CD8+index):index-16;
+  require(cpu->de==((index<16?0:8)<<8|selector)&&cpu->hl==(index<16?0x3CD8+index:0x9ABC)&&cpu->bc==0xBEEF&&
+   cpu->a==(index<16?0x3C:index-16)&&cpu->f.packed==(index<16?0:index==16?0xC0:0x40)&&rd(c,0xC1AF)==0xA5,
+   "Original selector all index flags table or flash arithmetic no mapper selection",index*16+flags);
+ }
+ const unsigned setters[]={0x1D7,0x1DA,0x1DD},fields[]={0xC1C0,0xC219,0xC1AB};
+ for(unsigned kind=0;kind<3;kind++)for(unsigned value=0;value<65536;value++){
+  unsigned field=fields[kind],a=(value*73+1)&255,flags=(value&15)<<4;
+  wr(c,field-1,0xA5);wr(c,field+2,0x5A);cpu->a=a;cpu->f.packed=flags;cpu->bc=0xBEEF;cpu->de=value;cpu->hl=0x9ABC;call(c,setters[kind]);
+  require(rd(c,field)==(value&255)&&rd(c,field+1)==value>>8&&rd(c,field-1)==0xA5&&rd(c,field+2)==0x5A&&
+   cpu->a==a&&cpu->f.packed==flags&&cpu->bc==0xBEEF&&cpu->de==value&&cpu->hl==field+1,
+   "Original text DE setters full word domain preserve AF BC DE and adjacent guards",kind*65536+value);
+ }
+ for(unsigned mapping=0;mapping<2;mapping++)for(unsigned plane=0;plane<256;plane++)for(unsigned prior=0;prior<2;prior++)for(unsigned lcd=0;lcd<2;lcd++){
+  unsigned selector=mapping?0x16:0x0F,source[32],restored[8];wr(c,0xFF40,0);wr(c,0x27FF,selector);wr(c,0x2800,0);wr(c,0xFFAB,selector);wr(c,0xFFAC,0);
+  for(unsigned i=0;i<32;i++)source[i]=rd(c,0x4EE0+i);for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,prior);wr(c,0xC21C,mapping?0x0F:0x16);wr(c,0xC21D,0);wr(c,0xC1B8,0x5A);wr(c,0xC1C0,0xCC);wr(c,0xC1C1,0xCC);wr(c,0xC219,0xCC);wr(c,0xC21A,0xCC);wr(c,0xC1C2,0xCC);wr(c,0xC1BF,0xCC);
+  cpu->a=plane;if(lcd)wr(c,0xFF40,0x91);call(c,0x1D4);
+  struct GB *g=c->board;bool exact=rd(c,0xC1AF)==plane&&rd(c,0xC1C0)==0&&rd(c,0xC1C1)==0&&rd(c,0xC219)==0&&rd(c,0xC21A)==0&&rd(c,0xC1C2)==0&&rd(c,0xC1BF)==0&&
+   rd(c,0xC1B5)==0&&rd(c,0xC1B6)==0x98&&rd(c,0xC1A3)==(plane?15:7)&&rd(c,0xC1B0)==(plane?8:0)&&rd(c,0xC1B1)==(plane?9:1)&&rd(c,0xC1B2)==(plane?10:2)&&rd(c,0xC1B7)==(plane?8:0)&&rd(c,0xC1B8)==0x5A&&
+   cpu->a==prior&&cpu->f.packed==(prior?0x20:0xA0)&&cpu->bc==0&&cpu->de==0x9800&&cpu->hl==0x4F00&&(rd(c,0xFF4F)&1)==prior&&g->memory.ime&&rd(c,0xFFAB)==selector&&rd(c,0xC21C)==(mapping?0x0F:0x16);
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];wr(c,0xFF40,0);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned expected=(bank==(plane&1)&&i>=0x17E0&&i<0x1800)?source[i-0x17E0]:0xA5;exact&=rd(c,0x8000+i)==expected;}}
+  require(exact,"Original text plane all raw A current source ignores C21C attrs full VRAM LCDoff on",mapping*1024+plane*4+prior*2+lcd);
+ }
+ const unsigned pointers[]={0x4F60,0x50E0,0x6800};
+ for(unsigned resource=0;resource<3;resource++)for(unsigned plane=0;plane<256;plane++)for(unsigned prior=0;prior<2;prior++)for(unsigned lcd=0;lcd<2;lcd++){
+  unsigned pointer=pointers[resource],selector=resource==2?0x5A:0x0F,source[448],aBytes[8],bBytes[8];wr(c,0xFF40,0);
+  wr(c,resource==2?0x37FF:0x27FF,selector);wr(c,resource==2?0x3800:0x2800,0);for(unsigned i=0;i<448;i++)source[i]=rd(c,pointer+i);
+  wr(c,0x27FF,0x16);wr(c,0x2800,0);wr(c,0xFFAB,0x16);wr(c,0xFFAC,0);wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC113,0x16);wr(c,0xC114,0);wr(c,0xC115,5);wr(c,0xC116,0);
+  for(unsigned i=0;i<8;i++){aBytes[i]=rd(c,0x4000+i);bBytes[i]=rd(c,0x6000+i);}
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,prior);wr(c,0xC1AF,plane);wr(c,0xC21C,selector);wr(c,0xC21D,0);wr(c,0xC1B8,0x5A);cpu->hl=pointer;if(lcd)wr(c,0xFF40,0x91);call(c,0x1E0);
+  struct GB *g=c->board;bool exact=cpu->a==prior&&cpu->f.packed==(prior?0x20:0xA0)&&cpu->bc==0&&cpu->de==0x8800&&cpu->hl==pointer+448&&(rd(c,0xFF4F)&1)==prior&&g->memory.ime&&
+   rd(c,0xC1AF)==plane&&rd(c,0xC1B8)==0x5A&&rd(c,0xFFAB)==0x16&&rd(c,0xFFAC)==0&&rd(c,0xFFAD)==5&&rd(c,0xFFAE)==0&&
+   rd(c,0xC113)==0x16&&rd(c,0xC114)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==aBytes[i]&&rd(c,0x6000+i)==bBytes[i];wr(c,0xFF40,0);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned value=0xA5;
+   if(bank==(plane&1)){if(i>=0x16C0&&i<0x17E0)value=source[i-0x16C0];if(i>=0x760&&i<0x800)value=source[288+i-0x760];}exact&=rd(c,0x8000+i)==value;}}
+  require(exact,"Original text font banked A B resources all raw plane bytes both full VRAM LCDoff on",resource*1024+plane*4+prior*2+lcd);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

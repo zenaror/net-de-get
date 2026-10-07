@@ -911,3 +911,32 @@ chained expected state. Check AF/BC/DE/HL,HRAM state,edges,repeat,marker,wraps,
 guards and JOYP deselection. Both8192-byte VRAM planes remain A5 at group end.
 442880 complete calls add885761 assertions,total4588836. No natural IRQ/menu,
 hardware debounce or physical timing claim.
+
+
+## Resident selector and text/font configuration
+
+PROBABLE/SYNTHETIC:4096 selector calls cover all256 indices and16 input flags.
+Index<0x10 reads the published native8KiB selector table, otherwise returns
+D08/Eindex-0x10. No mapper selection or admissibility validation is performed;
+native index0F remainsFF.196608 setter calls cover all65536 DE words for each
+C1C0/C219/C1AB field, adjacent guards, preserved AF/BC/DE and final HL=field+1.
+AF seeds are derived from the word, not every independent-register product.
+C1C0 is read as a control3 callback by the published consumer; C219 remains
+named by address because its semantic role is not established here.
+
+2048 complete plane initializations cover all256 raw A bytes, both prior VBKs,
+LCDoff/on and actual A-window0F/16. C21C deliberately names the other window:
+the original simple32-byte4EE0->97E0 copy uses current mapping. Raw A nonzero
+adds attr bit3, while VBK uses only bit0. Check six reset bytes, origin9800,
+five attr fields,C1AF,guards,AF/BC/DE/HL,real mapped bytes and whole bothVRAMplanes.
+3072 complete font loads cover all256 raw plane bytes,both priorVBKs,LCDoff/on,
+original A0F sources4F60/50E0 and B5A source6800. Independently capture448 source
+bytes, then restore different prior A16/B05 mappings/mirrors before execution.
+The original banked copy uses C21C/C21D and restores both mappings; compare
+288 bytes at96C0 and160 at8760 with every other byte of both8192-byte planes.
+Check registers,fields/guards,copy completion and actual
+restored A/B bytes. Copy DI/EI leaves IME enabled; no prior-IME restoration claim.
+
+205824 complete calls add411648 assertions,total5000484 plus24 verifier tests.
+No flash-font domain,exclusive resource extent,natural callbacks/menus,Japanese
+interpretation,visible colors or physical timing proof. Original bytes preserved.
