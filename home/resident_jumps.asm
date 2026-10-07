@@ -118,7 +118,7 @@ ResidentJump0264::
 ResidentJump0267::
 	jp BankedCallbackReturnOnly
 ResidentJump026A::
-	jp $24B9
+	jp DispatchFlashCallback
 ResidentJump026D::
 	jp DispatchLocalMinigame
 ResidentJump0270::

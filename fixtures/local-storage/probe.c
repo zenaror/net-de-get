@@ -3400,6 +3400,64 @@ int main(int argc,char **argv){
  }
  call(c,0x273);
  }
+ { /* Disposable flash RET targets: original dispatcher, no flash commands/save. */
+ struct GB *g=c->board;
+ require(g->memory.sram&&g->sramSize>=GB_SIZE_MBC6_FLASH_STORAGE,"Flash callback disposable backing available",0);
+ uint8_t *flash=g->memory.sram+g->sramSize-GB_SIZE_MBC6_FLASH_STORAGE;
+ uint8_t *before=malloc(GB_SIZE_MBC6_FLASH_STORAGE);if(!before)exit(11);memcpy(before,flash,GB_SIZE_MBC6_FLASH_STORAGE);
+ const unsigned targets[]={0x4100,0x5FFF,0x6000,0x6100};
+ wr(c,0xFF40,0);wr(c,0xFF07,0);wr(c,0xFF02,0);wr(c,0xFF70,1);
+ for(unsigned kind=0;kind<4;kind++)for(unsigned selector=0;selector<128;selector++)
+ for(unsigned types=0;types<4;types++)for(unsigned guarded=0;guarded<2;guarded++)for(unsigned flags=0;flags<16;flags++){
+  unsigned target=targets[kind],window=target>=0x6000,offset=selector*8192+(target&8191),saved=flash[offset];flash[offset]=0xC9;
+  unsigned aType=(types&1)?8:0,bType=(types&2)?8:0,aSelector=aType?3:0x16,bSelector=bType?5:0x0F;
+  wr(c,0x1000,1);wr(c,0x0C00,1);wr(c,0x1000,0);
+  wr(c,0x27FF,aSelector);wr(c,0x2800,aType);wr(c,0x37FF,bSelector);wr(c,0x3800,bType);
+  wr(c,0xFFAB,aSelector);wr(c,0xFFAC,aType);wr(c,0xFFAD,bSelector);wr(c,0xFFAE,bType);
+  wr(c,0xC113,aSelector);wr(c,0xC114,aType);wr(c,0xC115,bSelector);wr(c,0xC116,bType);
+  unsigned aBytes[8],bBytes[8];for(unsigned i=0;i<8;i++){aBytes[i]=rd(c,0x4000+i);bBytes[i]=rd(c,0x6000+i);}
+  if(!guarded){wr(c,0x1000,1);wr(c,0x0C00,0);wr(c,0x1000,0);}
+  wr(c,0xCEE9,guarded);wr(c,0xC66C,0xA5);wr(c,0xC66F,0x5A);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->a=selector;cpu->f.packed=flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=target;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x26A;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<1000)c->step(c);
+  unsigned tail=window?0x2532:0x24EA,priorSelector=window?bSelector:aSelector,priorType=window?bType:aType;
+  unsigned cpFlags=kind==0?0x50:kind==1?0x50:kind==2?0xC0:0x40;
+  require(cpu->pc==target&&cpu->sp==0xCFFC&&rd(c,0xCFFC)==(tail&255)&&rd(c,0xCFFD)==tail>>8&&
+   rd(c,target)==0xC9&&cpu->a==8&&cpu->f.packed==cpFlags&&cpu->bc==(selector<<8|0xEF)&&cpu->de==tail&&cpu->hl==target&&
+   rd(c,0xC66D)==priorSelector&&rd(c,0xC66E)==priorType&&rd(c,0xC66C)==0xA5&&rd(c,0xC66F)==0x5A&&
+   rd(c,0xFFAB)==(window?bSelector:selector)&&rd(c,0xFFAC)==(window?bType:8)&&
+   rd(c,0xFFAD)==(window?selector:bSelector)&&rd(c,0xFFAE)==(window?8:bType)&&
+   rd(c,0xC113)==(window?aSelector:selector)&&rd(c,0xC114)==(window?aType:8)&&
+   rd(c,0xC115)==(window?selector:bSelector)&&rd(c,0xC116)==(window?8:bType)&&g->memory.mbcState.mbc6.flashEnable,
+   "Original flash callback prefix reaches mapped RET target with asymmetric B HRAM mirrors",kind*128+selector);
+  steps=0;while(cpu->pc!=0xC100&&steps++<1000)c->step(c);
+  bool exact=cpu->pc==0xC100&&cpu->sp==0xD000&&cpu->a==0&&cpu->f.packed==0x80&&cpu->bc==(selector<<8|0xEF)&&cpu->de==tail&&cpu->hl==target&&
+   rd(c,0xFFAB)==(window?bSelector:aSelector)&&rd(c,0xFFAC)==(window?bType:aType)&&rd(c,0xFFAD)==bSelector&&rd(c,0xFFAE)==bType&&
+   rd(c,0xC113)==aSelector&&rd(c,0xC114)==aType&&rd(c,0xC115)==bSelector&&rd(c,0xC116)==bType&&rd(c,0xCEE9)==guarded&&
+   rd(c,0xC66C)==0xA5&&rd(c,0xC66F)==0x5A&&g->memory.ime&&!g->memory.mbcState.mbc6.flashEnable&&
+   !g->memory.mbcState.mbc6.flashWriteEnable&&!g->memory.mbcState.mbc6.flashOperationActive;
+  for(unsigned i=0;i<8;i++){exact&=rd(c,0x4000+i)==(aType?0xFF:aBytes[i]);exact&=rd(c,0x6000+i)==(bType?0xFF:bBytes[i]);}
+  require(exact,"Original flash callback complete RET tail restores actual windows and disables reads",kind*128+selector);
+  flash[offset]=saved;
+ }
+ /* Negative prerequisite: software bit0 can skip enabling reads. Stop before target. */
+ for(unsigned window=0;window<2;window++){
+  wr(c,0x1000,1);wr(c,0x0C00,0);wr(c,0x1000,0);wr(c,0xCEE9,1);
+  wr(c,0x27FF,0x16);wr(c,0x2800,0);wr(c,0xFFAB,0x16);wr(c,0xFFAC,0);
+  wr(c,0x37FF,0x0F);wr(c,0x3800,0);wr(c,0xFFAD,0x0F);wr(c,0xFFAE,0);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->a=7;cpu->hl=window?0x6100:0x4100;unsigned target=cpu->hl;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x26A;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<1000)c->step(c);
+  require(cpu->pc==target&&rd(c,target)==0xFF&&!g->memory.mbcState.mbc6.flashEnable&&
+   !g->memory.mbcState.mbc6.flashWriteEnable&&rd(c,0xCEE9)==1,
+   "Negative flash callback prerequisite bit0 skips read enable stop before invalid target",window);
+  call(c,0x1359); /* Forced cleanup, not completion of the invalid callback. */
+ }
+ require(memcmp(before,flash,GB_SIZE_MBC6_FLASH_STORAGE)==0,"Whole disposable flash backing restored including extra metadata",0);free(before);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

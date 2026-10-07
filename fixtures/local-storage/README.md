@@ -962,3 +962,38 @@ calls; no pending-interrupt race or physical STOP timing is asserted.
 49153 new assertions give total5049637, plus24 verifier tests. Existing core
 GBStop toggles speed when KEY1 prepare bit is set; that core behavior is
 emulator evidence, not hardware proof. No natural caller trace is added.
+
+## Flash callback dispatcher ($24B9–$254D)
+
+PROBABLE flow contracts, not natural callback behavior. Synthetic RET bytes
+are temporarily placed directly in disposable in-memory flash backing; no
+flash programming command, original-ROM edit or disk save is involved.
+The whole backing including extra metadata is compared after byte restoration.
+
+65536 complete calls cover targets4100/5FFF/6000/6100, all128 valid 8KiB
+flash selectors, allfour prior A/B ROM/flash type combinations, software bit0
+clear with reads initially off or bit0 set with reads already on, and all16
+input flag nibbles. Prior selectors are fixed distinct A16/B0F for ROM and
+A03/B05 for flash; no exhaustive prior-selector claim.
+
+Stop at actual mapped target to check RET byte, pushed return address, SP,
+AF/BC/DE/HL, shared C66D/C66E scratch and adjacent guards, HRAM/mirror fields
+and enabled reads. Resume the target RET through the entire original restore
+tail, checking final registers, IME true, actual restored bytes of both
+windows and disabled flash reads/write enable/operation. The B path copies
+saved B values into A HRAM mirrors but leaves physical A and its WRAM mirrors
+unchanged. Preserve this original asymmetry; do not treat HRAM as physical
+mapping evidence. Restored prior flash windows read FF after reads are disabled.
+The scratch is shared with minigame dispatch, not a nesting stack.
+
+Two negative prerequisite prefixes set bit0 while reads are off: the helper
+skips enabling reads and target readback is FF. Stop before target execution;
+a separate forced cleanup call is not completion of that callback. No safety
+for arbitrary target addresses, callbacks that overwrite scratch, IRQ races,
+natural downloaded code or physical flash execution is established.
+
+131078 new assertions give total5180715 plus24 verifier tests. The first
+probe exposed an incorrect independent CP half-borrow expectation at H=5F;
+the oracle was corrected to flags50 (low nibble F minus0 has no half-borrow),
+without changing any original byte. Full calls and negative prefixes were
+then rerun from the final source.
