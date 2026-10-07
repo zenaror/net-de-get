@@ -686,3 +686,29 @@ patterned seeds. All8192 bytes in each VRAM plane are checked: inputpair
 at9A02,8E/8F at9A08,90/91 at9A0E with unchanged C777/C778 attributes.
 FinalVBK0 and C775/C776=90/91 are checked.138512 assertions are added.
 Semantics stay PROBABLE; no natural screen/IRQ/hardware timing proof.
+
+
+## Indexed text setup, preparation and blocking consumer
+
+2753 computes DE+8*A and reads five fields of the eight-byte record.
+Coordinates are stored with byte increments1/2; width, zero-height fallback
+C, kind, lookup/base address, returned HL/DE/A/BC and kind-derived flags
+are checked.65536 coordinate pairs use all byte indices and bases9800/FFF0;
+256 explicitzero-height cases cover every fallbackC.48 calls check the
+four original A0F records5268..5287. Trailing three bytes remain literal,
+with no larger table extent asserted.
+2799 delegates configuration, then kindzero fills via2D53, while nonzero
+kind calls2BFE.64 complete kindzero preparations check both full VRAM
+planes with LCDoff/on;16 other-kind prefixes stop before2BFE. An initial
+fixture column origin was rejected: fill uses C1A4 directly and C1A7-1.
+Expected origin was corrected without changing original ROM bytes.
+28BE loops2E15 untilstate3, then clearsstate.256 zero-control cases cover
+all repeat counters;256 composite streams2,1,3,A5,1,0F,0 use a null callback
+and test repeat-byte wrap, newline and control0F without input waiting.
+72 complete original-record/glyph/terminator chains with LCDon check all
+8192 bytes perplane, original16-byte HDMA font transfer, state/pointer,
+glyph counters and actual restored A-window bytes. Glyphs16/127/253 and
+counts0/1/106 remain forced inputs.66560 complete calls and16 prefixes
+add133080 assertions. No natural menu, physical timing, arbitrary-stream
+termination or nonnull-callback behavior is claimed. Semantics stay
+PROBABLE; original Japanese bytes are preserved.

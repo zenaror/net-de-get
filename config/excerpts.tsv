@@ -64,8 +64,6 @@ bank	start	end	symbol
 00	254E	25CA	DispatchLocalMinigame
 00	25CB	2612	ResidualROM00_25CB
 00	2613	261B	CopyBytesHLToDE
-00	261C	27A9	ResidualROM00_261C
-00	28BE	2D52	ResidualROM00_28BE
 00	2DC3	2DCF	LocalCursorHorizontalJitter
 00	3031	38AF	ResidualROM00_3031
 00	38B0	391B	CheckLocalMinigameChecksum
@@ -90,7 +88,6 @@ bank	start	end	symbol
 07	4000	5FFF	ResidualROM07_4000
 07	6000	609B	ResidualROM07_6000
 07	6E20	6E67	ResidualROM07_6E20
-07	6F0C	7287	ResidualROM07_6F0C
 07	728A	729D	ResidualROM07_728A
 07	72EC	7FFF	ResidualROM07_72EC
 08	4000	5FFF	ResidualROM08_4000
@@ -465,3 +462,10 @@ bank	start	end	symbol
 07	63BF	63EF	SelectA0FModeResourcePointer
 07	651F	655C	TrimA0FListTail
 07	6628	668A	DrawA0FModeIndicatorRow
+00	261C	2752	ResidualROM00_261C
+00	2799	27A9	ConfigureAndPrepareQueuedTextRegion
+00	28E3	2D52	ResidualROM00_28E3
+07	6F0C	7267	ResidualROM07_6F0C
+00	2753	2798	ConfigureQueuedTextFromIndexedRecord
+00	28BE	28E2	RenderQueuedTextBlocking
+07	7268	7287	A0FTextRegionRecordPrefix

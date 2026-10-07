@@ -28,15 +28,15 @@ ResidentJump01DD::
 ResidentJump01E0::
 	jp $2731
 ResidentJump01E3::
-	jp $2753
+	jp ConfigureQueuedTextFromIndexedRecord
 ResidentJump01E6::
-	jp $2799
+	jp ConfigureAndPrepareQueuedTextRegion
 ResidentJump01E9::
 	jp QueueTileTextPointer
 ResidentJump01EC::
 	jp DispatchQueuedTileTextState
 ResidentJump01EF::
-	jp $28BE
+	jp RenderQueuedTextBlocking
 ResidentJump01F2::
 	jp $28E3
 ResidentJump01F5::

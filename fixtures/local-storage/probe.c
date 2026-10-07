@@ -2748,6 +2748,97 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Indexed text setup and blocking interpreter; original reached records. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ unsigned offsets[256],records[4][8];
+ for(unsigned row=0;row<256;row++){unsigned p=0x2FF1+((row*2)&255);offsets[row]=rd(c,p)|(rd(c,p+1)<<8);}
+ for(unsigned index=0;index<4;index++)for(unsigned field=0;field<8;field++)records[index][field]=rd(c,0x5268+index*8+field);
+ for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++){
+  unsigned index=(x+y)&255,address=0xD000+8*index,base=((x^y)&1)?0xFFF0:0x9800;
+  unsigned width=(x^y)&255,height=(x*73+y*29)&255,kind=(x+y*53)&255,fallback=(x*53+y*11)&255;
+  const unsigned fields[]={x,y,width,height,kind,0xA5,0x5A,0x3C};
+  for(unsigned i=0;i<8;i++)wr(c,address+i,fields[i]);
+  wr(c,0xC1A3,0x23);wr(c,0xC1AB,0xA5);wr(c,0xC1B5,base);wr(c,0xC1B6,base>>8);
+  cpu->a=index;cpu->c=fallback;cpu->de=0xD000;call(c,0x1E3);unsigned dest=(base+offsets[y]+x)&65535;
+  require(rd(c,0xC1A4)==((x+1)&255)&&rd(c,0xC1A7)==((y+2)&255)&&rd(c,0xC1A8)==width&&rd(c,0xC1A9)==(height?height:fallback)&&
+   rd(c,0xC1AA)==kind&&rd(c,0xC1A5)==(dest&255)&&rd(c,0xC1A6)==(dest>>8)&&rd(c,0xC1A3)==0x23&&rd(c,0xC1AB)==0xA5&&
+   cpu->hl==dest&&cpu->de==dest&&cpu->bc==((base&0xFF00)|fallback)&&cpu->a==dest>>8&&(cpu->f.packed&0xF0)==(kind?0:0x80)&&rd(c,0xFF9E)==fallback,
+   "Indexed text all coordinate bytes record8 stride wrapped address fields flags",x*256+y);
+ }
+ for(unsigned fallback=0;fallback<256;fallback++){
+  const unsigned fields[]={5,2,4,0,fallback};for(unsigned i=0;i<5;i++)wr(c,0xD000+i,fields[i]);
+  wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);cpu->a=0;cpu->c=fallback;cpu->de=0xD000;call(c,0x1E3);
+  require(rd(c,0xC1A9)==fallback&&rd(c,0xFF9E)==fallback&&rd(c,0xC1AA)==fallback&&cpu->hl==0x9845,
+   "Indexed text zero-height fallback all input C bytes",fallback);
+ }
+ const unsigned fallbacks[]={0,1,255},bases[]={0,0x9800};
+ for(unsigned index=0;index<4;index++)for(unsigned f=0;f<3;f++)for(unsigned b=0;b<2;b++)for(unsigned plane=0;plane<2;plane++){
+  unsigned dest=(bases[b]+offsets[records[index][1]]+records[index][0])&65535;
+  wr(c,0xFF4F,plane);wr(c,0xC1B5,bases[b]);wr(c,0xC1B6,bases[b]>>8);cpu->a=index;cpu->c=fallbacks[f];cpu->de=0x5268;call(c,0x1E3);
+  require(rd(c,0xC1A4)==records[index][0]+1&&rd(c,0xC1A7)==records[index][1]+2&&rd(c,0xC1A8)==records[index][2]&&
+   rd(c,0xC1A9)==records[index][3]&&rd(c,0xC1AA)==records[index][4]&&cpu->hl==dest&&cpu->de==dest&&(rd(c,0xFF4F)&1)==plane,
+   "Indexed text actual four ROM records fields without VRAM write",index*12+f*4+b*2+plane);
+ }
+ const unsigned attrs[]={0,1,0x23,255};
+ for(unsigned index=1;index<=2;index++)for(unsigned fallback=0;fallback<2;fallback++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)for(unsigned attr=0;attr<4;attr++){
+  wr(c,0xFF40,0);for(unsigned p=0;p<2;p++){wr(c,0xFF4F,p);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1A3,attrs[attr]);wr(c,0xC1B8,0x5A);
+  wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x3C);cpu->a=index;cpu->c=fallback?255:0;cpu->de=0x5268;if(lcd)wr(c,0xFF40,0x91);call(c,0x1E6);
+  unsigned origin=0x9800+offsets[records[index][1]+1]+records[index][0]+1,width=records[index][2];
+  bool exact=rd(c,0xC1AA)==0&&rd(c,0xC1A9)==1&&rd(c,0xC1BC)==0&&rd(c,0xC1BD)==0&&rd(c,0xC1B8)==0x5A&&(rd(c,0xFF4F)&1)==plane;
+  wr(c,0xFF40,0);for(unsigned p=0;p<2;p++){wr(c,0xFF4F,p);for(unsigned address=0x8000;address<0xA000;address++){
+   bool filled=(address>=origin&&address<origin+width)||(address>=origin+32&&address<origin+32+width);
+   exact&=rd(c,address)==(filled?(p?attrs[attr]:0x79):0xA5);
+  }}
+  require(exact,"Original region prep zero-kind complete fill exact VRAM LCDoff on",(index-1)*32+fallback*16+plane*8+lcd*4+attr);
+ }
+ for(unsigned choice=0;choice<2;choice++)for(unsigned fallback=0;fallback<2;fallback++)for(unsigned plane=0;plane<2;plane++)for(unsigned b=0;b<2;b++){
+  unsigned index=choice?3:0,base=b?0x9800:0,dest=(base+offsets[records[index][1]]+records[index][0])&65535;
+  wr(c,0xFF40,0);wr(c,0xFF4F,plane);wr(c,0xC1B5,base);wr(c,0xC1B6,base>>8);cpu->a=index;cpu->c=fallback?255:0;cpu->de=0x5268;
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x1E6;unsigned steps=0;while(cpu->pc!=0x2BFE&&steps++<1000)c->step(c);
+  unsigned sample=choice*8+fallback*4+plane*2+b;
+  require(cpu->pc==0x2BFE&&cpu->sp==0xCFFC,"Nonzero-kind original preparation stops before frame helper",sample);
+  require(rd(c,0xC1AA)==records[index][4]&&rd(c,0xC1A9)==records[index][3]&&cpu->hl==dest&&cpu->de==dest&&(rd(c,0xFF4F)&1)==plane,
+   "Nonzero-kind original record setup fields retained at frame boundary",sample);
+ }
+ wr(c,0xD800,0);
+ for(unsigned remaining=0;remaining<256;remaining++){
+  wr(c,0xC1B8,(remaining*73)&255);wr(c,0xC1B9,remaining);wr(c,0xC1AD,0);wr(c,0xC1AE,0xD8);
+  wr(c,0xC1BA,0xA5);wr(c,0xC1BF,0x5A);wr(c,0xC1C2,0x3C);cpu->bc=(remaining<<8)|(255-remaining);cpu->hl=0xD800;call(c,0x1EF);
+  require(rd(c,0xC1B8)==0&&rd(c,0xC1B9)==0&&rd(c,0xC1AB)==1&&rd(c,0xC1AC)==0xD8&&rd(c,0xC1BC)==remaining&&rd(c,0xC1BD)==255-remaining&&
+   rd(c,0xC1BE)==0&&rd(c,0xC1BA)==0xA5&&rd(c,0xC1BF)==0x5A&&rd(c,0xC1C2)==0x3C,"Blocking zero controls repeat all counter bytes then clear state",remaining);
+ }
+ const unsigned controls[]={2,1,3,0xA5,1,15,0};for(unsigned i=0;i<7;i++)wr(c,0xD800+i,controls[i]);
+ for(unsigned remaining=0;remaining<256;remaining++){
+  wr(c,0xC1B8,0xA5);wr(c,0xC1B9,remaining);wr(c,0xC1BA,0x5A);wr(c,0xC1C0,0);wr(c,0xC1C1,0);wr(c,0xC1A9,16);
+  cpu->bc=0x0102;cpu->hl=0xD800;call(c,0x1EF);
+  require(rd(c,0xC1B8)==0&&rd(c,0xC1B9)==0&&rd(c,0xC1AB)==7&&rd(c,0xC1AC)==0xD8&&rd(c,0xC1AD)==4&&rd(c,0xC1AE)==0xD8&&
+   rd(c,0xC1BC)==0&&rd(c,0xC1BD)==4&&rd(c,0xC1BF)==1&&rd(c,0xFF9D)==0xA5&&rd(c,0xC1BA)==0x5A,
+   "Blocking controls2 3 newline15 null callback byte repeat wrap completes",remaining);
+ }
+ const unsigned glyphs[]={16,127,253},counts[]={0,1,106};
+ for(unsigned index=0;index<4;index++)for(unsigned gi=0;gi<3;gi++)for(unsigned ci=0;ci<3;ci++)for(unsigned plane=0;plane<2;plane++){
+  unsigned glyph=glyphs[gi],count=counts[ci],src=0x3F00+glyph*16,dst=0x96B0-count*16,font[16];
+  wr(c,0xFF40,0);wr(c,0x27FF,2);wr(c,0x2800,0);for(unsigned i=0;i<16;i++)font[i]=rd(c,src+i);
+  wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+  for(unsigned p=0;p<2;p++){wr(c,0xFF4F,p);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);cpu->a=index;cpu->c=0;cpu->de=0x5268;call(c,0x1E3);
+  unsigned tileAddress=0x9800+offsets[records[index][1]+2]+records[index][0]+1;
+  wr(c,0xC1B9,0);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);wr(c,0xC1AF,plane);wr(c,0xC1C2,count);wr(c,0xD800,glyph);wr(c,0xD801,0);
+  cpu->bc=0;cpu->hl=0xD800;wr(c,0xFF40,0x91);call(c,0x1EF);
+  struct GB *g=c->board;bool exact=rd(c,0xC1B8)==0&&rd(c,0xC1B9)==0&&rd(c,0xC1AB)==2&&rd(c,0xC1AC)==0xD8&&
+   rd(c,0xC1BC)==1&&rd(c,0xC1BD)==0&&rd(c,0xC1C2)==count+1&&rd(c,0xC1C3)==0x6B-count&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0&&
+   (rd(c,0xFF4F)&1)==plane&&g->memory.hdmaRemaining==0;
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];wr(c,0xFF40,0);
+  for(unsigned p=0;p<2;p++){wr(c,0xFF4F,p);for(unsigned address=0x8000;address<0xA000;address++){
+   unsigned value=0xA5;if(address==tileAddress)value=p?0x23:0x6B-count;if(p==1&&address>=dst&&address<dst+16)value=font[address-dst];
+   exact&=rd(c,address)==value;
+  }}
+  require(exact,"Original text record blocking glyph terminator exact two VRAM planes LCDon",index*18+gi*6+ci*2+plane);
+ }
+ wr(c,0xFF40,0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
