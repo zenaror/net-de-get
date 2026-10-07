@@ -310,3 +310,21 @@ The separate `$113E` helper clears 4096 bytes at `$A000` after writing `$0400`.
 The synthetic fixture checks all bytes and unchanged data at `$B000`. It does not
 perform flash erase or disk persistence. The expanded fixture has **1110 assertions**;
 source interval totals are **24 sections / 1923 bytes**, with exact-byte gates.
+
+
+### Menu loop and indirect state dispatch
+
+**PROBABLE static interpretation:** native A `$14:$402A-$406B` is the menu loop
+and cleanup; `$406C-$407D` reads state `$D000`, rotates it left with `RLCA`,
+reads a word and jumps via `JP HL`. `$407E-$4089` is a six-word table whose first
+target begins immediately at `$408A`. These intervals are physical RGBDS bank
+`$0A`; native mapper selectors remain 8 KiB units. Original redundant branches
+are preserved, including a conditional jump to its immediate successor.
+
+Forced-entry probes map A `$14` and stop at the indirect destination before
+executing it. States 0..5 select `$408A/$42CD/$42E6/$42F9/$4303/$43C0`. State
+`$06` reads the first two code bytes after the table and selects `$26CD`; `$80`
+rotates to 1 and selects unaligned `$CD40`. These are synthetic mechanics checks,
+not natural invalid-state occurrences or evidence of a safe dispatch bound.
+No semantic state names are asserted. The fixture now has **1126 assertions**;
+all **27 sections / 2019 bytes** match the reference.

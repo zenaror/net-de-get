@@ -30,3 +30,5 @@ DEF wLocalScanReservedSector EQU $C5CB
 
 DEF rSVBK EQU $FF70
 DEF hHeldButtons EQU $FF96
+
+DEF wLocalMenuState EQU $D000 ; byte loaded by $406C dispatcher

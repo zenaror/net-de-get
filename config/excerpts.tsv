@@ -23,3 +23,6 @@ bank	start	end	symbol
 00	106D	108D	ComputeStorageDirectoryChecksum
 00	2000	2011	SubtractDEFromHL
 00	108E	114E	RebuildLocalStorageDirectory
+0A	402A	406B	LocalMinigameMenuLoop
+0A	406C	407D	DispatchLocalMenuState
+0A	407E	4089	LocalMenuStateTargets

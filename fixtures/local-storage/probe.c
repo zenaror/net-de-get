@@ -152,6 +152,17 @@ int main(int argc,char **argv){
  unsigned cleared=1;for(unsigned i=0;i<4096;i++)cleared&=rd(c,0xA000+i)==0;
  require(cleared,"clear entire selected SRAM window",0);
  require(rd(c,0xB000)==0x37,"clear leaves other SRAM window unchanged",0);
+ /* Force dispatch only; stop at JP HL target before executing target code. */
+ wr(c,0x27FF,0x14);wr(c,0x2800,0);wr(c,0xFF70,1);
+ const unsigned states[]={0,1,2,3,4,5,6,0x80};
+ const unsigned targets[]={0x408A,0x42CD,0x42E6,0x42F9,0x4303,0x43C0,0x26CD,0xCD40};
+ for(unsigned i=0;i<8;i++){
+  wr(c,0xD000,states[i]);cpu->pc=0x406C;cpu->sp=0xCAFE;
+  unsigned steps=0;while(cpu->pc!=targets[i]&&steps++<100)c->step(c);
+  require(cpu->pc==targets[i],"state dispatch target (stop before target)",states[i]);
+  require(cpu->hl==targets[i]&&cpu->sp==0xCAFE&&rd(c,0xD000)==states[i],
+          "state dispatch preserves input and stack",states[i]);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
