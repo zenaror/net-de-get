@@ -145,7 +145,8 @@ bank	start	end	symbol
 09	5314	5333	A12TextRegionRecords
 09	5334	56AC	ResidualROM09_5334
 09	56AD	572A	A12PendingRecords
-09	572B	5C2E	ResidualROM09_572B
+09	572B	5BD9	ResidualROM09_572B
+09	5BDA	5C2E	UpdateA12PendingRecord
 09	5C2F	5C54	QueueA12PendingText
 09	5C55	5C76	DispatchA12PendingAction
 09	5C77	5CA3	ApplyA12PendingAction1

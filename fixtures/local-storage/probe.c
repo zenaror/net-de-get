@@ -4227,6 +4227,26 @@ int main(int argc,char **argv){
   require(exact,"A12 complete pending text 21 original pointers all flags both VBK LCD states exact whole VRAM",row*64+plane*32+lcd*16+flags);
  }
  }
+ { /* Whole scanner entry; raw variant prefixes do not establish validity. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ const unsigned thresholds[]={0,2,8,12,16,20,24,25,28,32,36,40,44,48,49,52,56,60,64,68,72};
+ const unsigned values[]={0,1,2,3,4,5,5,0,1,2,3,4,5,5,0,1,2,3,4,5,6};
+ for(unsigned variant=0;variant<256;variant++)for(unsigned flags=0;flags<16;flags++){
+  unsigned value=(variant*37+flags*13)&255;wr(c,0xC708+variant,value);wr(c,0xC706,variant);wr(c,0xC5A4,0x5A);wr(c,0xC5A8,0x39);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x5BDA;
+  unsigned steps=0;while(cpu->pc!=0x5BEB&&steps++<100)c->step(c);
+  require(cpu->pc==0x5BEB&&cpu->sp==0xCFFE&&cpu->af==(value<<8|(flags<<4&0x80))&&cpu->bc==0xBEEF&&cpu->de==variant&&cpu->hl==0xC708+variant&&rd(c,0xC5A8)==variant&&rd(c,0xC5A4)==value&&rd(c,0xC706)==variant,"A12 complete initial scanner prefix all raw variant bytes flags no clamp",variant*16+flags);
+ }
+ for(unsigned variant=0;variant<4;variant++)for(unsigned input=0;input<256;input++)for(unsigned flags=0;flags<16;flags++){
+  unsigned row=0;while(row<21&&thresholds[row]!=input)row++;bool found=row<21,select=found&&row%7>=1&&row%7<=5;unsigned initial[4];for(unsigned i=0;i<4;i++){initial[i]=(37+i*29+flags*13)&255;wr(c,0xC708+i,initial[i]);}
+  wr(c,0xC706,variant);wr(c,0xC705,input);wr(c,0xC73B,0x39);wr(c,0xC738,0x5A);wr(c,0xC5A4,0x3C);wr(c,0xC5A8,0x3C);wr(c,0xC707,0x37);wr(c,0xC70C,0x39);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x5BDA);
+  unsigned a=found?0:255,f=found?(select?0x80:0x70):0xC0,bc=found?(input<<8|row+1):0x4816,hl=found?0x56AE + 6*row:0x572B;
+  bool exact=cpu->af==(a<<8|f)&&cpu->bc==bc&&cpu->de==(found?variant:6)&&cpu->hl==hl&&rd(c,0xC705)==(found?input+1:input)&&rd(c,0xC73B)==(found?row+1:0x39)&&rd(c,0xC5A8)==(select?3:variant)&&rd(c,0xC5A4)==(found?values[row]:initial[variant])&&rd(c,0xC738)==(select?0:0x5A)&&rd(c,0xC706)==variant&&rd(c,0xC707)==0x37&&rd(c,0xC70C)==0x39;
+  for(unsigned i=0;i<4;i++)exact&=rd(c,0xC708+i)==(found&&i==variant?values[row]:initial[i]);
+  require(exact,"A12 whole pending scanner original21 records all progress bytes four variants flags match no-match state and registers",variant*4096+input*16+flags);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

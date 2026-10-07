@@ -54,7 +54,7 @@ A12Selection_403B::
 	call ResidentJump0288
 	ld a, $01
 	ld [$C5A3], a
-	call $5BDA
+	call UpdateA12PendingRecord
 	call ResidentJump028B
 	ld a, $1E
 	ld [$C5C1], a

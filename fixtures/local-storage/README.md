@@ -1466,3 +1466,19 @@ bit-component model of the actual original resources. Register/state/guard
 checks include C706 preservation in action3 and INC overflow/half-carry flags.
 This unit adds44,224 assertions; suite total26,550,718. Natural controller/input
 integration, Japanese semantics, physical timing and hardware remain unproven.
+
+
+## Complete pending record scanner (5BDA-5C2E)
+
+PROBABLE, called statically at4054; complete initialization is not exercised.
+4096 prefixes cover all256 C706 values and16 flags through the real5BEB
+boundary: C5A8 receives C706, C5A4 reads C708+C706 without a clamp.
+16384 whole-entry calls cover four variants, all256 progress bytes and16 flags,
+with varied prior field bytes. There are1344 matches and15040 sentinel returns.
+Independent21-row threshold/value models check progress/pending, selected field,
+C5A4/C5A8/C738, adjacent guards, registers, flags and original stack return.
+On a match the third byte updates the selected field; second byte1 selects
+variant3 and clearsC738. No-match retains pending/progress after the initial
+variant/value copy. Existing symbols and Japanese bytes remain unchanged.
+Adds36864 assertions, suite total26587582. Natural initialization/menu execution,
+record meaning, hardware and IRQ/timing remain unproven.
