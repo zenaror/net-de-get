@@ -887,3 +887,21 @@ current BC without storing zero; zero follows saved BC. These do not establish
 all opcode bodies, valid arbitrary streams, natural playback or audio correctness.
 Full/private/negative gates preserve778 4a90144 symbols and complete hash.
 280 sections:115 analyzed/17918 bytes,165 unknown/1030658 bytes;24 checker tests.
+
+
+### A1E slot1 command interpreter
+
+**PROBABLE**, static tick consumer: `engine/startup/bank_a1e_slot1.asm` extracts
+native A1E $45A1-$4751 (433 bytes), retaining ResidualROM0F_45A1. Slot1's
+stream pointer is CF10/CF11. B1 edits CF88 bits 1/5 and CF19 while preserving
+CF28; C0 reads two-byte records via CF96/CF97, at 2*((parameter&31)+1). These
+differ from slot0's bits 0/4, CF28 and three-byte stride. The clamp call is
+symbolic; target4A07/table4A0E and the remaining range4752-5FFF stay unresolved.
+
+**SYNTHETIC**: 256 dispatch stops before bodies, 19 B0 duration streams, all256
+B1 parameters, all256 C0 parameters with a 66-byte WRAM table and one complete
+tick->B0 chain add1320 assertions,total7825. Short durations retain CF15; CF04
+is untouched. This does not cover every opcode body, natural playback, universal
+stream/table bounds or audio correctness. Full/private/negative gates preserve
+807 published bdc6663 symbols and whole hash, with24 checker tests.
+281 sections:116 analyzed/18351 bytes,165 unknown/1030225 bytes.

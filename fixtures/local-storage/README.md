@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **6,505 assertions**.
+and stack assertions, the maintained fixture reports **7,825 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -238,3 +238,13 @@ Short countdowns retain CF05. Extended bytes follow the original shift/OR
 expression. FE count1 does not store zero and uses the current pointer; count0
 uses the saved loop pointer. WRAM streams are synthetic; no complete opcode
 coverage, universal bounds, playback, frequency table or hardware proof.
+
+
+Slot1 probes add 1,320 assertions: 256 opcode stops, 19 B0 countdown streams,
+all 256 B1 parameters, all 256 C0 parameters and one complete tick->B0 chain.
+B1 updates CF88 bits 1/5 and CF19, retaining CF28. C0 reads two-byte records
+from a synthetic WRAM table via CF96/CF97, masked index plus one. Short
+countdowns retain CF15, and CF04 remains untouched. This checks slot-specific
+behavior without inferring equivalence to slot0's bits 0/4 and three-byte stride.
+Other opcode bodies, natural playback, universal stream/table bounds and audio
+correctness remain outside the evidence. No real save or original ROM write.
