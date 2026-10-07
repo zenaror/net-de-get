@@ -194,7 +194,7 @@ QueuedText_2EB9::
 	dec c
 QueuedText_2ED9::
 	ldh a, [$FF9D]
-	call $2F1C
+	call RenderQueuedTileGlyph
 	ld a, [$C1BE]
 	and a, a
 	jp nz, AdvanceQueuedTileText

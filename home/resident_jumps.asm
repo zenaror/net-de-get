@@ -62,9 +62,9 @@ ResidentJump0210::
 ResidentJump0213::
 	jp AdvanceQueuedTextLine
 ResidentJump0216::
-	jp $2F1C
+	jp RenderQueuedTileGlyph
 ResidentJump0219::
-	jp $2FE0
+	jp GetQueuedTilemapOffset
 ResidentJump021C::
 	jp $3031
 ResidentJump021F::

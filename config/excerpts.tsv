@@ -67,7 +67,7 @@ bank	start	end	symbol
 00	261C	27A9	ResidualROM00_261C
 00	28BE	2DC2	ResidualROM00_28BE
 00	2DC3	2DCF	LocalCursorHorizontalJitter
-00	2F1C	38AF	ResidualROM00_2F1C
+00	3031	38AF	ResidualROM00_3031
 00	38B0	391B	CheckLocalMinigameChecksum
 00	391C	3CD7	ResidualROM00_391C
 00	3CD8	3CE7	BuiltinGameWindowBSelectors
@@ -418,3 +418,6 @@ bank	start	end	symbol
 00	2E15	2EE8	AdvanceQueuedTileText
 00	2EE9	2EF9	AdvanceQueuedTextColumn
 00	2EFA	2F1B	AdvanceQueuedTextLine
+00	2F1C	2FDF	RenderQueuedTileGlyph
+00	2FE0	2FF0	GetQueuedTilemapOffset
+00	2FF1	3030	QueuedTilemapRowOffsets

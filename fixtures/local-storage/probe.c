@@ -2149,6 +2149,57 @@ int main(int argc,char **argv){
  require(rd(c,0xC1B8)==3&&rd(c,0xC1B3)==0&&rd(c,0xC1AB)==0x56,
   "queued state1 terminator complete four-count return",0);
  }
+ { /* Glyph renderer: prefix arithmetic, row-offset indexing and LCD-on CPU cases. */
+ wr(c,0xFF40,0);
+ for(unsigned row=0;row<256;row++)for(unsigned col=0;col<256;col++){
+  unsigned p=0x2FF1+((row*2)&255),offset=rd(c,p)|(rd(c,p+1)<<8);
+  cpu->bc=(col<<8)|row;call(c,0x2FE0);
+  require(cpu->hl==((offset+col)&65535)&&cpu->de==offset&&cpu->bc==((col<<8)|row),
+   "glyph tilemap offset doubled8bit row and full column domain",row*256+col);
+ }
+ for(unsigned glyph=0;glyph<256;glyph++)for(unsigned count=0;count<256;count++){
+  wr(c,0xFF4F,count&1);wr(c,0xC1AF,glyph&1);wr(c,0xC1C2,count);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->a=glyph;cpu->bc=0x0302;cpu->pc=0x2F1C;
+  unsigned steps=0;while(cpu->pc!=0x2F6B&&steps++<300)c->step(c);
+  unsigned src=0x3F00+16*glyph,dst=(0x96B0-16*count)&65535;
+  require(cpu->pc==0x2F6B&&cpu->sp==0xCFFC&&cpu->bc==0x0302&&cpu->de==dst&&
+   rd(c,0xFF51)==(src>>8)&&rd(c,0xFF52)==(src&0xF0)&&
+   rd(c,0xFF53)==(dst>>8)&&rd(c,0xFF54)==(dst&0xF0)&&
+   rd(c,0xC1C3)==((0x6B-count)&255)&&rd(c,0xC113)==2&&rd(c,0xC114)==0&&
+   (rd(c,0xFF4F)&1)==(glyph&1)&&!g->memory.ime,
+   "glyph prefix all indices and counters stops before tilemap/HDMA trigger",glyph*256+count);
+ }
+ const unsigned glyphs[]={0,15,16,127,254,255},counts[]={0,1,106};
+ for(unsigned gi=0;gi<6;gi++)for(unsigned ci=0;ci<3;ci++)for(unsigned initial=0;initial<2;initial++){
+  unsigned glyph=glyphs[gi],count=counts[ci],src=0x3F00+glyph*16,dst=0x96B0-count*16;
+  wr(c,0xFF40,0);wr(c,0x27FF,2);wr(c,0x2800,0);
+  unsigned expected[16];for(unsigned i=0;i<16;i++)expected[i]=rd(c,src+i);
+  for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,initial);wr(c,0xC1AF,initial);wr(c,0xC1C2,count);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);
+  wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xFFAB,0x14);wr(c,0xFFAC,0);
+  wr(c,0x27FF,0x14);wr(c,0x2800,0);
+  unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+  wr(c,0xFF40,0x91);
+  cpu->a=glyph;cpu->bc=0x0302;call(c,0x216);
+  struct GB *g=c->board;
+  bool exact=rd(c,0xC1C2)==count+1&&rd(c,0xC1C3)==0x6B-count&&
+   rd(c,0xC113)==0x14&&rd(c,0xC114)==0&&(rd(c,0xFF4F)&1)==initial&&g->memory.ime&&g->memory.hdmaRemaining==0;
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];
+  wr(c,0xFF40,0);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned address=0x8000;address<0xA000;address++){
+    unsigned value=0xA5;
+    if(address==0x9843)value=plane?0x23:0x6B-count;
+    if(plane==1&&address>=dst&&address<dst+16)value=expected[address-dst];
+    exact&=rd(c,address)==value;
+   }
+  }
+  require(exact,"glyph LCD-on full renderer exact two-plane maps and16byte HDMA",gi*6+ci*2+initial);
+ }
+ wr(c,0xFF40,0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

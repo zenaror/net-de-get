@@ -484,3 +484,21 @@ now complete with the real cursor producer; one terminating state1 path
 returns at its four-count boundary.75733 assertions are added. Rendering,
 queue consumption, natural input/LCD timing and actual text callbacks remain
 unverified; all these forced CPU paths are SYNTHETIC, semantics PROBABLE.
+
+
+### Original glyph renderer and HDMA
+
+All65536 row/column pairs exercise2FE0 with doubled8-bit row indexing and
+original words; the32-row extracted prefix does not bound admissible indices.
+All65536 glyph/counter pairs stop at2F6B before tilemap helper/HDMA trigger,
+checking source3F00+16*glyph, destination96B0-16*count, tile6B-count, DI,
+VBK and mapper fields. HDMA3 readback is the raw written byte in this core,
+not the destination mask applied when DMA starts; an initial masked-readback
+expectation was rejected and corrected.36 complete LCD-on cases cover glyphs
+0/15/16/127/254/255, counts0/1/106 and initialVBK0/1. Every byte of both8KiB
+VRAM planes is checked, including16 actual mapped source bytes transferred
+into plane1, tile/attribute map cells and untouched guards. PendingHDMA=0,
+counter, saved mapper pair andVBK restoration plus finalIME are checked.
+196680 assertions are added. Forced LCD-on calls are SYNTHETIC; they do not
+prove natural menu/glyph meaning, physical timing or arbitrary caller
+admissibility. EI is original and does not restore prior IME state.
