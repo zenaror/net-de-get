@@ -1003,6 +1003,42 @@ int main(int argc,char **argv){
           rd(c,0xC113)==(index?0x1E:0x14)&&rd(c,0xC114)==0&&rd(c,0xC115)==0x15&&rd(c,0xC116)==0,
           "VBlank mapper independent tails and shadow difference",index);
  }
+ /* Native A1E tick: inactive global paths and one active slot at a time. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);wr(c,0xFFAB,0x1E);wr(c,0xFFAC,0);
+ const unsigned tickCounts[]={0,1,2,255},tickRemainders[]={1,255};
+ for(unsigned slot=0;slot<8;slot++)for(unsigned k=0;k<4;k++)for(unsigned rem=0;rem<2;rem++){
+  for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+  unsigned base=0xCF00+slot*16,count=tickCounts[k],remaining=tickRemainders[rem];
+  wr(c,base+1,1);wr(c,base+4,count);wr(c,base+5,remaining);
+  cpu->bc=0x1234;call(c,0x4000);
+  unsigned ok=1;for(unsigned other=0;other<8;other++)if(other!=slot)
+   ok&=rd(c,0xCF01+other*16)==0&&rd(c,0xCF04+other*16)==0&&rd(c,0xCF05+other*16)==0;
+  require(ok&&cpu->bc==0x1234&&rd(c,base+1)==1&&
+          rd(c,base+4)==(count==1?255:((count-1)&255))&&
+          rd(c,base+5)==(count==1?remaining-1:remaining),
+          "A1E slot countdown wrap and remainder",slot*8+k*2+rem);
+ }
+ const unsigned tickCallSites[]={0x42C8,0x42E2,0x42FC,0x4316,0x4330,0x434A,0x4364,0x437E};
+ for(unsigned slot=0;slot<8;slot++){
+  for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+  wr(c,0xCF01+slot*16,1);wr(c,0xCF04+slot*16,1);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x4000;
+  unsigned steps=0;while(cpu->pc!=tickCallSites[slot]&&steps++<300)c->step(c);
+  require(cpu->pc==tickCallSites[slot]&&cpu->sp==0xCFFE&&rd(c,0xCF04+slot*16)==0&&
+          rd(c,0xCF05+slot*16)==0,"A1E stops before external slot handler",slot);
+ }
+ const unsigned routeValues[]={0,1,15,16,0x55,0xAA,0xFE,255};
+ const unsigned routeMasks[]={0,1,15,16,0x55,0x80,255};
+ for(unsigned i=0;i<8;i++)for(unsigned j=0;j<7;j++){
+  unsigned d=routeValues[i],e=routeMasks[j],swapped=((e<<4)|(e>>4))&255;
+  wr(c,0xCF84,1);wr(c,0xCF88,d);wr(c,0xCF89,e);call(c,0x43A8);
+  unsigned result=e?(e|((swapped^e^d)&255)):d;
+  require(rd(c,0xFF25)==result,"A1E route-mask expression",i*7+j);
+ }
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xFF25,0xA5);call(c,0x4000);
+ require(rd(c,0xFF25)==0xA5,"A1E inactive slots and routing return",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

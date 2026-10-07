@@ -14,7 +14,7 @@ CallBankA1EAndRestoreMapping::
 	ld a, $00
 	ld [$2800], a
 	ld [$C114], a
-	call $4000
+	call NativeA1EEntry
 	ld a, [$C672]
 	and a, a
 	jr nz, .alternateRestore

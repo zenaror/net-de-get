@@ -830,3 +830,25 @@ No A1E target, natural IRQ/VBlank or timing evidence. Nine new asserts,total5547
 Full source: 274 sections,111 analyzed/17089 bytes,163 unknown/1031487 bytes.
 Full/private gates preserve 745 published fabf3fb address symbols, full hash,
 24 verifier tests and actual negative-build rejection.
+
+
+### Native A1E state tick
+
+**PROBABLE**, static call chain: ROM0 $2242 selects A1E and calls4000, whose JP
+reaches42B1. `engine/startup/bank_a1e_tick.asm` extracts $4000-$4002 and
+$42B1-$43CA (285 bytes), retaining ResidualROM0F_4000. Physical bank0F/file
+$3C000 and $3C2B1-$3C3CA correspond to native selector1E in the lower window.
+Eight slots use CF01/11/.../71 flags and +4/+5 countdown fields. Active slots
+decrement the first byte; on zero they either decrement a nonzero second byte
+and reload FF, or call one of eight still-numeric handlers. CF86's active global
+path also has unexecuted numeric callees. Final CF84-enabled routing uses
+CF88/CF89 to compute the original mask written to FF25. No slot purpose is
+promoted to confirmed channel semantics by the register access alone.
+
+**SYNTHETIC**: 64 complete bodies isolate one active slot with counter0/1/2/FF
+and remainder1/FF, keeping global paths inactive. Eight probes stop before
+handlers. 56 routing-tail cases and one all-inactive body pass. 250 added
+assertions,total5797; no natural VBlank, external handler, active global flow,
+audible output or hardware claim. Full/private/negative gates preserve 748
+symbols61fca2a and whole hash. 277 sections:113 analyzed/17374 bytes,164 unknown
+ranges/1031202 bytes, plus 24 verifier tests.
