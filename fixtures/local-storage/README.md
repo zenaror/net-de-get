@@ -1482,3 +1482,21 @@ variant3 and clearsC738. No-match retains pending/progress after the initial
 variant/value copy. Existing symbols and Japanese bytes remain unchanged.
 Adds36864 assertions, suite total26587582. Natural initialization/menu execution,
 record meaning, hardware and IRQ/timing remain unproven.
+
+
+## Resource command dispatcher (4AC9-4B6F)
+
+PROBABLE contracts: all four A12 handlers call this routine statically.
+16384 complete calls cover four variants, all256 commands and16 flags;8192
+additional complete calls cover the eight transition commands and all256 state
+values. Real0255 countdown and017A color preparation bodies execute. The192
+components/deltas are checked against a bit-component model, with original ROM
+source words, exact registers/flags/state/guards and command retention.
+Zero/unrecognized commands return; F0 writesC738=1. F1/F2/F3 setC214=0/1/2,
+F1 also clearsC624. F4/F5/F6 call countdown and setC214=4,C706=1/2/0.
+F7 setsC214=6 and FE sets4. Eight transition commands clearC213/C1C4,
+use53B2+128*C5A8 in mode4 and incrementC5A3. No clamp.
+4096 forced4B4C suffixes cover every raw variant/flag, stopping before real017A;
+they check arithmetic/stack/arguments without asserting natural palette validity
+or executing those arbitrary resources. Adds53248 asserts,total26640830.
+No natural handler/resource flow, Japanese meaning, IRQ/timing or hardware proof.

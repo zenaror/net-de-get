@@ -112,7 +112,8 @@ bank	start	end	symbol
 09	422F	422F	A12SelectionInterruptReturnOnly
 09	4230	4238	PositionA12SelectionWindow
 09	4239	4250	UpdateA12SelectionDMAAndPalettes
-09	4251	4B6F	ResidualROM09_4251
+09	4251	4AC8	ResidualROM09_4251
+09	4AC9	4B6F	DispatchA12ResourceCommand
 09	4B70	4BDC	UpdateA12TextModeController
 09	4BDD	4BE5	SeedA12RandomState
 09	4BE6	4C10	StepA12RandomState

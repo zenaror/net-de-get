@@ -323,6 +323,20 @@ static void probeA12TileEffect(struct mCore *c,unsigned width,unsigned height,un
  wr(c,0xFF40,0);exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);if(whole){for(unsigned i=0;i<8192;i++){bool tile=i>=0x1841&&i<0x1841+height*32&&((i-0x1841)%32)<width;unsigned expected=tile?((bank*area+((i-0x1841)/32)*width+(i-0x1841)%32)*37+width+height)&255:0xA5;exact&=rd(c,0x8000+i)==expected;}}else{exact&=rd(c,0x9840)==0xA5&&rd(c,0x9841)==((bank*area*37+width+height)&255)&&rd(c,0x9842)==0xA5;}}
  for(unsigned i=0;i<2*area;i++)exact&=rd(c,0xD807+i)==((i*37+width+height)&255);exact&=rd(c,0xD807+2*area)==0x33;require(exact,"A12 FF exact two-plane payload or full VRAM and immutable synthetic source guard",index);
 }
+static void probeA12ResourceCommand(struct mCore *c,unsigned command,unsigned variant,unsigned state,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;
+ bool transition=(command>=0xF1&&command<=0xF7)||command==0xFE,countdown=command>=0xF4&&command<=0xF6;
+ unsigned colors[64],last=0;for(unsigned i=0;i<64;i++)colors[i]=rd(c,0x53B2+128*variant+2*i)|(rd(c,0x53B3+128*variant+2*i)<<8);
+ wr(c,0xC5FD,command);wr(c,0xC5A8,variant);wr(c,0xC5A3,state);wr(c,0xC214,0x37);wr(c,0xC624,0x39);wr(c,0xC706,0x3C);wr(c,0xC213,0x5A);wr(c,0xC1C4,0x3C);wr(c,0xC738,0x39);wr(c,0xC21F,0x37);wr(c,0xC220,0x39);wr(c,0xC221,0x3C);wr(c,0xC2A2,0x5A);wr(c,0xC422,0x3C);
+ const unsigned fields[]={0xCF86,0xCF87,0xC665,0xC666,0xC667,0xC66B};for(unsigned i=0;i<6;i++)wr(c,fields[i],0x37);
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x4AC9);
+ unsigned next=(state+1)&255,a=transition?next:command==0xF0?1:command,f=transition?((next?0:0x80)|((state&15)==15?0x20:0)):command==0||command==0xF0?0xC0:0x40|((command&15)<14?0x20:0)|(command<254?0x10:0);
+ bool exact=cpu->af==(a<<8|f)&&cpu->bc==(transition?0:0xBEEF)&&cpu->hl==(transition?0x8F4:0x5678)&&rd(c,0xC5FD)==command&&rd(c,0xC5A8)==variant&&rd(c,0xC5A3)==(transition?next:state)&&rd(c,0xC738)==(command==0xF0?1:0x39)&&rd(c,0xC213)==(transition?0:0x5A)&&rd(c,0xC1C4)==(transition?0:0x3C)&&rd(c,0xC624)==(command==0xF1?0:0x39)&&rd(c,0xC706)==(countdown?(command==0xF4?1:command==0xF5?2:0):0x3C)&&rd(c,0xC214)==(transition?(command==0xF1?0:command==0xF2?1:command==0xF3?2:command==0xF7?6:4):0x37)&&rd(c,0xC21F)==0x37&&rd(c,0xC221)==0x3C;
+ for(unsigned i=0;i<6;i++)exact&=rd(c,fields[i])==(countdown?(i==0?2:i==1?1:0):0x37);
+ if(transition){for(unsigned i=0;i<192;i++){unsigned component=(colors[i/3]>>(5*(i%3)))&31,base=component*2048,delta=(31-component)*256;last=delta;exact&=rd(c,0xC2A2+2*i)==(base&255)&&rd(c,0xC2A3+2*i)==base>>8&&rd(c,0xC422+2*i)==(delta&255)&&rd(c,0xC423+2*i)==delta>>8;}exact&=rd(c,0xC220)==8&&rd(c,0xC5A2)==2;}else exact&=rd(c,0xC220)==0x39&&rd(c,0xC2A2)==0x5A&&rd(c,0xC422)==0x3C;
+ exact&=cpu->de==(transition?last:0x1234);
+ require(exact,"A12 full resource commands real countdown palettes state fields registers flags no command clear",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4245,6 +4259,18 @@ int main(int argc,char **argv){
   bool exact=cpu->af==(a<<8|f)&&cpu->bc==bc&&cpu->de==(found?variant:6)&&cpu->hl==hl&&rd(c,0xC705)==(found?input+1:input)&&rd(c,0xC73B)==(found?row+1:0x39)&&rd(c,0xC5A8)==(select?3:variant)&&rd(c,0xC5A4)==(found?values[row]:initial[variant])&&rd(c,0xC738)==(select?0:0x5A)&&rd(c,0xC706)==variant&&rd(c,0xC707)==0x37&&rd(c,0xC70C)==0x39;
   for(unsigned i=0;i<4;i++)exact&=rd(c,0xC708+i)==(found&&i==variant?values[row]:initial[i]);
   require(exact,"A12 whole pending scanner original21 records all progress bytes four variants flags match no-match state and registers",variant*4096+input*16+flags);
+ }
+ }
+ { /* Original dispatcher full byte commands and bounded raw color pointer suffix. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ for(unsigned variant=0;variant<4;variant++)for(unsigned command=0;command<256;command++)for(unsigned flags=0;flags<16;flags++)probeA12ResourceCommand(c,command,variant,(command*37+flags*13)&255,flags<<4,variant*4096+command*16+flags);
+ const unsigned commands[]={0xF1,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xFE};
+ for(unsigned variant=0;variant<4;variant++)for(unsigned cmd=0;cmd<8;cmd++)for(unsigned state=0;state<256;state++)probeA12ResourceCommand(c,commands[cmd],variant,state,(state&15)<<4,16384+variant*2048+cmd*256+state);
+ for(unsigned variant=0;variant<256;variant++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A8,variant);wr(c,0xC213,0x37);wr(c,0xC1C4,0x39);wr(c,0xC5A3,0x3C);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4B4C;
+  unsigned steps=0;while(cpu->pc!=0x17A&&steps++<300)c->step(c);
+  unsigned f=0x80|((0x3B2+((variant*128)&0xFFF))>0xFFF?0x20:0);
+  require(cpu->pc==0x17A&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x4B68&&cpu->af==(0x0400|f)&&cpu->bc==0xBEEF&&cpu->de==0x53B2&&cpu->hl==0x53B2+128*variant&&rd(c,0xC213)==0&&rd(c,0xC1C4)==0&&rd(c,0xC5A3)==0x3C&&rd(c,0xC5A8)==variant,"A12 forced color suffix all raw variants flags pointer no clamp actual transition boundary",variant*16+flags);
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",

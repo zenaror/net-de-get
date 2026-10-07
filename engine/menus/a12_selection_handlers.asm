@@ -44,7 +44,7 @@ A12Handler_418F::
 	call $470F
 	call ResidentJump0261
 	call $4A36
-	call $4AC9
+	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $41A2
 
@@ -70,7 +70,7 @@ A12Handler_41BF::
 	call $470F
 	call ResidentJump0261
 	call $4A66
-	call $4AC9
+	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $41D2
 
@@ -96,7 +96,7 @@ A12Handler_41EF::
 	call $470F
 	call ResidentJump0261
 	call $4A8A
-	call $4AC9
+	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $4202
 
@@ -111,7 +111,7 @@ A12SelectionVariant3::
 	inc [hl]
 	call ResidentJump0261
 	call $4AAE
-	call $4AC9
+	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $421D
 
