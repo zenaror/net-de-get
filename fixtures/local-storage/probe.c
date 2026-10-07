@@ -4045,6 +4045,60 @@ int main(int argc,char **argv){
  }
  }
  }
+ { /* Wrapped coordinate offsets and independent unsigned distances. */
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned value=0;value<256;value++)for(unsigned flags=0;flags<16;flags++){
+  unsigned in[]={value,(value*37)&255,(value*73)&255,(value*109)&255};
+  wr(c,0xC5D7,in[0]);wr(c,0xC5D8,in[1]);wr(c,0xC5D9,in[2]);wr(c,0xC5DA,in[3]);wr(c,0xC5D6,0x37);wr(c,0xC5DB,0x39);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x4E7A);
+  unsigned a=(in[3]-0xD0)&255,f=0x40|(a?0:0x80)|(in[3]<0xD0?0x10:0);
+  require(cpu->a==a&&cpu->f.packed==f&&cpu->bc==0xD037&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC5D7)==((in[0]-0xC9)&255)&&rd(c,0xC5D8)==((in[1]-0xD0)&255)&&rd(c,0xC5D9)==((in[2]-0xC9)&255)&&rd(c,0xC5DA)==a&&rd(c,0xC5D6)==0x37&&rd(c,0xC5DB)==0x39,"A12 offsets all byte inputs flags wrap exact fields and guards",value*16+flags);
+ }
+ for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5D7,x);wr(c,0xC5D9,y);wr(c,0xC5D8,y);wr(c,0xC5DA,x);wr(c,0xC5DC,0x37);wr(c,0xC5DF,0x39);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x4EA3);
+  unsigned hi=x>y?x:y,lo=x<y?x:y,d=hi-lo,f=0x40|(d?0:0x80)|((hi&15)<(lo&15)?0x20:0);
+  require(cpu->a==d&&cpu->f.packed==f&&cpu->bc==(lo<<8|0x37)&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC5DD)==d&&rd(c,0xC5DE)==d&&rd(c,0xC5D7)==x&&rd(c,0xC5D9)==y&&rd(c,0xC5D8)==y&&rd(c,0xC5DA)==x&&rd(c,0xC5DC)==0x37&&rd(c,0xC5DF)==0x39,"A12 distances all unsigned byte pairs flags both comparison branches",x*4096+y*16+flags);
+ }
+ }
+ { /* Requested B mapping checked independently before the actual pointer read. */
+ struct GB *g=c->board;
+ const unsigned banks[]={0,5,0x61,0x63,0x65,0x66,127},signatures[7][4]={{195,245,5,0},{118,0,240,138},{136,135,167,151},{128,129,130,131},{191,191,191,187},{245,245,7,0},{0,0,0,0}};
+
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned bank=0;bank<7;bank++)for(unsigned phase=0;phase<256;phase++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);wr(c,0xC21C,banks[bank]);wr(c,0xC21D,0);wr(c,0xC5CF,phase);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->hl=0xD000;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4D82;
+  unsigned steps=0;while(cpu->pc!=0x4DA2&&steps++<100)c->step(c);
+  require(cpu->pc==0x4DA2&&cpu->hl==0xD000+((phase*2)&255)&&cpu->de==((phase*2)&255)&&cpu->bc==0xBE37&&cpu->sp==0xCFFE&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xFFAD)==banks[bank]&&rd(c,0xFFAE)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0,"A12 reader original requested mapping writes HRAM backup raw phase pointer boundary",bank*4096+phase*16+flags);
+  bool exact=true;for(unsigned i=0;i<4;i++)exact&=rd(c,0x6000+i)==signatures[bank][i];require(exact,"A12 reader seven independently measured ROM window signatures actual mapping",bank*4096+phase*16+flags);
+ }
+ /* Prepared WRAM table/records, not claimed natural resource geometry. */
+ for(unsigned i=0;i<128;i++){wr(c,0xD000+2*i,0);wr(c,0xD001+2*i,0xD2);}wr(c,0xD200,17);
+ for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+ for(unsigned phase=0;phase<256;phase++)for(unsigned frame=0;frame<256;frame++){
+  unsigned start=0xD201+4*frame,pattern=frame%4,skip=pattern==3?8:pattern?4:0,target=start+4+skip;
+  unsigned rawX=(frame*37)&255,rawY=(phase*73)&255,endX=(phase*17)&255,endY=(frame*19)&255,nextPhase=phase%254,threshold=(phase+frame)&255;
+  const unsigned current[]={frame%254,rawX,rawY,threshold},next[]={nextPhase,endX,endY,0x53};
+  for(unsigned i=0;i<4;i++){wr(c,start+i,current[i]);wr(c,target+i,next[i]);}
+  if(pattern==1||pattern==3){wr(c,start+4,255);for(unsigned i=1;i<4;i++)wr(c,start+4+i,0xA5);}
+  if(pattern==2||pattern==3){unsigned m=start+4+(pattern==3?4:0);wr(c,m,254);for(unsigned i=1;i<4;i++)wr(c,m+i,0x5A);}
+  wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);wr(c,0xC21C,0x63);wr(c,0xC21D,0);wr(c,0xC5CF,phase);wr(c,0xC5CE,frame);wr(c,0xC5CC,0x37);wr(c,0xC5D6,0x39);wr(c,0xC5DB,0x3C);wr(c,0xC5DF,0x5A);
+  cpu->af=0x5A00|((phase&15)<<4);cpu->bc=0xBE37;cpu->hl=0xD000;call(c,0x4D82);
+  unsigned x=(rawX-0xC9)&255,y=(rawY-0xD0)&255,ex=(endX-0xC9)&255,ey=(endY-0xD0)&255,dx=x>ex?x-ex:ex-x,dy=y>ey?y-ey:ey-y,hi=y>ey?y:ey,lo=y<ey?y:ey,f=0x40|(dy?0:0x80)|((hi&15)<(lo&15)?0x20:0);
+  require(cpu->a==dy&&cpu->f.packed==f&&cpu->bc==(lo<<8|0x37)&&cpu->de==0xD201&&cpu->hl==target+4,"A12 common reader complete exact wrapped coordinates distances registers pointer",phase*256+frame);
+  require(rd(c,0xC5CD)==17&&rd(c,0xC5D0)==frame%254&&rd(c,0xC5D7)==x&&rd(c,0xC5D8)==y&&rd(c,0xC5CB)==threshold&&rd(c,0xC5D1)==nextPhase&&rd(c,0xC5D9)==ex&&rd(c,0xC5DA)==ey&&rd(c,0xC5FD)==0x53&&rd(c,0xC5DD)==dx&&rd(c,0xC5DE)==dy&&rd(c,0xC5CF)==phase&&rd(c,0xC5CE)==frame&&rd(c,0xC5CC)==0x37&&rd(c,0xC5D6)==0x39&&rd(c,0xC5DB)==0x3C&&rd(c,0xC5DF)==0x5A,"A12 reader all phases frames common and FF FE lookahead skips exact fields guards",phase*256+frame);
+  bool exact=rd(c,0xFFAD)==0x63&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;for(unsigned i=0;i<4;i++)exact&=rd(c,0x6000+i)==signatures[3][i];require(exact,"A12 common reader retains actual requested B mapping HRAM backup separate resident mirrors",phase*256+frame);
+ }
+ for(unsigned marker=0;marker<2;marker++)for(unsigned frame=0;frame<256;frame++)for(unsigned flags=0;flags<16;flags++){
+  unsigned phase=(frame*37)&255,start=0xD201+4*frame;wr(c,start,marker?254:255);wr(c,0xC5CF,phase);wr(c,0xC5CE,frame);wr(c,0xC5D0,0x37);wr(c,0xC5CB,0x39);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->hl=0xD000;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4D82;
+  unsigned dest=marker?0x50C8:0x4FAF,steps=0;while(cpu->pc!=dest&&steps++<300)c->step(c);
+  require(cpu->pc==dest&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(marker?0x4DC5:0x4DBD)&&cpu->hl==start&&cpu->de==0xD201&&cpu->bc==0xBE37&&cpu->af==((marker?254:255)<<8|0xC0),"A12 initial FF FE real effect entry stack pointer registers flags",marker*4096+frame*16+flags);
+  require(rd(c,0xC5CD)==17&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5D0)==0x37&&rd(c,0xC5CB)==0x39,"A12 initial effect prefix sets count before untouched frame fields",marker*4096+frame*16+flags);
+ }
+ bool untouched=true;for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)untouched&=rd(c,0x8000+i)==0xA5;}require(untouched,"A12 common reader and bounded effect prefixes leave both entire VRAM planes untouched",0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

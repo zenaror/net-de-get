@@ -1348,3 +1348,38 @@ all16 flags.2244992 new asserts,total19690605,plus24 verifier tests. Natural
 counter producer/cadence, mapping/resource contents, arbitrary selector validity,
 Japanese semantics and hardware remain unproved; no VRAM or ROM is changed by
 this new corpus. The extended reset preserves neighboring dimensions/loop bytes.
+
+## A12 mapped resource reader and coordinate helpers
+
+PROBABLE236-byte unit: LoadA12ResourceFrame4D82-4DFD, wrapped offsets4E7A-4EA2,
+unsigned distances4EA3-4EE9. Reader backs up FFAD/FFAE inFF9D/FF9E, writes
+C21C/C21D to actual B mapper and FFAD/FFAE, then uses byte-wrapped phase*2
+pointer lookup. Count byte is followed by four-byte records indexed with a
+full16-bit frame*4. Initial FF/FE call original effects4FAF/50C8 (not extracted
+or completed in this corpus). The ordinary record fills C5D0,D7,D8,CB;
+lookahead skips one FF record and then one FE record if present, fillsD1,D9,DA,FD.
+Coordinates subtract C9/D0 with byte wrap; distances are absolute differences
+of the resulting unsigned bytes. No clipping or signed-distance interpretation.
+
+1118208 complete calls:4096 offset tuples (all256 byte values in each of four
+fields via odd permutations,16 flags),1048576 distance cases (all pairs/16 flags,
+Y is reversed X pair, not a four-coordinate Cartesian product),65536 reader
+cases (all phase/frame bytes,derived flags, synthetic WRAM pointer table/records).
+Reader corpus has16384 of each lookahead shape: ordinary,FF,FE,FF+FE. Independent
+models check registers/flags, pointers, fields/counter guards and mapper backups.
+
+36864 prefixes:28672 seven requested ROM selectors0/5/61/63/65/66/7F with all
+phase bytes/16 flags stop before actual pointer read4DA2; independent four-byte
+ROM signatures at6000 check window selection.8192 initial FF/FE cases cover all
+frame bytes/16 flags with derived phases, stop at their actual effect entries
+with original stack return/CP flags and unchanged remaining fields. Effect bodies
+are not replaced with stubs. Both entire VRAM planes stay untouched over the
+common reader/effect-prefix corpus.
+
+Actual B remains selected on ordinary return. FF9D/FF9E hold old5/0; FFAD/FFAE
+become63/0 while resident C115/C116 deliberately remain5/0 in these fixtures.
+This distinction must not be collapsed into a universal mirror/restore rule.
+Modes tested here are ROM0, not flash. No natural table geometry, producer,
+frame cadence, sentinel effects, full-window/all-selector claim or hardware proof.
+2441217 new assertions,total22131822,plus24 verifier tests. Synthetic records
+are memory-only and the immutable external ROM is never patched.

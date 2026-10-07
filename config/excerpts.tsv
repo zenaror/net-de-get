@@ -130,7 +130,11 @@ bank	start	end	symbol
 09	4D4C	4D4F	SelectA12Variant2ResourceTable
 09	4D50	4D53	SelectA12Variant3ResourceTable
 09	4D54	4D81	TickA12ResourceFrame
-09	4D82	4FFE	ResidualROM09_4D82
+09	4D82	4DFD	LoadA12ResourceFrame
+09	4DFE	4E79	ResidualROM09_4DFE
+09	4E7A	4EA2	NormalizeA12ResourceCoordinates
+09	4EA3	4EE9	ComputeA12ResourceDistances
+09	4EEA	4FFE	ResidualROM09_4EEA
 09	4FFF	5050	CopyA12TileFrame
 09	5051	5092	TickA12TileFrame
 09	5093	50C7	InitializeA12TileFrames
