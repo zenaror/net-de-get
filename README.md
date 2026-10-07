@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 451 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 452 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -515,3 +515,12 @@ A inicialização completa é verificada em entrada forçada com lista sintétic
 A confiança é `PROBABLE`. A rotina copia os graphics para `$8800-$8E3F` pelo plano de VRAM inicialmente selecionado, sem selecionar VBK antes da cópia. `$C765` zero usa o mapa `$4E68` e célula `$4F08`; os demais valores usam `$4EB8/$4F0A`. Seleciona VBK 0, copia 20×2 células por plano para `$9800`, com stride 32 e fonte sequencial dos dois planos. Depois repete 120 vezes uma cópia 1×1 da mesma célula de dois bytes, em destinos consecutivos `$983C-$98B3`. As células originais são tile/atributo `$88/$00` ou `$E0/$07`. VBK termina em 0, independentemente do plano que recebeu os graphics. Não houve tradução ou atribuição de significado visual aos bytes japoneses.
 
 A fixture executa 512 calls com LCD desligado (todos os 256 valores de modo, VBK inicial 0/1) e oito com LCD ativo (modos 0/1/`$80/$FF`, ambos os VBKs), cada um com limite finito de 2.000.000 passos. Confere todos os 8.192 bytes dos dois planos: graphics no plano inicial, as 40 células e atributos do mapa selecionado, as 120 células repetidas e todos os bytes restantes intactos. Também confere VBK final 0, modo preservado e contador final A=120. São 1.040 novos asserts, somando 1.906.553; o privado preserva os 1.308 símbolos publicados em `2ed84f1`. Montagem integral e negativos reais passam. São chamadas forçadas com resources de ROM real; não confirmam tela natural, paletas, OAM DMA, IRQ ou temporização física.
+
+
+### Ajuste de coluna na última linha A `$0F`
+
+`engine/startup/bank_a0f_selection.asm` extrai `$431A-$433E/$433F-$4389` (112 bytes), em posições físicas `$07:$631A-$6389`. `ResidualROM07_631A` permanece como alias no endereço publicado. A primeira rotina recebe a linha em A; para A menor que 4 preserva `$C766`, e nos demais casos escolhe coluna 1/6/11 conforme a coluna anterior seja menor que 5, menor que 10 ou maior. Preserva AF pelo push/pop original. A segunda lê a linha de `$C767`; abaixo de 4 preserva a coluna, e nas demais linhas remapeia exatamente 0/7→11, 2/10→6 e 5/12→1, mantendo as outras colunas. A interpretação continua `PROBABLE`, sem afirmar o domínio natural admissível da seleção.
+
+A fixture executa todas as 65.536 combinações de linha/coluna por rotina, conferindo resultado e guards; a primeira também confere A e os 16 padrões válidos dos flags. São 131.072 calls completos, 262.144 novos asserts e total de 2.168.697. O privado preserva os 1.322 símbolos publicados em `1b9ad32`; montagem integral e negativos reais passam. O primeiro manifesto ainda continha a fronteira residual antiga e foi rejeitado por sobreposição; a entrada foi substituída pelas duas fronteiras medidas. O compilador também rejeitou o acesso incorreto ao union de flags da fixture, corrigido para `f.packed`. Os bytes originais não foram alterados.
+
+Os consumidores de `$C773/$C774` foram localizados estaticamente em `$406A/$47AF`: passam o ponteiro a `$0177/$017A` com A=4. A extensão integral dos recursos `$4E20/$52EC` continua pendente dos consumidores residentes, sem inferir o tamanho pela proximidade de dados já extraídos. Os calls acima são sintéticos, sem execução natural do menu ou IRQ.

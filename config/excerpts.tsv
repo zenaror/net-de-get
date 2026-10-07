@@ -91,7 +91,6 @@ bank	start	end	symbol
 07	4000	5FFF	ResidualROM07_4000
 07	6000	609B	ResidualROM07_6000
 07	61C5	6305	ResidualROM07_61C5
-07	631A	6389	ResidualROM07_631A
 07	63BF	64AD	ResidualROM07_63BF
 07	64D7	67DF	ResidualROM07_64D7
 07	6E20	6E67	ResidualROM07_6E20
@@ -450,3 +449,5 @@ bank	start	end	symbol
 07	6EB8	6F07	A0FDisplayTilemapMode1
 07	6F08	6F09	A0FDisplayRepeatedCell0
 07	6F0A	6F0B	A0FDisplayRepeatedCell1
+07	631A	633E	SnapA0FColumnForIncomingRow
+07	633F	6389	RemapA0FColumnOnLastRow

@@ -2481,6 +2481,27 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Original A0F selection adjustment, every column/row byte pair. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ for(unsigned row=0;row<256;row++)for(unsigned column=0;column<256;column++){
+  wr(c,0xC765,0xA5);wr(c,0xC766,column);wr(c,0xC767,0x5A);wr(c,0xC768,0x3C);
+  cpu->a=row;cpu->f.packed=(column&15)<<4;unsigned flags=cpu->f.packed;
+  call(c,0x431A);
+  unsigned snapped=row<4?column:(column<5?1:column<10?6:11);
+  require(rd(c,0xC766)==snapped&&rd(c,0xC765)==0xA5&&rd(c,0xC767)==0x5A&&rd(c,0xC768)==0x3C&&
+   cpu->a==row&&cpu->f.packed==flags,"A0F incoming row snaps column preserves AF and guards",row*256+column);
+  wr(c,0xC766,column);wr(c,0xC767,row);
+  call(c,0x433F);
+  unsigned remapped=column;
+  if(row>=4){
+   if(column==0||column==7)remapped=11;
+   if(column==2||column==10)remapped=6;
+   if(column==5||column==12)remapped=1;
+  }
+  require(rd(c,0xC766)==remapped&&rd(c,0xC767)==row&&rd(c,0xC765)==0xA5&&rd(c,0xC768)==0x3C,
+   "A0F last row six exact column remaps full byte domains",row*256+column);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

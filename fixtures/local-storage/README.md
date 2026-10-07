@@ -596,3 +596,17 @@ mode and A120 are checked. The original raw cells are88/00 orE0/07.
 ROM resources, not natural screen, palette, OAM DMA or physical timing
 proof. Resource boundaries come from measured consumers; gaps and wider
 objects remain uninterpreted. Semantics stay PROBABLE.
+
+
+## A0F original selection adjustment
+
+Complete forced calls to 431A and 433F cover all 65536 row/column byte
+pairs per routine. 431A preserves AF and snaps C766 to 1/6/11 for incoming
+A >= 4, with thresholds 5 and 10; lower rows retain the original column.
+433F reads C767 and, for rows >= 4, remaps only 0/7 to11, 2/10 to6,
+and 5/12 to1. All other columns remain unchanged. Guards are checked;
+the first routine covers all16 valid flag patterns. 131072 complete calls
+add262144 assertions. These are SYNTHETIC byte domains, not evidence of
+natural menu input bounds. Original bytes are preserved; semantics stay
+PROBABLE. The resources referenced by C773/C774 remain separately bounded
+by their resident consumers, not by these selection routines.
