@@ -1590,3 +1590,26 @@ No injected callee returns. Adds2758656 assertions,total32275710. This covers
 only the movement branch and zero availability, not every wrapper path or
 variant0, integrated resource emission, natural timing/input, Japanese meaning,
 IRQ or hardware. Original bytes unchanged; no real save loaded.
+
+
+## Secondary A12 resource reader, tick and coordinates
+
+PROBABLE at50D8/50DF/5117/51FA/5223/526A/52CF.4096 normalization and1048576
+unsigned-distance calls cover all byte inputs/16 flags;131072 step and196608
+movement calls reuse independent arithmetic models over secondary fields and
+actual shared division.65536 complete reader calls cover every raw phase/frame
+with synthetic pointer table/records and ordinary/FF/FE/FF+FE combinations at
+both current and lookahead positions. Skips are sequential, not a marker loop.
+Object count byte is discarded; current index and XY plus next XY consumed;
+count/threshold/counter stay unchanged. Exact fields/registers/flags/mapping,
+HRAM backups versus WRAM mirrors, and guards checked.
+131072 tick prefixes cover all counter/threshold and all frame/count pairs,
+stopping at real reader or movement entry with original stack.4096 load prefixes
+stop at actual reader call;8192 explicitly forced post-reader suffixes verify
+saved-AF restoration or decrement. These suffixes omit reader execution.
+The initial tick oracle omitted its pre-call increment write; corrected oracle,
+unchanged original.1024 complete variant0 wrappers execute both movement tick
+paths,copies,both zero-availability emitters and counter increments,all acceleration
+bytes,counters0..3/divisor7;no injected return. Adds3205248 asserts,total35480958.
+No complete original-resource read tick/load chain,nonempty integrated emission,
+natural index/marker validity,Japanese meaning,IRQ/timing or hardware proof.

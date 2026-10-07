@@ -7,7 +7,7 @@ TickA12Variant0ResourceWrapper::
 	ld [$C21C], a
 	ld a, $00
 	ld [$C21D], a
-	call $50DF
+	call TickA12SecondaryResource
 	call CopyA12SecondaryResourcePosition
 	call TickA12ResourceFrame
 	call CopyA12ResourcePosition

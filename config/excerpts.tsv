@@ -175,10 +175,15 @@ bank	start	end	symbol
 09	5051	5092	TickA12TileFrame
 09	5093	50C7	InitializeA12TileFrames
 09	50C8	50D7	ApplyA12ResourceAudioEffect
-09	50D8	5187	ResidualROM09_50D8
+09	50D8	50DE	LoadA12SecondaryResource
+09	50DF	5116	TickA12SecondaryResource
+09	5117	5187	ReadA12SecondaryResource
 09	5188	51E4	EmitA12SecondaryResourceOAM
 09	51E5	51F9	CopyA12SecondaryResourcePosition
-09	51FA	5313	ResidualROM09_51FA
+09	51FA	5222	NormalizeA12SecondaryCoordinates
+09	5223	5269	ComputeA12SecondaryDistances
+09	526A	52CE	MoveA12SecondaryCoordinates
+09	52CF	5313	ComputeA12SecondarySteps
 09	5314	5333	A12TextRegionRecords
 09	5334	56AC	ResidualROM09_5334
 09	56AD	572A	A12PendingRecords

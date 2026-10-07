@@ -397,6 +397,20 @@ static void probeA12Movement(struct mCore *c,unsigned x,unsigned y,unsigned tx,u
  cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x4EEA,200000);
  require(cpu->af==(a<<8|f)&&cpu->bc==(b<<8|(same?0:divisor))&&cpu->de==0x1234&&cpu->hl==(same?0x5678:sy.q<<8|sy.r)&&rd(c,0xC5D7)==nx&&rd(c,0xC5D8)==ny&&rd(c,0xC5D9)==tx&&rd(c,0xC5DA)==ty&&rd(c,0xC5DB)==(same?0x37:sx.q)&&rd(c,0xC5DC)==(same?0x39:sy.q)&&rd(c,0xC5DF)==(same?0x3C:sx.r)&&rd(c,0xC5E0)==(same?0x5A:sy.r)&&rd(c,0xC5CB)==divisor&&rd(c,0xC5CC)==counter&&rd(c,0xC5DD)==dx&&rd(c,0xC5DE)==dy&&rd(c,0xC5D6)==0x37&&rd(c,0xC5E1)==0x39,"A12 whole movement independent unsigned directions byte overflow equality and complete register fields",index);
 }
+static void probeA12SecondaryStepCalculation(struct mCore *c,unsigned dx,unsigned dy,unsigned divisor,unsigned counter,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;struct A12StepModel x=a12StepModel(dx,divisor,counter),y=a12StepModel(dy,divisor,counter);
+ wr(c,0xC5F1,dx);wr(c,0xC5F2,dy);wr(c,0xC5CB,divisor);wr(c,0xC5CC,counter);for(unsigned i=0;i<6;i++)wr(c,0xC5EF+i,0x5A);wr(c,0xC5F1,dx);wr(c,0xC5F2,dy);wr(c,0xC5EE,0x37);wr(c,0xC5F5,0x39);
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x52CF,200000);
+ require(cpu->af==(y.r<<8|0xC0|((y.q&1)?0:0x10))&&cpu->bc==divisor&&cpu->de==0x1234&&cpu->hl==(y.q<<8|y.r)&&rd(c,0xC5EF)==x.q&&rd(c,0xC5F0)==y.q&&rd(c,0xC5F3)==x.r&&rd(c,0xC5F4)==y.r&&rd(c,0xC5F1)==dx&&rd(c,0xC5F2)==dy&&rd(c,0xC5CB)==divisor&&rd(c,0xC5CC)==counter&&rd(c,0xC5EE)==0x37&&rd(c,0xC5F5)==0x39,"A12 secondary whole step recurrence independent wrapped quotient remainder all output register guard fields",index);
+}
+static void probeA12SecondaryMovement(struct mCore *c,unsigned x,unsigned y,unsigned tx,unsigned ty,unsigned divisor,unsigned counter,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;unsigned dx=x>tx?x-tx:tx-x,dy=y>ty?y-ty:ty-y;bool same=x==tx&&y==ty;struct A12StepModel sx=a12StepModel(dx,divisor,counter),sy=a12StepModel(dy,divisor,counter);
+ unsigned nx=x==tx?x:(x<tx?x+sx.q:x-sx.q)&255,ny=y==ty?y:(y<ty?y+sy.q:y-sy.q)&255,a,f,b;
+ if(same){a=0;f=0x80;b=y;}else if(y==ty){a=ty;f=0xC0;b=y;}else if(y<ty){a=ny;f=(ny?0:0x80)|((y&15)+(sy.q&15)>15?0x20:0)|(y+sy.q>255?0x10:0);b=sy.q;}else{a=ny;f=0x40|(ny?0:0x80)|((y&15)<(sy.q&15)?0x20:0)|(y<sy.q?0x10:0);b=sy.q;}
+ wr(c,0xC5EB,x);wr(c,0xC5EC,y);wr(c,0xC5ED,tx);wr(c,0xC5EE,ty);wr(c,0xC5F1,dx);wr(c,0xC5F2,dy);wr(c,0xC5CB,divisor);wr(c,0xC5CC,counter);wr(c,0xC5EF,0x37);wr(c,0xC5F0,0x39);wr(c,0xC5F3,0x3C);wr(c,0xC5F4,0x5A);wr(c,0xC5EA,0x37);wr(c,0xC5F5,0x39);
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x526A,200000);
+ require(cpu->af==(a<<8|f)&&cpu->bc==(b<<8|(same?0:divisor))&&cpu->de==0x1234&&cpu->hl==(same?0x5678:sy.q<<8|sy.r)&&rd(c,0xC5EB)==nx&&rd(c,0xC5EC)==ny&&rd(c,0xC5ED)==tx&&rd(c,0xC5EE)==ty&&rd(c,0xC5EF)==(same?0x37:sx.q)&&rd(c,0xC5F0)==(same?0x39:sy.q)&&rd(c,0xC5F3)==(same?0x3C:sx.r)&&rd(c,0xC5F4)==(same?0x5A:sy.r)&&rd(c,0xC5CB)==divisor&&rd(c,0xC5CC)==counter&&rd(c,0xC5F1)==dx&&rd(c,0xC5F2)==dy&&rd(c,0xC5EA)==0x37&&rd(c,0xC5F5)==0x39,"A12 secondary whole movement independent unsigned directions byte overflow equality and complete register fields",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4413,6 +4427,78 @@ int main(int argc,char **argv){
   unsigned x=(accel*37)&255,y=(accel*19)&255,tx=(x+23)&255,ty=(y-17)&255,dx=x>tx?x-tx:tx-x,dy=y>ty?y-ty:ty-y,divisor=7;struct A12StepModel sx=a12StepModel(dx,divisor,counter),sy=a12StepModel(dy,divisor,counter);unsigned nx=(x<tx?x+sx.q:x-sx.q)&255,ny=(y<ty?y+sy.q:y-sy.q)&255,entry=v==1?0x4A66:v==2?0x4A8A:0x4AAE,sel=v==1?0x63:v==2?0x65:0x66,next=(counter+(v<3&&accel?4:1))&255,f=v<3?(accel?((next?0:0x80)|(((next-1)&15)==15?0x20:0)):0xA0):(next?0:0x80)|((counter&15)==15?0x20:0);
   prepareA12EffectMapping(c,0x63);wr(c,0xC5D7,x);wr(c,0xC5D8,y);wr(c,0xC5D9,tx);wr(c,0xC5DA,ty);wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5CB,divisor);wr(c,0xC5CC,counter);wr(c,0xC73A,accel);wr(c,0xC1C7,0);wr(c,0xC5F5,0x37);wr(c,0xC5CE,0x39);wr(c,0xC5CF,0x3C);cpu->af=0x5A00|(accel&15)<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,entry,200000);
   require(cpu->af==((v<3?accel:0)<<8|f)&&cpu->bc==divisor&&cpu->de==0x1234&&cpu->hl==0xC5CC&&rd(c,0xC5D7)==nx&&rd(c,0xC5D8)==ny&&rd(c,0xC5D5)==nx&&rd(c,0xC5D6)==ny&&rd(c,0xC5CC)==next&&rd(c,0xC5CB)==divisor&&rd(c,0xC73A)==accel&&rd(c,0xC5F5)==0&&rd(c,0xC1C7)==0&&rd(c,0xC5CE)==0x39&&rd(c,0xC5CF)==0x3C&&rd(c,0xC21C)==sel&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==sel&&rd(c,0xC115)==5&&rd(c,0xFF9D)==5,"A12 complete variants1to3 real tick movement position emitter-zero and counter no fake returns",v*1024+counter*256+accel);
+ }
+ }
+ { /* Wrapped coordinate offsets and independent unsigned distances. */
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned value=0;value<256;value++)for(unsigned flags=0;flags<16;flags++){
+  unsigned in[]={value,(value*37)&255,(value*73)&255,(value*109)&255};
+  wr(c,0xC5EB,in[0]);wr(c,0xC5EC,in[1]);wr(c,0xC5ED,in[2]);wr(c,0xC5EE,in[3]);wr(c,0xC5EA,0x37);wr(c,0xC5EF,0x39);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x51FA);
+  unsigned a=(in[3]-0xD0)&255,f=0x40|(a?0:0x80)|(in[3]<0xD0?0x10:0);
+  require(cpu->a==a&&cpu->f.packed==f&&cpu->bc==0xD037&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC5EB)==((in[0]-0xC9)&255)&&rd(c,0xC5EC)==((in[1]-0xD0)&255)&&rd(c,0xC5ED)==((in[2]-0xC9)&255)&&rd(c,0xC5EE)==a&&rd(c,0xC5EA)==0x37&&rd(c,0xC5EF)==0x39,"A12 secondary offsets all byte inputs flags wrap exact fields and guards",value*16+flags);
+ }
+ for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5EB,x);wr(c,0xC5ED,y);wr(c,0xC5EC,y);wr(c,0xC5EE,x);wr(c,0xC5F0,0x37);wr(c,0xC5F3,0x39);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x5223);
+  unsigned hi=x>y?x:y,lo=x<y?x:y,d=hi-lo,f=0x40|(d?0:0x80)|((hi&15)<(lo&15)?0x20:0);
+  require(cpu->a==d&&cpu->f.packed==f&&cpu->bc==(lo<<8|0x37)&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC5F1)==d&&rd(c,0xC5F2)==d&&rd(c,0xC5EB)==x&&rd(c,0xC5ED)==y&&rd(c,0xC5EC)==y&&rd(c,0xC5EE)==x&&rd(c,0xC5F0)==0x37&&rd(c,0xC5F3)==0x39,"A12 secondary distances all unsigned byte pairs flags both comparison branches",x*4096+y*16+flags);
+ }
+ }
+
+ { /* Secondary steps/movement execute actual shared division. */
+ prepareA12EffectMapping(c,0x63);
+ for(unsigned distance=0;distance<256;distance++)for(unsigned divisor=0;divisor<256;divisor++)probeA12SecondaryStepCalculation(c,distance,255-distance,divisor,1,((distance^divisor)&15)<<4,distance*256+divisor);
+ for(unsigned counter=0;counter<256;counter++)for(unsigned divisor=0;divisor<256;divisor++)probeA12SecondaryStepCalculation(c,(counter*37+divisor)&255,(counter*19+divisor*13)&255,divisor,counter,((counter^divisor)&15)<<4,65536+counter*256+divisor);
+ for(unsigned family=0;family<3;family++)for(unsigned current=0;current<256;current++)for(unsigned target=0;target<256;target++){
+  unsigned x=family==1?73:current,tx=family==1?73:target,y=family==0?73:family==1?current:target,ty=family==0?73:family==1?target:current;
+  probeA12SecondaryMovement(c,x,y,tx,ty,(current+target)&255,family==2?1+((current^target)&3):1,((current^target)&15)<<4,family*65536+current*256+target);
+ }
+ }
+ { /* Synthetic records test actual secondary reader, including bounded marker skips. */
+ prepareA12EffectMapping(c,0x63);
+ for(unsigned i=0;i<128;i++){wr(c,0xD000+2*i,0);wr(c,0xD001+2*i,0xD2);}wr(c,0xD200,17);
+ for(unsigned phase=0;phase<256;phase++)for(unsigned frame=0;frame<256;frame++){
+  unsigned raw=0xD201+4*frame,p=phase%4,q=frame%4,skip=p==3?8:p?4:0,ns=q==3?8:q?4:0,start=raw+skip,target=start+4+ns;
+  unsigned rx=(frame*37)&255,ry=(phase*73)&255,ex=(phase*17)&255,ey=(frame*19)&255;
+  if(p==1||p==3)wr(c,raw,255);if(p==2||p==3)wr(c,raw+(p==3?4:0),254);
+  wr(c,start,frame%254);wr(c,start+1,rx);wr(c,start+2,ry);wr(c,start+3,0x53);
+  if(q==1||q==3)wr(c,start+4,255);if(q==2||q==3)wr(c,start+4+(q==3?4:0),254);
+  wr(c,target,phase%254);wr(c,target+1,ex);wr(c,target+2,ey);wr(c,target+3,0x5A);
+  wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);wr(c,0xC21C,0x63);wr(c,0xC21D,0);wr(c,0xC5CF,phase);wr(c,0xC5CE,frame);wr(c,0xC5CD,0x37);wr(c,0xC5CB,0x39);wr(c,0xC5CC,0x3C);wr(c,0xC5EA,0x5A);wr(c,0xC5EF,0x37);wr(c,0xC5F0,0x39);wr(c,0xC5F3,0x3C);wr(c,0xC5F4,0x5A);wr(c,0xC5F5,0xA5);wr(c,0xC5F7,0x5A);
+  cpu->af=0x5A00|(phase&15)<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0xD000;call(c,0x5117);
+  unsigned x=(rx-0xC9)&255,y=(ry-0xD0)&255,tx=(ex-0xC9)&255,ty=(ey-0xD0)&255,dx=x>tx?x-tx:tx-x,dy=y>ty?y-ty:ty-y,hi=y>ty?y:ty,lo=y<ty?y:ty,f=0x40|(dy?0:0x80)|((hi&15)<(lo&15)?0x20:0);
+  require(cpu->af==(dy<<8|f)&&cpu->bc==(lo<<8|0x37)&&cpu->de==0xD201&&cpu->hl==target+3&&rd(c,0xC5EB)==x&&rd(c,0xC5EC)==y&&rd(c,0xC5ED)==tx&&rd(c,0xC5EE)==ty&&rd(c,0xC5F1)==dx&&rd(c,0xC5F2)==dy&&rd(c,0xC5F6)==frame%254,"A12 secondary reader all phase frame bytes two sequential marker skips exact coordinates distances registers",phase*256+frame);
+  require(rd(c,0xC5CF)==phase&&rd(c,0xC5CE)==frame&&rd(c,0xC5CD)==0x37&&rd(c,0xC5CB)==0x39&&rd(c,0xC5CC)==0x3C&&rd(c,0xC5EA)==0x5A&&rd(c,0xC5EF)==0x37&&rd(c,0xC5F0)==0x39&&rd(c,0xC5F3)==0x3C&&rd(c,0xC5F4)==0x5A&&rd(c,0xC5F5)==0xA5&&rd(c,0xC5F7)==0x5A&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xFFAD)==0x63&&rd(c,0xFFAE)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0,"A12 secondary reader retains count threshold counter steps guards and mapping mirror distinction",phase*256+frame);
+ }
+ }
+ { /* Tick prefixes stop at the original movement/reader calls, preserving actual stack. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ for(unsigned family=0;family<2;family++)for(unsigned i=0;i<256;i++)for(unsigned j=0;j<256;j++){
+  unsigned counter=family?7:i,threshold=family?7:j,frame=family?i:(i*37+j)&255,count=family?j:(j&1)?(frame+1)&255:(frame+2)&255,next=(frame+1)&255;bool below=counter<threshold,wrap=next==count;unsigned target=below?0x526A:0x5117;
+  wr(c,0xC5CC,counter);wr(c,0xC5CB,threshold);wr(c,0xC5CE,frame);wr(c,0xC5CD,count);wr(c,0xC5CF,0x37);wr(c,0xC5F6,0x39);wr(c,0xC5CA,0x3C);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|((i^j)&15)<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x50DF;unsigned steps=0;while(cpu->pc!=target&&steps++<80)c->step(c);
+  unsigned diff=(counter-threshold)&255,f=below?0x40|(diff?0:0x80)|((counter&15)<(threshold&15)?0x20:0)|(counter<threshold?0x10:0):wrap?0x80:0x40|(next==count?0x80:0)|((next&15)<(count&15)?0x20:0)|(next<count?0x10:0),sp=below?0xCFFE:wrap?0xCFFA:0xCFFC;
+  require(cpu->pc==target&&cpu->sp==sp&&cpu->af==((below?diff:wrap?0:next)<<8|f)&&cpu->bc==((below?threshold:count)<<8|0x37)&&cpu->de==0x1234&&cpu->hl==(below?0x5678:0x6EE0)&&rd(c,0xC5CE)==(below?frame:wrap?0:next)&&rd(c,0xC5CC)==counter&&rd(c,0xC5CB)==threshold&&rd(c,0xC5CD)==count&&rd(c,0xC5CF)==0x37&&rd(c,0xC5F6)==0x39&&rd(c,0xC5CA)==0x3C,"A12 secondary tick threshold frame count wrap original movement or reader boundary",family*65536+i*256+j);
+  if(!below)require((rd(c,sp)|(rd(c,sp+1)<<8))==(wrap?0x5101:0x510F)&&(!wrap||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(frame<<8|0x40|(frame?0:0x80)|((frame&15)==15?0x20:0))),"A12 secondary tick actual call and saved AF before reader",family*65536+i*256+j);
+ }
+ }
+ { /* Reset prefixes stop at the real reader; explicit suffixes omit reader execution. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x61);
+ for(unsigned frame=0;frame<256;frame++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5CE,frame);wr(c,0xC5CC,0x37);wr(c,0xC5CF,0x39);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x50D8;unsigned steps=0;while(cpu->pc!=0x5117&&steps++<20)c->step(c);
+  require(cpu->pc==0x5117&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x50DE&&cpu->af==(0x5A00|flags<<4)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x6EE0&&rd(c,0xC5CE)==frame&&rd(c,0xC5CC)==0x37&&rd(c,0xC5CF)==0x39,"A12 secondary load prefix original reader call stack registers fields",frame*16+flags);
+  wr(c,0xC5CE,frame);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x510F);unsigned next=(frame-1)&255,f=0x40|(next?0:0x80)|((frame&15)==0?0x20:0)|(flags&1?0x10:0);
+  require(cpu->af==(next<<8|f)&&rd(c,0xC5CE)==next&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678,"A12 secondary ordinary suffix decrements reader frame byte with flags",frame*16+flags);
+  wr(c,0xC5CE,0x37);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFC;wr(c,0xCFFC,flags<<4);wr(c,0xCFFD,frame);wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x5101;steps=0;while(cpu->pc!=0xC100&&steps++<20)c->step(c);
+  require(cpu->pc==0xC100&&cpu->sp==0xD000&&cpu->af==(frame<<8|flags<<4)&&rd(c,0xC5CE)==frame&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678,"A12 secondary wrap suffix pops original saved AF and restores frame synthetic stack",frame*16+flags);
+ }
+ }
+ { /* Complete variant0 through both actual movement paths and zero availability. */
+ for(unsigned counter=0;counter<4;counter++)for(unsigned accel=0;accel<256;accel++){
+  unsigned x=(accel*37)&255,y=(accel*19)&255,tx=(x+23)&255,ty=(y-17)&255,dx=x>tx?x-tx:tx-x,dy=y>ty?y-ty:ty-y;struct A12StepModel sx=a12StepModel(dx,7,counter),sy=a12StepModel(dy,7,counter);unsigned nx=(x<tx?x+sx.q:x-sx.q)&255,ny=(y<ty?y+sy.q:y-sy.q)&255,next=(counter+(accel?4:1))&255,f=accel?((next?0:0x80)|(((next-1)&15)==15?0x20:0)):0xA0;
+  prepareA12EffectMapping(c,0x63);wr(c,0xC5D7,x);wr(c,0xC5D8,y);wr(c,0xC5D9,tx);wr(c,0xC5DA,ty);wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5EB,x);wr(c,0xC5EC,y);wr(c,0xC5ED,tx);wr(c,0xC5EE,ty);wr(c,0xC5F1,dx);wr(c,0xC5F2,dy);wr(c,0xC5CB,7);wr(c,0xC5CC,counter);wr(c,0xC73A,accel);wr(c,0xC1C7,0);wr(c,0xC5F5,0x37);wr(c,0xC5CE,0x39);wr(c,0xC5CF,0x3C);cpu->af=0x5A00|(accel&15)<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x4A36,400000);
+  require(cpu->af==(accel<<8|f)&&cpu->bc==7&&cpu->de==0x1234&&cpu->hl==0xC5CC&&rd(c,0xC5D7)==nx&&rd(c,0xC5D8)==ny&&rd(c,0xC5D5)==nx&&rd(c,0xC5D6)==ny&&rd(c,0xC5EB)==nx&&rd(c,0xC5EC)==ny&&rd(c,0xC5E9)==nx&&rd(c,0xC5EA)==ny&&rd(c,0xC5CC)==next&&rd(c,0xC5CB)==7&&rd(c,0xC73A)==accel&&rd(c,0xC5F5)==0&&rd(c,0xC1C7)==0&&rd(c,0xC5CE)==0x39&&rd(c,0xC5CF)==0x3C&&rd(c,0xC21C)==0x61&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==0x61&&rd(c,0xC115)==5&&rd(c,0xFF9D)==0x61,"A12 variant0 full secondary and primary movement copies two zero-availability emitters counter",counter*256+accel);
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
