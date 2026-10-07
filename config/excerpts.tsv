@@ -149,9 +149,7 @@ bank	start	end	symbol
 0A	7244	7801	LocalMenuTilesAfterTemplate
 0A	7802	7FFF	ResidualROM0A_7802
 0B	4000	41E9	InitializeBankA16
-0B	41EA	4226	ResidualROM0B_41EA
 0B	4227	4311	BankA16_4227
-0B	4312	5FFF	ResidualROM0B_4312
 0B	6000	6A92	ResidualROM0B_6000
 0B	6A93	6AC3	CatalogRecordPointer
 0B	6AC4	7FFF	ResidualROM0B_6AC4
@@ -372,3 +370,9 @@ bank	start	end	symbol
 2E	57B3	57B3	ResidualROM2E_57B3
 2E	5E3A	5E3C	BankB5CSlot3FirstLoopEdge
 2E	5E3D	5FFF	ResidualROM2E_5E3D
+0B	41EA	4226	BankA16StartupStatusCallback
+0B	4AF0	4B35	InitializeA16MenuDisplay
+0B	4B36	4B77	FillA16MenuBackgroundPlanes
+0B	4B78	4B90	ClearA16MenuCallbacks
+0B	4312	4AEF	ResidualROM0B_4312
+0B	4B91	5FFF	ResidualROM0B_4B91

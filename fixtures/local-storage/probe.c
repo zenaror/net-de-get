@@ -1778,6 +1778,60 @@ int main(int argc,char **argv){
 
  }
  }
+ { /* A16 menu helper units; LCD disabled and interrupts suppressed. */
+ wr(c,0x27FF,0x16);wr(c,0x2800,0);wr(c,0xFF40,0);
+ const unsigned zeroFields[]={0xC1C2,0xC1C4,0xC5A4,0xC5A5,0xC5A9};
+ for(unsigned pattern=0;pattern<2;pattern++)for(unsigned initialPlane=0;initialPlane<2;initialPlane++){
+  unsigned value=pattern?0x5A:0xA5;
+  for(unsigned i=0;i<5;i++)wr(c,zeroFields[i],value);
+  wr(c,0xC5A3,value);wr(c,0xC1C3,0x37);wr(c,0xC1C5,0x38);wr(c,0xC5A6,0x39);wr(c,0xFF4F,initialPlane);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x4AF0;
+  unsigned steps=0;while(cpu->pc!=0x4B07&&steps++<100)c->step(c);
+  bool exact=true;for(unsigned i=0;i<5;i++)if(rd(c,zeroFields[i]))exact=false;
+  require(cpu->pc==0x4B07&&cpu->sp==0xCFFE&&exact&&rd(c,0xC5A3)==1&&
+          (rd(c,0xFF4F)&1)==0&&rd(c,0xC1C3)==0x37&&rd(c,0xC1C5)==0x38&&rd(c,0xC5A6)==0x39,
+          "A16 menu initialization prefix stops before SYS0 resource call",pattern*2+initialPlane);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);wr(c,0x97FF,0x37+plane);wr(c,0x9C00,0x39+plane);
+   for(unsigned i=0;i<1024;i++)wr(c,0x9800+i,value);
+  }
+  wr(c,0xFF4F,initialPlane);call(c,0x4B36);
+  exact=cpu->hl==0x9C00&&cpu->bc==0&&(rd(c,0xFF4F)&1)==1;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   if(rd(c,0x97FF)!=0x37+plane||rd(c,0x9C00)!=0x39+plane)exact=false;
+   for(unsigned i=0;i<1024;i++)if(rd(c,0x9800+i)!=(plane?0:0x80))exact=false;
+  }
+  require(exact,"A16 LCD-off background fills1024 cells on both planes with guards",pattern*2+initialPlane);
+ }
+ for(unsigned mode=0;mode<2;mode++){
+  unsigned value=mode?0x5A:0xA5;
+  wr(c,0xFF8E,value);wr(c,0xFF8F,value);wr(c,0xFF92,value);wr(c,0xFF93,value);
+  wr(c,0xC67F,0xC3);wr(c,0xC680,0x37);wr(c,0xC681,0x38);
+  wr(c,0xC682,0xC3);wr(c,0xC683,0x39);wr(c,0xC684,0x3A);
+  call(c,0x4B21);
+  require(rd(c,0xFF8E)==0x91&&rd(c,0xFF8F)==0x4B&&rd(c,0xFF92)==0&&rd(c,0xFF93)==0&&
+          rd(c,0xC67F)==0xD9&&rd(c,0xC680)==0x37&&rd(c,0xC681)==0x38&&
+          rd(c,0xC682)==0xD9&&rd(c,0xC683)==0x39&&rd(c,0xC684)==0x3A,
+          "A16 independent setup tail installs4B91 callback and empty interrupt stubs",mode);
+  wr(c,0xC219,value);wr(c,0xC21A,value);wr(c,0xC1C2,value);wr(c,0xC1C4,0x73);
+  call(c,0x4B78);
+  require(rd(c,0xFF8E)==0&&rd(c,0xFF8F)==0&&rd(c,0xFF92)==0&&rd(c,0xFF93)==0&&
+          rd(c,0xC67F)==0xD9&&rd(c,0xC682)==0xD9&&rd(c,0xC219)==0&&rd(c,0xC21A)==0&&
+          rd(c,0xC1C2)==0&&rd(c,0xC1C4)==0x73,
+          "A16 full callback clear also clears2723 pointer and C1C2",mode);
+ }
+ const unsigned callbackA[]={0,1,255};
+ for(unsigned mode=0;mode<3;mode++){
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->a=callbackA[mode];cpu->pc=0x41EA;
+  unsigned target=mode?0x4223:0x41F3,steps=0;while(cpu->pc!=target&&steps++<100)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xCFFE&&cpu->de==(mode?0x4F5A:0x3ED8)&&
+          (mode?cpu->a==0x0D:cpu->bc==0x02A3),
+          "A16 status callback branch prefix stops before storage/display callee",mode);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

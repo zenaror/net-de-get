@@ -44,7 +44,7 @@ InitializeBankA16::
 	call ResidentJump0285
 	ld [$C637], a
 	call ResidentJump0288
-	call $4AF0
+	call InitializeA16MenuDisplay
 	ld a, $0B
 	ld de, $4F5A
 	call ResidentJump01E6
@@ -84,7 +84,7 @@ InitializeBankA16::
 	ld a, [$C220]
 	and a, a
 	jp nz, .at4093
-	call $4B78
+	call ClearA16MenuCallbacks
 	ld a, $06
 	ld [$37FF], a
 	ldh [$FFAD], a
@@ -95,7 +95,7 @@ InitializeBankA16::
 	and a, a
 	jp z, .at4158
 	push af
-	call $4AF0
+	call InitializeA16MenuDisplay
 	ld a, $04
 	ld hl, $4EDA
 	call $0177
@@ -112,7 +112,7 @@ InitializeBankA16::
 	ld a, [$C21F]
 	and a, a
 	jr nz, .at40CB
-	ld de, $41EA
+	ld de, BankA16StartupStatusCallback
 	call ResidentJump01D7
 	ld a, $06
 	ld de, $4F5A
@@ -171,7 +171,7 @@ InitializeBankA16::
 	jp nz, .at413B
 	ld de, $0000
 	call ResidentJump01D7
-	call $4B78
+	call ClearA16MenuCallbacks
 .at4158:
 	ld a, [$C700]
 	ld c, a

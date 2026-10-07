@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **51,066 assertions**.
+and stack assertions, the maintained fixture reports **51,089 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -394,3 +394,17 @@ from original zero-count loops, complete repeated playback, timing or audio.
 The unit adds60 assertions. The handler addresses are verified against the
 published symbol map; the initial erroneous43E6 entry was rejected before
 publication and corrected to43E7.
+
+### A16 menu initialization and status callback
+
+Four forced4AF0 prefixes check five cleared fields, C5A3=1 and VBK0 before
+4B07 calls the external resource helper. Four full4B36 calls with LCD off
+fill1024 cells on each VRAM plane (80 in plane0,00 in plane1), retain guards,
+and return with BC0/HL9C00/VBK1. Patterns and initial VBK are varied.
+Two independent4B21 tails install4B91 in HRAM callback0 and empty the other
+callback/stubs, retaining unused stub operands. Two complete4B78 calls clear
+all callbacks, C219/C21A through2723 and C1C2 while retaining C1C4.
+Three41EA branch prefixes stop before storage/display calls, checking their
+arguments for A0/1/FF. The unit adds23 assertions, without establishing complete
+initialization/status execution, LCD-on safety, natural menu or prior IME
+preservation. DI/EI remain the original instructions.

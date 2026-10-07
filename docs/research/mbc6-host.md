@@ -1187,3 +1187,28 @@ This does not establish a natural zero-loop exit. Initial wrong slot0 entry
 The unit adds60 assertions,total51066; private retains1114 published5008cb7
 symbols. No natural IRQ/menu, complete repeated playback, timing or audio
 claim follows from these probes.
+
+## A16 startup status callback and menu helpers
+
+**PROBABLE**, static callers and bounded forced CPU cases.
+engine/startup/bank_a16_menu.asm extracts physical0B:41EA..4226 and
+4AF0..4B90,222 bytes. InitializeBankA16 now names the status callback and
+menu setup/cleanup targets; published addresses and ResidualROM0B_41EA remain.
+The4AF0 entry clears C1C2/C1C4/C5A4/C5A5/C5A9, sets C5A3=1 and VBK0,
+then calls resource helpers. Its independent4B21 tail installs callback4B91,
+clears HRAM callback1 and writes D9 to both interrupt stubs, retaining operands.
+4B36 fills9800..9BFF with80 in plane0 and00 in plane1, ending VBK1/BC0/HL9C00.
+It polls STAT bit1 around each write and alternates DI/EI literally.
+4B78 empties callbacks/stubs, writes DE0 through resident01DA/2723 toC219/C21A,
+then clearsC1C2. Status41EA branches on A: zero preparesBC02A3/DE3ED8 before
+OpenLocalStorageRecord; nonzero prepares A0D/DE4F5A before resident01E3.
+The success branch statically copies16 bytes from opened HL+0112 toC655,
+terminates atC665 and calls01E9; this branch is not executed by these probes.
+
+Four LCD-off full fills verify all2048 cells, guards and final registers.
+Two full callback clears and two independent setup tails verify the callback
+fields and retained stub operands. Seven prefixes stop before resource calls.
+23 new assertions give51089 total; private retains1150 published9d82a44 symbols.
+No complete init/status callback, active-LCD behavior, natural menu/IRQ timing
+or prior IME preservation is established. Remaining gaps4312..4AEF and
+4B91..5FFF are still uninterpreted, including installed callback4B91.
