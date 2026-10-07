@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,724 assertions**.
+and stack assertions, the maintained fixture reports **1,734 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -68,3 +68,10 @@ the original nine-byte column at `$4224` in plane 1, and the independent `$D309`
 6×10 tail starting in planes 0/1. Plane 1 at entry may produce only one pass;
 these fixtures do not establish what the skipped callbacks configure naturally.
 Zero dimensions, arbitrary pointers and LCD-on safety remain outside coverage.
+
+Palette fixtures at `$018C` cover inactive/active `$C221`, both 64-byte palette
+sets and AF/BC/DE/HL preservation, LCD off. The original installer `$09EB`
+copies its ten-byte DMA template into disposable HRAM; checks cover exact bytes,
+adjacent-byte preservation and the 160-byte OAM transfer. One integrated fixture
+enters `$5A08` with the installed DMA, inactive palettes and one queued byte.
+This is synthetic full-entry coverage, not natural setup or hardware timing proof.

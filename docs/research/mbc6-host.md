@@ -448,3 +448,23 @@ check consumed destinations, copied data, row stride, padding and flags. No
 natural callback preparation, zero dimensions, arbitrary destination bounds or
 LCD-on safety follows. Suite: **1724 assertions**. Source: **48 sections /
 6056 byte-exact bytes**.
+
+
+### Palette callback and relocated OAM DMA template
+
+**PROBABLE static interpretation:** `$018C` reaches `$0995-$09EA`, preserving
+AF and, on the active `$C221` path, BC/HL while it uploads 64 bytes to each
+CGB palette data port from `$C222`. The source flag is cleared first.
+`$09EB-$09F8` copies exactly ten executable bytes from `$09F9-$0A02` into
+HRAM `$FF80-$FF89`. That template loads `$C0`, triggers OAM DMA at `$FF46`,
+waits using the original 40-iteration loop and returns. The relative branch
+bytes remain valid after relocation.
+
+LCD-off, forced-entry fixtures check inactive/active palette data, preserved
+registers, exact HRAM bytes with adjacent-byte sentinel and all 160 OAM bytes
+from synthetic `$C000`. An integrated fixture enters the original `$5A08`,
+executes the installed DMA and inactive-palette callback, then consumes a
+one-byte descriptor. This adds bounded synthetic full-entry coverage while
+retaining the earlier after-callback fixtures. No natural initialization, LCD-on
+behavior or physical DMA timing is established. Suite: **1734 assertions**;
+source: **52 sections / 6169 byte-exact bytes**.

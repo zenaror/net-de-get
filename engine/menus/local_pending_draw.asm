@@ -3,8 +3,8 @@
 ; CPU fixtures enter at $5A0E, after the two external callbacks.
 SECTION "Pending local menu transfers", ROMX[$5A08], BANK[$0A]
 ProcessLocalMenuTransfers::
-	call $FF80
-	call $018C
+	call hOAMDMARoutine
+	call UploadPendingCGBPalettes
 ProcessLocalMenuTransfersAfterCallbacks::
 	ld a, [$D021]
 	and a

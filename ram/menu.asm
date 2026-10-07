@@ -32,3 +32,5 @@ DEF rSVBK EQU $FF70
 DEF hHeldButtons EQU $FF96
 
 DEF wLocalMenuState EQU $D000 ; byte loaded by $406C dispatcher
+
+DEF hOAMDMARoutine EQU $FF80 ; copied ten-byte executable template

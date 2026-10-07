@@ -357,6 +357,57 @@ int main(int argc,char **argv){
   }
   require(ok,"D309 tail rectangle, current plane and source advancement",firstPlane);
  }
+ /* Palette upload through its original thunk, LCD off. */
+ for(unsigned pending=0;pending<2;pending++){
+  for(unsigned i=0;i<128;i++){
+   unsigned value=(i*37+11)&(i%2?127:255);wr(c,0xC222+i,value);
+  }
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+   wr(c,palette?0xFF6A:0xFF68,i);wr(c,palette?0xFF6B:0xFF69,0x19);
+  }
+  wr(c,0xC221,pending);cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=0x5678;cpu->hl=0x9ABC;
+  call(c,0x018C);
+  unsigned ok=rd(c,0xC221)==0&&cpu->af==0x5AB0&&cpu->bc==0x1234&&
+              cpu->de==0x5678&&cpu->hl==0x9ABC;
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+   wr(c,palette?0xFF6A:0xFF68,i);
+   unsigned sourceIndex=palette*64+i;
+   unsigned value=pending?((sourceIndex*37+11)&(sourceIndex%2?127:255)):0x19;
+   ok&=rd(c,palette?0xFF6B:0xFF69)==value;
+  }
+  require(ok,"pending palette flag, register preservation and both palettes",pending);
+ }
+ /* Install and execute the original ten-byte DMA template in disposable HRAM. */
+ for(unsigned i=0;i<10;i++)wr(c,0xFF80+i,0xA5);
+ wr(c,0xFF8A,0x37);call(c,0x09EB);
+ unsigned installed=rd(c,0xFF8A)==0x37;
+ for(unsigned i=0;i<10;i++)installed&=rd(c,0xFF80+i)==rd(c,0x09F9+i);
+ require(installed,"exact HRAM DMA template and adjacent byte preserved",0);
+ for(unsigned i=0;i<160;i++)wr(c,0xC000+i,(i*37+11)&255);
+ call(c,0xFF80);
+ unsigned dmaOK=1;for(unsigned i=0;i<160;i++)dmaOK&=rd(c,0xFE00+i)==((i*37+11)&255);
+ require(dmaOK,"HRAM DMA copies all 160 OAM bytes",0);
+ /* Full original consumer entry, including DMA and inactive-palette callback. */
+ for(unsigned i=0;i<60;i++)wr(c,0xD028+i,0);
+ for(unsigned slot=0;slot<10;slot++){
+  wr(c,0xD028+slot*6,255);wr(c,0xD029+slot*6,255);
+ }
+ wr(c,0xD028,0x40);wr(c,0xD029,0x98);wr(c,0xD02A,1);
+ wr(c,0xD02B,1);wr(c,0xD02C,0);wr(c,0xD02D,0xD8);wr(c,0xD800,0x67);
+ wr(c,0xD021,0x80);wr(c,0xD309,0);wr(c,0xC221,0);
+ for(unsigned plane=0;plane<2;plane++){
+  wr(c,0xFF4F,plane);wr(c,0x9840,0xA5);wr(c,0x9841,0xA5);
+ }
+ for(unsigned i=0;i<160;i++)wr(c,0xC000+i,(i*19+7)&255);
+ wr(c,0xFF4F,0);call(c,0x5A08);
+ unsigned integrated=rd(c,0xD021)==0&&rd(c,0xC221)==0&&rd(c,0xD309)==0&&
+                     rd(c,0xD028)==255&&rd(c,0xD029)==255;
+ for(unsigned i=0;i<160;i++)integrated&=rd(c,0xFE00+i)==((i*19+7)&255);
+ for(unsigned plane=0;plane<2;plane++){
+  wr(c,0xFF4F,plane);
+  integrated&=rd(c,0x9840)==(plane?0xA5:0x67)&&rd(c,0x9841)==0xA5;
+ }
+ require(integrated,"full pending consumer with installed DMA and palette callback",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

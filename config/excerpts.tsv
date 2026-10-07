@@ -47,3 +47,7 @@ bank	start	end	symbol
 0A	5208	5A07	LocalMenuFullTilemap
 0A	5A08	5B25	ProcessLocalMenuTransfers
 0A	4224	422C	LocalMenuColumn
+00	018C	018E	UploadPendingCGBPalettes
+00	0995	09EA	UploadPendingCGBPalettesBody
+00	09EB	09F8	InstallOAMDMARoutine
+00	09F9	0A02	OAMDMATemplate
