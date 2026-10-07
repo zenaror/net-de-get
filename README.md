@@ -32,3 +32,11 @@ make compare REFERENCE_ROM="/caminho/externo/Net de Get - Minigame @ 100 (Japan)
 O layout RGBDS usa bancos físicos de 16 KiB. A rotina de títulos ocupa o início do banco físico `$0A`, mas executa com o seletor MBC6 A `$14` de 8 KiB. O seletor não é um identificador de banco RGBDS.
 
 A rotina nova preserva o uso duplo de `$C5C5`: primeiro guarda o seletor B, depois recebe o Index do jogo, que é usado no final. Não foi corrigida a lógica da ROM. A cópia do título limita a leitura a `$18` bytes e termina a string; a semântica dos nomes permanece `PROBABLE`. As observações naturais específicas estão em [minigame-maintenance.md](docs/research/minigame-maintenance.md).
+
+### Trechos seguintes
+
+A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 seletores nativos, com `$FF` na última entrada. O papel dessa última entrada ainda não foi estabelecido.
+
+`home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
+
+A montagem parcial contém agora **496 bytes em 10 seções**. A montagem e ligação RGBDS foram concluídas; a comparação byte a byte dos novos trechos ainda não foi executada. O comparador opcional liga todos os objetos juntos para resolver as referências entre arquivos e compara apenas as seções emitidas.
