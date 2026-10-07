@@ -300,6 +300,29 @@ static void probeA12TileCycle(struct mCore *c,unsigned seed,unsigned tile,unsign
   exact&=rd(c,address)==expected;
  }}require(exact,"A12 paired cycle both entire VRAM planes exact bounded footprint",index);wr(c,0xFF4F,plane);}
 }
+/* Prepared upper-stream program: all selectors use the same one-channel record. */
+static void prepareA12EffectAudio(struct mCore *c){
+ wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xCF92,0);wr(c,0xCF93,0xDB);wr(c,0xCF89,0);
+ for(unsigned i=0;i<128;i++){wr(c,0xDB00+2*i,0x10);wr(c,0xDB01+2*i,0xDC);}
+ wr(c,0xDC10,1);wr(c,0xDC11,0);wr(c,0xDC15,0);wr(c,0xDC16,0xDD);wr(c,0xDD00,7);
+ for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,0x5A);
+}
+static void prepareA12EffectMapping(struct mCore *c,unsigned requested){
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);wr(c,0xFFAB,0x12);wr(c,0xFFAC,0);wr(c,0xC113,0x12);wr(c,0xC114,0);
+ wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);wr(c,0xFF9D,0x37);wr(c,0xFF9E,0x39);wr(c,0xC21C,requested);wr(c,0xC21D,0);
+}
+static void probeA12TileEffect(struct mCore *c,unsigned width,unsigned height,unsigned frame,unsigned flags,unsigned plane,unsigned lcd,bool whole,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;prepareA12EffectMapping(c,0x65);
+ unsigned area=width*height,advance=2*(area&255),header[]={1,2,width,height,3,7,1};
+ for(unsigned i=0;i<7;i++)wr(c,0xD800+i,header[i]);for(unsigned i=0;i<2*area;i++)wr(c,0xD807+i,(i*37+width+height)&255);wr(c,0xD807+2*area,0x33);
+ const unsigned marker[]={255,0x5A,0,0xD8};for(unsigned i=0;i<4;i++)wr(c,0xD100+i,marker[i]);wr(c,0xD0FF,0x37);wr(c,0xD104,0x39);
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);if(whole){for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}else{wr(c,0x9840,0xA5);wr(c,0x9841,0xA5);wr(c,0x9842,0xA5);}}
+ wr(c,0xFF4F,plane);wr(c,0xC5CE,frame);wr(c,0xC5E5,0xA5);wr(c,0xC5E7,0x5A);wr(c,0xC5E1,0x37);wr(c,0xC5FD,0x39);cpu->af=0x5A00|flags;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0xD100;if(lcd)wr(c,0xFF40,0x91);call(c,0x4FAF);
+ unsigned end=0xD807+advance;bool exact=cpu->af==0x0080&&cpu->bc==(width<<8|height)&&cpu->de==0xD807&&cpu->hl==0xD104&&rd(c,0xC5CE)==((frame+1)&255)&&rd(c,0xC5E5)==0&&rd(c,0xC5E7)==0&&rd(c,0xC5F9)==1&&rd(c,0xC5FA)==2&&rd(c,0xC5E2)==width&&rd(c,0xC5E3)==height&&rd(c,0xC5E6)==3&&rd(c,0xC5E4)==7&&rd(c,0xC5E8)==1&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==end&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==0xD807&&rd(c,0xC5E1)==0x37&&rd(c,0xC5FD)==0x39&&rd(c,0xD0FF)==0x37&&rd(c,0xD104)==0x39&&rd(c,0xFFAD)==5&&rd(c,0xC115)==5&&rd(c,0xFF9D)==width&&rd(c,0xFF9E)==0x39&&(rd(c,0xFF4F)&1)==plane;
+ require(exact,"A12 FF complete original copy register header low-product pointer index reset guards and mapper",index);
+ wr(c,0xFF40,0);exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);if(whole){for(unsigned i=0;i<8192;i++){bool tile=i>=0x1841&&i<0x1841+height*32&&((i-0x1841)%32)<width;unsigned expected=tile?((bank*area+((i-0x1841)/32)*width+(i-0x1841)%32)*37+width+height)&255:0xA5;exact&=rd(c,0x8000+i)==expected;}}else{exact&=rd(c,0x9840)==0xA5&&rd(c,0x9841)==((bank*area*37+width+height)&255)&&rd(c,0x9842)==0xA5;}}
+ for(unsigned i=0;i<2*area;i++)exact&=rd(c,0xD807+i)==((i*37+width+height)&255);exact&=rd(c,0xD807+2*area)==0x33;require(exact,"A12 FF exact two-plane payload or full VRAM and immutable synthetic source guard",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4098,6 +4121,42 @@ int main(int argc,char **argv){
   require(rd(c,0xC5CD)==17&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5D0)==0x37&&rd(c,0xC5CB)==0x39,"A12 initial effect prefix sets count before untouched frame fields",marker*4096+frame*16+flags);
  }
  bool untouched=true;for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)untouched&=rd(c,0x8000+i)==0xA5;}require(untouched,"A12 common reader and bounded effect prefixes leave both entire VRAM planes untouched",0);
+ }
+ { /* FE all byte request prefixes, then real upper-stream bodies. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ for(unsigned code=0;code<256;code++)for(unsigned flags=0;flags<16;flags++){
+  const unsigned marker[]={254,code,0xA5,0x5A};for(unsigned i=0;i<4;i++)wr(c,0xD100+i,marker[i]);wr(c,0xC5CE,0x37);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0xD100;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x50C8;
+  unsigned steps=0;while(cpu->pc!=0x24F&&steps++<100)c->step(c);
+  require(cpu->pc==0x24F&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x50CE&&cpu->hl==0xD102&&cpu->af==(code<<8|flags<<4)&&cpu->bc==0xBE37&&cpu->de==0x1234&&rd(c,0xC5CE)==0x37,"A12 FE all request bytes flags exact actual audio boundary and unchanged index",code*16+flags);
+ }
+ for(unsigned code=0;code<256;code++)for(unsigned frame=0;frame<256;frame++){
+  prepareA12EffectMapping(c,0x63);prepareA12EffectAudio(c);wr(c,0xD100,254);wr(c,0xD101,code);wr(c,0xD102,0xA5);wr(c,0xD103,0x5A);wr(c,0xD0FF,0x37);wr(c,0xD104,0x39);wr(c,0xC5CE,frame);unsigned flags=(code&15)<<4;
+  cpu->af=0x5A00|flags;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0xD100;call(c,0x50C8);
+  unsigned next=(frame+1)&255,f=(flags&0x10)|(next?0:0x80)|((frame&15)==15?0x20:0);bool exact=cpu->af==(next<<8|f)&&cpu->bc==0xBE37&&cpu->de==0x1234&&cpu->hl==0xD104&&rd(c,0xC5CE)==next&&rd(c,0xCF82)==(code>=128?0:code)&&rd(c,0xCF89)==(code>=128?0x11:0)&&rd(c,0xD0FF)==0x37&&rd(c,0xD104)==0x39&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFFAD)==5&&rd(c,0xC115)==5;
+  for(unsigned i=0;i<128;i++){unsigned expected=0x5A;if(code>=128&&i>=64&&i<80)expected=i==64?1:i==65?0xDD:i==68?8:0;exact&=rd(c,0xCF00+i)==expected;}
+  require(exact,"A12 FE complete all request index bytes INC flags real upper install fields preserved lower slots mapper",code*256+frame);
+ }
+ }
+ { /* FF complete all byte frame indices and flags, plus wrapped area shapes. */
+ for(unsigned frame=0;frame<256;frame++)for(unsigned flags=0;flags<16;flags++)probeA12TileEffect(c,1,1,frame,flags<<4,flags&1,0,false,frame*16+flags);
+ const unsigned widths[]={1,2,3,16,17,31},heights[]={1,3,2,16,17,9};
+ for(unsigned shape=0;shape<6;shape++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeA12TileEffect(c,widths[shape],heights[shape],255,0xF0,plane,lcd,true,4096+shape*4+plane*2+lcd);
+ }
+ { /* Complete reader with actual FF, FE and FF+FE bodies; no injected returns. */
+ for(unsigned kind=1;kind<=3;kind++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)for(unsigned wrap=0;wrap<2;wrap++){
+  prepareA12EffectMapping(c,0x63);prepareA12EffectAudio(c);bool tile=kind&1,audio=kind&2;unsigned frame=wrap?255:0,effects=tile+audio,start=0xD201+frame*4,p=start;
+  wr(c,0xD000,0);wr(c,0xD001,0xD2);wr(c,0xD200,7);
+  const unsigned header[]={1,2,1,1,3,7,1};for(unsigned i=0;i<7;i++)wr(c,0xD800+i,header[i]);wr(c,0xD807,0x23);wr(c,0xD808,0x45);
+  if(tile){const unsigned marker[]={255,0x5A,0,0xD8};for(unsigned i=0;i<4;i++)wr(c,p+i,marker[i]);p+=4;}
+  if(audio){const unsigned marker[]={254,0x80,0xA5,0x5A};for(unsigned i=0;i<4;i++)wr(c,p+i,marker[i]);p+=4;}
+  const unsigned records[]={2,0xCE,0xD9,4,1,0xD1,0xDD,0x53};for(unsigned i=0;i<8;i++)wr(c,p+i,records[i]);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);wr(c,0xC5CF,0);wr(c,0xC5CE,frame);wr(c,0xC5E5,0xA5);wr(c,0xC5E7,0x5A);cpu->af=0x5AF0;cpu->bc=0xBE37;cpu->hl=0xD000;if(lcd)wr(c,0xFF40,0x91);call(c,0x4D82);
+  bool exact=cpu->af==0x0440&&cpu->bc==(tile?0x0901:0x0937)&&cpu->de==(tile?0xD807:0xD201)&&cpu->hl==p+8&&rd(c,0xC5CE)==((frame+effects)&255)&&rd(c,0xC5CD)==7&&rd(c,0xC5D0)==2&&rd(c,0xC5D7)==5&&rd(c,0xC5D8)==9&&rd(c,0xC5D9)==8&&rd(c,0xC5DA)==13&&rd(c,0xC5DD)==3&&rd(c,0xC5DE)==4&&rd(c,0xC5D1)==1&&rd(c,0xC5FD)==0x53&&rd(c,0xC5CB)==4&&rd(c,0xFFAD)==0x63&&rd(c,0xC115)==0x63&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&(rd(c,0xFF4F)&1)==plane;
+  if(tile)exact&=rd(c,0xC5E5)==0&&rd(c,0xC5E7)==0&&rd(c,0xFF9D)==1&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==0xD809;
+  if(audio)exact&=rd(c,0xCF40)==1&&rd(c,0xCF41)==0xDD&&rd(c,0xCF44)==8&&rd(c,0xCF82)==0&&rd(c,0xCF89)==0x11;
+  require(exact,"A12 full real marker chains wrap final register field mapper mirrors and scratch contracts",kind*8+plane*4+lcd*2+wrap);
+  wr(c,0xFF40,0);exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==(tile&&i==0x1841?(bank?0x45:0x23):0xA5);}require(exact,"A12 full marker chain both complete VRAM planes exact original effects",kind*8+plane*4+lcd*2+wrap);
+ }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

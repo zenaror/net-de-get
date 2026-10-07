@@ -134,11 +134,13 @@ bank	start	end	symbol
 09	4DFE	4E79	ResidualROM09_4DFE
 09	4E7A	4EA2	NormalizeA12ResourceCoordinates
 09	4EA3	4EE9	ComputeA12ResourceDistances
-09	4EEA	4FFE	ResidualROM09_4EEA
+09	4EEA	4FAE	ResidualROM09_4EEA
+09	4FAF	4FFE	ApplyA12ResourceTileEffect
 09	4FFF	5050	CopyA12TileFrame
 09	5051	5092	TickA12TileFrame
 09	5093	50C7	InitializeA12TileFrames
-09	50C8	5313	ResidualROM09_50C8
+09	50C8	50D7	ApplyA12ResourceAudioEffect
+09	50D8	5313	ResidualROM09_50D8
 09	5314	5333	A12TextRegionRecords
 09	5334	5CFE	ResidualROM09_5334
 09	5CFF	5D10	MultiplyA12HLBytes

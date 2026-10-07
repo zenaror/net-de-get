@@ -1,10 +1,9 @@
 ; HYPOTHESIS classification: uninterpreted original bytes, not asserted data/code.
 ; Byte preservation is checked; this source needs later consumer/flow analysis.
-; Physical bank $09, address $50C8-$5313.
+; Physical bank $09, address $50D8-$5313.
 ; Literal source only; building does not read the external reference ROM.
-SECTION "Uninterpreted 09:50C8-5313", ROMX[$50C8], BANK[$09]
-ResidualROM09_50C8::
-	db $2A, $2A, $7F, $CD, $4F, $02, $2A, $2A, $FA, $CE, $C5, $3C, $EA, $CE, $C5, $C9
+SECTION "Uninterpreted 09:50D8-5313", ROMX[$50D8], BANK[$09]
+ResidualROM09_50D8::
 	db $21, $E0, $6E, $CD, $17, $51, $C9, $FA, $CB, $C5, $47, $FA, $CC, $C5, $90, $DA
 	db $6A, $52, $FA, $CD, $C5, $47, $FA, $CE, $C5, $3C, $B8, $20, $11, $3D, $F5, $AF
 	db $EA, $CE, $C5, $21, $E0, $6E, $CD, $17, $51, $F1, $EA, $CE, $C5, $C9, $EA, $CE

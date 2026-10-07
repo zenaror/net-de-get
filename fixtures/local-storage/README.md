@@ -1383,3 +1383,35 @@ Modes tested here are ROM0, not flash. No natural table geometry, producer,
 frame cadence, sentinel effects, full-window/all-selector claim or hardware proof.
 2441217 new assertions,total22131822,plus24 verifier tests. Synthetic records
 are memory-only and the immutable external ROM is never patched.
+
+## A12 FF tile and FE upper-stream effects
+
+PROBABLE96-byte unit: ApplyA12ResourceTileEffect4FAF-4FFE(80),
+ApplyA12ResourceAudioEffect50C8-50D7(16). Reader calls their names; published
+ResidualROM09_50C8 stays an alias. FF consumes four marker bytes, takes a
+little-endian header pointer from bytes2/3, reads seven tile-header fields,
+executes the original CopyA12TileFrame, increments C5CE and clearsC5E5/E7.
+HL restores to marker+4, not the tile payload end. Original source advance
+remains2*((width*height)&255), including area256 and above.
+
+FE passes marker byte1 through actual024F/RequestA1EUpperStreams, consumes
+remaining two bytes, increments C5CE with INC flags (carry preserved). It does
+not skip execution of the stream installer.4096 prefixes cover all request
+bytes/16 flags before024F with original stack return and untouched index.
+
+69680 complete calls:65536 FE request/index byte pairs with derived flags,
+synthetic128-word table and one-channel program; requests below128 retain upper
+slots and CF82, high-bit requests install the real channel1 stream and clearCF82.
+Lower slots remain intact.4096 FF calls cover all indices/16 flags at1x1 with
+alternating VBK, row guards and exact payload;24 more cover six shapes1x1,2x3,
+3x2,16x16,17x17,31x9,both VBKs,LCDoff/on,both entire VRAM planes/source guard.
+24 integrated reader calls execute FF,FE,FF+FE chains with both VBKs,LCD states,
+indices0/255 and independent exact fields/registers/payload/full-VRAM models.
+
+The ordinary reader's old C115 mirror is updated to actual current B by the
+real copy/audio wrappers. FF replaces FF9D with tile width; it is not a stable
+reader backup across effects. Integrated FF changes BC/DE through the real
+copy; FE preserves the caller registers before its final index INC. No invented
+register preservation.147600 new asserts,total22279422,plus24 verifier tests.
+Prepared WRAM headers/payload/audio records are synthetic; no arbitrary geometry,
+natural resource table, audio waveform/cadence, flash or hardware claim.

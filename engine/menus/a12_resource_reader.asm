@@ -1,5 +1,5 @@
 ; PROBABLE mapped resource reader and wrapped-byte coordinate helpers.
-; FF/FE initial effects remain numeric; synthetic probes stop at their entries.
+; FF/FE effects have separate sources; bounded prefixes and full chains are distinct.
 SECTION "A12 resource reader 4D82-4DFD", ROMX[$4D82], BANK[$09]
 ResidualROM09_4D82::
 LoadA12ResourceFrame::
@@ -33,12 +33,12 @@ LoadA12ResourceFrame::
 	ld a, [hl]
 	cp a, $FF
 	jr nz, A12Resource_4DBD
-	call $4FAF
+	call ApplyA12ResourceTileEffect
 A12Resource_4DBD::
 	ld a, [hl]
 	cp a, $FE
 	jr nz, A12Resource_4DC5
-	call $50C8
+	call ApplyA12ResourceAudioEffect
 A12Resource_4DC5::
 	ld a, [hli]
 	ld [$C5D0], a
