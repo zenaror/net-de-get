@@ -458,7 +458,8 @@ bank	start	end	symbol
 07	63F0	6495	ResidualROM07_63F0
 07	6496	64AD	IsA0FNonMarkerCountBelowCapacity
 07	64D7	651E	ResidualROM07_64D7
-07	655D	6627	ResidualROM07_655D
+07	655D	659F	ResidualROM07_655D
+07	65A0	6627	RedrawA0FListText
 07	668B	674B	ResidualROM07_668B
 07	674C	67A9	DrawA0FMarkedTextRow
 07	67AA	67DF	ResidualROM07_67AA
@@ -470,7 +471,9 @@ bank	start	end	symbol
 00	28E3	2BFD	ResidualROM00_28E3
 00	2BFE	2D45	DrawQueuedTextFrame
 00	2D46	2D52	ResidualROM00_2D46
-07	6F0C	7267	ResidualROM07_6F0C
+07	6F0C	6F5B	ResidualROM07_6F0C
+07	6F5C	6F5F	A0FListFirstVacantCell
+07	6F60	7267	ResidualROM07_6F60
 00	2753	2798	ConfigureQueuedTextFromIndexedRecord
 00	28BE	28E2	RenderQueuedTextBlocking
 07	7268	7287	A0FTextRegionRecordPrefix

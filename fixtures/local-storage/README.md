@@ -756,3 +756,25 @@ within VRAM; check AF/BC/DE/HL, guards and entire8192 bytes perplane.
 66560 complete calls plus65536 prefixes add264193 assertions. All are
 SYNTHETIC, interpretation PROBABLE. Natural geometry/count admissibility,
 menu appearance, hardware timing and caller45A0 remain open.
+
+
+## Complete A0F list redraw and nonempty trim/action chains
+
+45A0..4627 forces glyph counter 70, configures record 1/2 by mode bit 0,
+renders C74E through the original blocking consumer, resets the counter,
+and uses wrapped nonmarker count to place original pairs 89/00 and 8A/00.
+The first cell is at 9882+count+C76E. The previous text row receives one
+88/07 cell via C770=count,C771=1; following cells extend to capacity.
+No metadata/stream consistency check or wider resource extent is asserted.
+512 empty-stream calls cover all modes and both VBKs with LCD off, using
+derived count/capacity/offset bytes. 216 LCD-on calls cover modes 0/1/2/255,
+both VBKs, lengths 0/1/8, three metadata classes and offsets 0/2/4.
+Sixteen FE/FF -> glyph16 -> terminator chains check original font payloads
+and the marker glyph one row above without advancing the column. Sixteen
+complete nonempty trim/dispatcher calls remove the last glyph and redraw.
+The independent memory model applies font transfers, glyph map writes and
+decorations in order, including overwritten cells. Check all 8192 bytes
+of both planes, fields/state/pointer/VBK and real A-window restoration/HDMA.
+760 complete calls add 1520 assertions. Null callbacks, bounded streams
+and chosen VRAM geometry remain SYNTHETIC; semantics PROBABLE. Natural
+menu, arbitrary streams, metadata admissibility and physical timing remain open.

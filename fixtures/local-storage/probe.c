@@ -2749,6 +2749,57 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Full original redraw and nonempty trim/action chains; no stubbed callees. */
+ const unsigned modes[]={0,1,2,255},glyphs[]={16,127,253,254,255};unsigned font[5][16];
+ wr(c,0xFF40,0);wr(c,0x27FF,2);wr(c,0x2800,0);
+ for(unsigned gi=0;gi<5;gi++)for(unsigned i=0;i<16;i++)font[gi][i]=rd(c,0x3F00+glyphs[gi]*16+i);
+ for(unsigned family=0;family<4;family++){
+  unsigned cases=family==0?512:family==1?216:16;
+  for(unsigned sample=0;sample<cases;sample++){
+   unsigned plane=sample&1,mode=0,n=0,count=0,markers=0,capacity=0,offset=0,entry=0x45A0,markerGlyph=0;
+   if(family==0){mode=sample>>1;count=(mode*73)&255;capacity=(mode*29)&255;offset=(mode*17)&255;}
+   else if(family==1){unsigned k=sample>>1,oi=k%3;k/=3;unsigned ci=k%3;k/=3;unsigned ni=k%3;k/=3;mode=modes[k];n=ni==0?0:ni==1?1:8;
+    capacity=(mode&1)?16:8;count=ci==0?0:ci==1?n:capacity+1;markers=ci==1?253:0;offset=oi*2;}
+   else if(family==2){mode=modes[sample>>2];markerGlyph=(sample>>1)&1?255:254;n=2;markers=1;count=1;capacity=(mode&1)?16:8;}
+   else{mode=modes[sample>>2];n=1;count=1;capacity=(mode&1)?16:8;entry=(sample>>1)&1?0x41C5:0x451F;}
+   unsigned rawX=(mode&1)?1:5,textOrigin=0x9880+rawX+1,rowOrigin=0x9860+rawX+1;
+   unsigned char expected[2][8192];memset(expected,0xA5,sizeof(expected));
+   wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);
+   unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);
+   for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+   for(unsigned i=0;i<n;i++){
+    unsigned gi=family==2?(i==0?(markerGlyph==254?3:4):0):i%3,glyph=glyphs[gi],dest=0x96B0-16*(70+i);
+    wr(c,0xC74E + i,glyph);
+    for(unsigned j=0;j<16;j++)expected[1][dest-0x8000+j]=font[gi][j];
+    unsigned tileAddress=textOrigin+(family==2?0:i)-(glyph>=254?32:0);
+    expected[0][tileAddress-0x8000]=0x6B-(70+i);expected[1][tileAddress-0x8000]=0x23;
+   }
+   wr(c,0xC74E + n,0);
+   if(family==3){wr(c,0xC74F,127);wr(c,0xC750,0);}
+   bool decorate=count<capacity;
+   if(decorate){unsigned first=0x9882+count+offset;
+    expected[0][first-0x8000]=0x89;expected[1][first-0x8000]=0;
+    expected[0][rowOrigin+count-0x8000]=0x88;expected[1][rowOrigin+count-0x8000]=7;
+    for(unsigned i=count+1;i<capacity;i++){expected[0][0x9882+i+offset-0x8000]=0x8A;expected[1][0x9882+i+offset-0x8000]=0;}
+   }
+   wr(c,0xFF4F,plane);wr(c,0xC765,mode);wr(c,0xC76C,family==3?2:(count+markers)&255);wr(c,0xC76D,markers);wr(c,0xC76E,offset);wr(c,0xC76F,capacity);
+   wr(c,0xC770,0xA5);wr(c,0xC771,0x3C);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1AF,1);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);
+   wr(c,0xC1B8,0);wr(c,0xC1B9,0);wr(c,0xC1BA,0x5A);wr(c,0xC1C3,0xA5);wr(c,0xC1C0,0);wr(c,0xC1C1,0);
+   wr(c,0xC772,1);wr(c,0xC220,0);wr(c,0xFF97,2);wr(c,0xFF98,0);wr(c,0xFF99,0);
+   if(family)wr(c,0xFF40,0x91);callWithLimit(c,entry,2000000);
+   unsigned end=0xC74E + n + 1;struct GB *g=c->board;
+   bool exact=rd(c,0xC1B8)==0&&rd(c,0xC1B9)==0&&rd(c,0xC1BE)==0&&rd(c,0xC1AB)==(end&255)&&rd(c,0xC1AC)==end>>8&&
+    rd(c,0xC1C2)==0&&rd(c,0xC1C3)==(n?0x6B-(70+n-1):0xA5)&&rd(c,0xC1A4)==rawX+1&&rd(c,0xC1A7)==4&&
+    rd(c,0xC1A8)==((mode&1)?17:9)&&rd(c,0xC1A9)==1&&rd(c,0xC1AA)==0&&rd(c,0xC1BA)==(decorate?0:0x5A)&&
+    rd(c,0xC1BC)==(decorate?0:family==2?1:n)&&rd(c,0xC1BD)==0&&rd(c,0xC770)==(decorate?count:0xA5)&&rd(c,0xC771)==(decorate?1:0x3C)&&
+    rd(c,0xC76C)==((count+markers)&255)&&rd(c,0xC76D)==markers&&rd(c,0xC76E)==offset&&rd(c,0xC76F)==capacity&&(rd(c,0xFF4F)&1)==plane;
+   if(n){exact&=g->memory.hdmaRemaining==0&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0;for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];}
+   if(family==3)exact&=rd(c,0xC74E)==16&&rd(c,0xC74F)==0;
+   wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==expected[bank][i];}
+   require(exact,"Complete list redraw glyphs markers wrapped metadata decorations nonempty trim action exact VRAM",family*1024+sample);
+  }
+ }
+ }
  { /* Redraw dependencies: byte arithmetic and row address before any write. */
  wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
  for(unsigned total=0;total<256;total++)for(unsigned markers=0;markers<256;markers++){

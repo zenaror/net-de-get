@@ -69,7 +69,7 @@ TrimA0FListTail::
 	dec a
 	ld [$C76D], a
 A0FAction_4559::
-	call $45A0
+	call RedrawA0FListText - $2000
 A0FAction_455C::
 	ret
 ASSERT @ == $655D
