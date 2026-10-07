@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **5,522 assertions**.
+and stack assertions, the maintained fixture reports **5,538 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -198,3 +198,12 @@ $42EF; independently forced return tails restore their saved pairs. The first
 wrapper does not save AF; the other three preserve the supplied AF value across
 restoration. These add 44 assertions including helper/tail bounded returns.
 No target execution, natural boot, interrupt-state guarantee or hardware claim.
+
+
+Five positive copy counts (1/2/50/255/256) verify $2613 pointers, BC exhaustion,
+bytes and untouched destination boundaries; BC=0 is not tested as an empty copy.
+A disposable existing SYS0 directory/header with a 50-byte payload drives full
+original wrappers $1689/$169D through open, copy, close/checksum and A-window
+restore. Payload directions, A=0 result, mapping and stored checksums are checked.
+These add 16 assertions. This remains SYNTHETIC SRAM: no disk saves, SYS0 creation,
+smaller-record safety, initialization $424D, natural menu or hardware claims.

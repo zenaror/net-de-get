@@ -126,7 +126,7 @@ ResidentJump0270::
 ResidentJump0273::
 	jp $25EF
 ResidentJump0276::
-	jp $2613
+	jp CopyBytesHLToDE
 ResidentJump0279::
 	jp $261C
 ResidentJump027C::

@@ -947,6 +947,40 @@ int main(int argc,char **argv){
           cpu->bc==0x1234&&cpu->hl==0xD800&&(index==0?cpu->a==8:cpu->af==0x5AB0),
           "A16 wrapper independent tail and AF policy",index);
  }
+ /* Positive-count copy cases: zero BC would wrap, not tested as empty. */
+ const unsigned copyLengths[]={1,2,50,255,256};
+ for(unsigned index=0;index<5;index++){
+  unsigned count=copyLengths[index];wr(c,0x0000,0x0A);wr(c,0x0400,0);
+  for(unsigned i=0;i<count;i++){wr(c,0xA500+i,(i*37+index)&255);wr(c,0xC900+i,0xA5);}
+  wr(c,0xC8FF,0x5A);wr(c,0xC900+count,0x5A);
+  cpu->hl=0xA500;cpu->de=0xC900;cpu->bc=count;call(c,0x2613);
+  unsigned ok=1;for(unsigned i=0;i<count;i++)ok&=rd(c,0xC900+i)==((i*37+index)&255);
+  require(ok&&cpu->hl==0xA500+count&&cpu->de==0xC900+count&&cpu->bc==0&&
+          rd(c,0xC8FF)==0x5A&&rd(c,0xC900+count)==0x5A,"positive byte-copy boundaries",index);
+ }
+ /* Existing SYS0 only, full original wrappers/load-store/close/copy chain. */
+ wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);wr(c,0xFFAF,0);wr(c,0xFFB0,1);
+ for(unsigned i=0;i<0x30E;i++)wr(c,0xA000+i,0);
+ wr(c,0xA002,0);wr(c,0xA003,0xA4);
+ for(unsigned i=0;i<4;i++){wr(c,0xA004+i,rd(c,0x17B3+i));wr(c,0xA402+i,rd(c,0x17B3+i));}
+ wr(c,0xA406,50);wr(c,0xA407,0);wr(c,0xA408,0);
+ for(unsigned i=0;i<50;i++){wr(c,0xA409+i,(i*13+7)&255);wr(c,0xC700+i,0xA5);}
+ wr(c,0x27FF,0x14);wr(c,0x2800,0);wr(c,0xFFAB,0x14);wr(c,0xFFAC,0);
+ wr(c,0xFF40,0);call(c,0x1689);
+ unsigned sysOK=1;for(unsigned i=0;i<50;i++)sysOK&=rd(c,0xC700+i)==((i*13+7)&255);
+ require(sysOK&&cpu->a==0&&rd(c,0xFFAB)==0x14&&rd(c,0xFFAC)==0&&rd(c,0xA409)==255,
+         "existing SYS0 full load chain and disabled SRAM",0);
+ wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);
+ unsigned sysSum=0;for(unsigned i=2;i<59;i++)sysSum+=rd(c,0xA400+i);
+ require((rd(c,0xA400)|(rd(c,0xA401)<<8))==(sysSum&65535),"SYS0 load close checksum",0);
+ for(unsigned i=0;i<50;i++)wr(c,0xC700+i,(255-i*3)&255);
+ call(c,0x169D);unsigned sysResult=cpu->a;
+ wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);
+ sysOK=1;for(unsigned i=0;i<50;i++)sysOK&=rd(c,0xA409+i)==((255-i*3)&255);
+ require(sysOK&&sysResult==0&&rd(c,0xFFAB)==0x14&&rd(c,0xFFAC)==0,
+         "existing SYS0 full store chain",0);
+ sysSum=0;for(unsigned i=2;i<59;i++)sysSum+=rd(c,0xA400+i);
+ require((rd(c,0xA400)|(rd(c,0xA401)<<8))==(sysSum&65535),"SYS0 store close checksum",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

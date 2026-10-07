@@ -7,7 +7,7 @@ CallBankA16_4227::
 	di
 	ld de, $C641
 	call SaveWindowAAndSelect16
-	call $4227
+	call BankA16_4227
 	ld de, $C641
 	call RestoreSavedWindowA
 	ei
@@ -16,7 +16,7 @@ CallBankA16_424D::
 	di
 	ld de, $C643
 	call SaveWindowAAndSelect16
-	call $424D
+	call BankA16_424D
 	push af
 	ld de, $C643
 	call RestoreSavedWindowA
@@ -27,7 +27,7 @@ CallBankA16_42CB::
 	di
 	ld de, $C645
 	call SaveWindowAAndSelect16
-	call $42CB
+	call LoadSYS0Record50Bytes
 	push af
 	ld de, $C645
 	call RestoreSavedWindowA
@@ -38,7 +38,7 @@ CallBankA16_42EF::
 	di
 	ld de, $C647
 	call SaveWindowAAndSelect16
-	call $42EF
+	call StoreSYS0Record50Bytes
 	push af
 	ld de, $C647
 	call RestoreSavedWindowA

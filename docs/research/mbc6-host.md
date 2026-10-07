@@ -789,3 +789,28 @@ Full source: 267 sections, 107 analyzed sections (16,740 bytes), 160 unknown
 residual ranges (1,031,836 bytes). All 721 symbols published at 19532c1 remain
 at their addresses in private validation. Full comparison, 24 checker tests,
 CPU probes and actual negative builds preserve the complete reference hash.
+
+
+### A16 wrapper bodies and SYS0 record copies
+
+**PROBABLE**, static flow: A16:$4227-$4311 (physical bank0B/file $2C227-$2C311)
+is extracted in `engine/startup/sys0_record.asm`. Four wrapper destinations are
+symbolic. Two request record SYS0 with BC=$0032; $42CB copies the returned payload
+to C700, $42EF copies C700 to the returned payload; both close and return A=0
+on the existing-record success branch. The other bodies and error/initialization
+paths are retained byte-for-byte but do not receive a complete runtime claim.
+ROM0 $17B3-$17B6 is the four-byte identifier, preserving its residual alias;
+following bytes remain unknown. The extracted HL→DE copy $2613-$261B performs
+a copy before decrementing BC, so zero wraps rather than representing emptiness.
+
+**SYNTHETIC**: five positive copy lengths check exact boundaries and pointers.
+A prepared existing SYS0 header/directory and 50-byte payload execute full
+original wrappers $1689/$169D, open/copy/close/checksum and mapper restoration.
+Payload, result, restored A fields and stored checksums pass. This adds 16 asserts,
+5538 total. No SYS0 creation, initialization $424D, short-record capacity or
+natural menu/hardware is established. SRAM exists only in disposable core memory.
+
+Full source: 272 sections, 110 analyzed sections (16,988 bytes), 162 unknown
+ranges (1,031,588 bytes). Full/private comparison, 24 checker tests, CPU and
+actual negative builds pass; 729 symbols e0cbd96 preserved and original hash
+unchanged. No translation, reference writes, saves or new network feature.
