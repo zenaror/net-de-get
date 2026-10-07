@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1033410 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1032920 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 249 seções**, todos comparados byte a byte com a referência externa. Os 87 trechos analisados somam 15166 bytes; os demais 1033410 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 250 seções**, todos comparados byte a byte com a referência externa. Os 88 trechos analisados somam 15656 bytes; os demais 1032920 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,11 +69,11 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 249 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 250 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
-1. Seguir a inicialização chamada no boot em A `$16:$4000` (banco físico `$0B`), os destinos da tabela `$03A8` e a manutenção de VBlank `$2242`; fechar os callees ainda numéricos dos menus, preservando fronteiras e símbolos.
+1. Seguir os callees da inicialização A `$16:$4000`, agora extraída até `$41E9` em `engine/startup/bank_a16.asm`, os destinos da tabela `$03A8` e a manutenção de VBlank `$2242`; fechar os callees ainda numéricos dos menus, preservando fronteiras e símbolos.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Refinar os intervalos `ResidualROM` por consumidores e fluxo, preservando seus símbolos de início quando extraídos; `make coverage` informa o volume ainda não interpretado.
@@ -109,7 +109,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **3.053 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **3.061 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -219,3 +219,10 @@ A base montável preserva todos os 385 símbolos de endereço do checkpoint `574
 `home/interrupt_dispatch.asm` extrai `$05F5-$0660` e `$0699-$06A5`. `$05F5` consome um endereço de retorno, usa A duplicado em oito bits como offset numa tabela de palavras e salta ao destino lido. O nome antigo `ResetVector` foi mantido como alias; `$0000` passa a ter também o nome `RST00Vector`. A entrada real do cartucho continua em `$0100`, com salto para `$02B8`.
 
 Probes cobrem os 256 índices do dispatcher, callbacks nulos/WRAM em três slots com restauração dos registradores, o retorno sem callback e VBlank até a entrada `$069E`, antes da manutenção `$2242`. Estes últimos conferem o flag `$FF8A` e os registradores salvos na pilha, sem executar a manutenção ou demonstrar uma interrupção natural. Os símbolos antigos de intervalos refinados continuam no mesmo endereço; a ROM completa mantém o hash original.
+
+
+### Inicialização na janela A $16
+
+`engine/startup/bank_a16.asm` extrai `$4000-$41E9` do banco físico `$0B` (490 bytes), preservando `ResidualROM0B_4000` como alias. A chamada do boot usa `InitializeBankA16`; o teste de `$FF9C` encaminha o valor zero para `$416C`. O caminho anterior pode retornar em `$416B`; o caminho `$416C` termina em um loop de espera `$41DE-$41E9`. Os bytes seguintes, inclusive o destino numérico `$41EA`, continuam não interpretados.
+
+A interpretação é `PROBABLE`, baseada no fluxo estático. Quatro probes `SYNTHETIC` entram diretamente em `$416C`, com LCD desligado, variam o seletor B anterior e param em `$419D` antes do helper de som `$0252`. Conferem seletor B `$1F`/tipo ROM, bytes da janela mapeada, preservação de BC/DE/HL/SP, paletas, scroll, janela e rotas de som. Não executam a inicialização inteira, os loops com HALT ou o boot natural. A montagem inteira continua idêntica; 571 símbolos publicados de `dd6004a` foram preservados na cópia privada.

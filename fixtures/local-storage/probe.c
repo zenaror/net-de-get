@@ -804,6 +804,23 @@ int main(int argc,char **argv){
   }
   require(ok,"startup clears WRAM banks and HRAM with explicit fields",mode);
  }
+ /* Forced DMG fallback prefix; stop before sound helper $0252. LCD off. */
+ for(unsigned mode=0;mode<4;mode++){
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);wr(c,0xFF40,0);
+  wr(c,0x27FF,0x16);wr(c,0x2800,0);
+  wr(c,0x37FF,mode);wr(c,0x3800,0);wr(c,0xFFAD,mode);wr(c,0xFFAE,0xA5);
+  wr(c,0xFF42,0xA5);wr(c,0xFF43,0xA5);wr(c,0xFF4A,0xA5);wr(c,0xFF4B,0xA5);
+  struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;cpu->pc=0x416C;
+  unsigned steps=0;while(cpu->pc!=0x419D&&steps++<200)c->step(c);
+  require(cpu->pc==0x419D&&cpu->sp==0xCFFE&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800&&
+          rd(c,0xFFAD)==0x1F&&rd(c,0xFFAE)==0&&rd(c,0x6000)==0xFF&&rd(c,0x6002)==0x7F,
+          "DMG prefix selects B1F ROM and preserves register pairs",mode);
+  require(rd(c,0xFF47)==0xE4&&rd(c,0xFF48)==0xE4&&rd(c,0xFF49)==0xE4&&
+          rd(c,0xFF42)==0&&rd(c,0xFF43)==0&&rd(c,0xFF4A)==0&&rd(c,0xFF4B)==7&&
+          rd(c,0xFF24)==0x77&&rd(c,0xFF25)==0xFF,
+          "DMG prefix palette scroll window and sound routes",mode);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

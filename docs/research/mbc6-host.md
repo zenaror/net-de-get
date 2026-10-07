@@ -661,3 +661,25 @@ Complete matching source: 249 sections, 1,048,576 bytes; 87 analyzed sections
 symbols from 3d465b0 preserved in private validation. 24 checker tests and 3053
 synthetic CPU assertions pass; original ROM hash and compiled image hash remain
 unchanged. There is no translation, real save or new Mobile Adapter/REON feature.
+
+
+### Native A $16 startup initializer
+
+**PROBABLE**, static instruction flow: the call at ROM0 $0373 enters physical
+bank $0B:$4000. `engine/startup/bank_a16.asm` covers $4000-$41E9 (490 bytes),
+retaining `ResidualROM0B_4000` as an alias. The model-result field $FF9C branches
+on zero to $416C. The preceding path can return at $416B; the fallback path
+ends in the HALT/flag wait loop $41DE-$41E9. The following $41EA target and
+all remaining callees/data remain numeric until their own boundaries are
+established. No interpretation of the suffix is implied by linear adjacency.
+
+Four **SYNTHETIC** entries at $416C vary the previous native B selector, stop
+at $419D before $0252, and check B $1F/type ROM, two mapped bytes, preserved
+BC/DE/HL/SP, palette/scroll/window and sound-route writes. LCD is off. This does
+not establish natural boot, complete startup, HALT/IRQ timing or DMG hardware.
+Byte equivalence remains separate from semantic confidence; no translation.
+
+The full source now has 250 sections: 88 analyzed sections (15,656 bytes) and
+162 residual ranges (1,032,920 bytes). Full/private checks preserve the complete
+ROM hash and all 571 address symbols published at dd6004a. The CPU suite has
+3061 assertions, with 24 verifier tests and both actual negative-build cases.

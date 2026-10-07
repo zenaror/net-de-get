@@ -116,7 +116,7 @@ StartCartridgeProgram::
 	ld a, $00
 	ld [$2800], a
 	ldh [$FFAC], a
-	call $4000
+	call InitializeBankA16
 	ld a, $80
 	ldh [$FF26], a
 	ld a, $77

@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **3,053 assertions**.
+and stack assertions, the maintained fixture reports **3,061 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -148,3 +148,11 @@ Four startup-prefix cases use A=$11/0/$80/$FF, stopping before the call at $0373
 They check HRAM, fixed WRAM and all seven banked WRAM windows, RETI stub bytes,
 SP, model-result byte and A selector/type. Setup is forced and LCD is off; this
 does not exercise A $16:$4000 initialization or natural boot/main dispatch.
+
+
+Four forced DMG fallback-prefix cases enter native A $16:$416C with LCD off,
+vary the previous B selector and stop at $419D before sound helper $0252.
+They check B $1F ROM mapping through shadow fields and mapped bytes, preserved
+BC/DE/HL/SP, palettes, scroll/window and sound routing. Eight added assertions
+are SYNTHETIC; they do not execute the complete startup, HALT loops, natural
+boot, real DMG hardware or LCD-on timing.
