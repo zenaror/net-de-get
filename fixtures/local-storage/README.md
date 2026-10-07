@@ -1651,3 +1651,23 @@ secondary-table offset omitted window offset;first contract detected it;correcte
 fixture,unchanged original. Count-producer pairing is synthetic evidence,no
 natural phase selection,13-current-effect integration,nonempty OAM,Japanese
 meaning,IRQ/timing or hardware proof.
+
+
+## Original current FF/FE effects and paired readers
+
+PROBABLE three original FF tile objects:6800-6836,6837-686D,6A0F-6A51 in B61,
+177 bytes. Seven-byte headers,two frames each,geometry1x12/1x12/3x5.
+Only first frame copied in these probes;second frame layout not executed here.
+13312 complete chains cover all13 current effects,all counter bytes,varied flags,
+both VBK/LCD. Actual primary FF/FE callees then secondary original read;no injected
+returns. Frame advances by consumed effects before secondary load.
+B actual/mirrors prepared61 so actual ROM-copy source matches original tiles.
+Independent original-byte models compare registers,flags,pointers,reader outputs,
+tile header/scratch,guards,mapping/backups,immutable1606 paired bytes plus177 tile
+bytes. Compare both whole8192-byte VRAM planes against original first payload and
+header geometry;FE-only leaves both unchanged. Synthetic upper audio uses one
+shared one-channel program for all selectors;82/83 request source bytes and slots
+checked. Does not discriminate original sounds or prove original audio streams.
+Adds79875 assertions,total36125171. Current13 effects now covered by full synthetic
+read pairing;no original second-frame execution,nonempty OAM,natural menu/input,
+Japanese meaning,original audio,IRQ/timing or hardware proof.

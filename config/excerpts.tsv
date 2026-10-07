@@ -364,7 +364,12 @@ bank	start	end	symbol
 2F	4000	5FFF	ResidualROM2F_4000
 2F	6000	7FFF	ResidualROM2F_6000
 30	4000	5FFF	ResidualROM30_4000
-30	6000	6BBC	ResidualROM30_6000
+30	6000	67FF	ResidualROM30_6000
+30	6800	6836	A12Variant0EffectTiles0
+30	6837	686D	A12Variant0EffectTiles1
+30	686E	6A0E	ResidualROM30_686E
+30	6A0F	6A51	A12Variant0EffectTiles2
+30	6A52	6BBC	ResidualROM30_6A52
 30	6BBD	6BCE	A12Variant0PrimaryResourceTable
 30	6BCF	6C33	A12Variant0PrimaryResource0
 30	6C34	6D5C	A12Variant0PrimaryResource1

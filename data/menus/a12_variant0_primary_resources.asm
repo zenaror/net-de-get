@@ -17,7 +17,8 @@ SECTION "A12 variant0 primary object0 6BCF-6C33", ROMX[$6BCF], BANK[$30]
 A12Variant0PrimaryResource0::
 	db $18 ; count loaded by 4D82
 	db $00, $91, $26, $10
-	db $FF, $00, $00, $68
+	db $FF, $00
+	dw A12Variant0EffectTiles0
 	db $FE, $83, $00, $00
 	db $00, $91, $26, $18
 	db $00, $71, $46, $0A
@@ -30,7 +31,8 @@ A12Variant0PrimaryResource0::
 	db $00, $33, $42, $06
 	db $FE, $82, $00, $00
 	db $00, $33, $42, $01
-	db $FF, $00, $37, $68
+	db $FF, $00
+	dw A12Variant0EffectTiles1
 	db $FE, $83, $00, $00
 	db $01, $28, $2C, $06
 	db $01, $20, $22, $06
@@ -187,7 +189,8 @@ SECTION "A12 variant0 primary object5 6E18-6E48", ROMX[$6E18], BANK[$30]
 A12Variant0PrimaryResource5::
 	db $0B ; count loaded by 4D82
 	db $03, $00, $50, $14
-	db $FF, $00, $0F, $6A
+	db $FF, $00
+	dw A12Variant0EffectTiles2
 	db $0E, $00, $50, $0A
 	db $0F, $00, $50, $14
 	db $FE, $82, $00, $00

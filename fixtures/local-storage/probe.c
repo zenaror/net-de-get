@@ -459,6 +459,33 @@ static void probeOriginalA12Pair(struct mCore *c,unsigned phase,unsigned frame,u
  require(cpu->af==(q.dy<<8|q.f)&&cpu->bc==(q.lo<<8|0x37)&&cpu->de==q.base&&cpu->hl==q.end&&rd(c,0xC5CD)==p.count&&rd(c,0xC5CB)==p.threshold&&rd(c,0xC5CC)==finalCounter&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5D0)==p.index&&rd(c,0xC5D1)==p.nextIndex&&rd(c,0xC5D7)==p.x&&rd(c,0xC5D8)==p.y&&rd(c,0xC5D9)==p.tx&&rd(c,0xC5DA)==p.ty&&rd(c,0xC5DD)==p.dx&&rd(c,0xC5DE)==p.dy&&rd(c,0xC5FD)==p.extra&&rd(c,0xC5EB)==q.x&&rd(c,0xC5EC)==q.y&&rd(c,0xC5ED)==q.tx&&rd(c,0xC5EE)==q.ty&&rd(c,0xC5F1)==q.dx&&rd(c,0xC5F2)==q.dy&&rd(c,0xC5F6)==q.index,"Original primary to secondary full chain count threshold counter preserved independent coordinate sets",index);
  require(rd(c,0xC5CA)==0x3C&&rd(c,0xC5D6)==0x5A&&rd(c,0xC5DB)==0x37&&rd(c,0xC5DC)==0x39&&rd(c,0xC5DF)==0x3C&&rd(c,0xC5E0)==0x5A&&rd(c,0xC5EA)==0x37&&rd(c,0xC5EF)==0x39&&rd(c,0xC5F0)==0x3C&&rd(c,0xC5F3)==0x5A&&rd(c,0xC5F4)==0xA5&&rd(c,0xC5F5)==0x37&&rd(c,0xC5F7)==0x39&&rd(c,0xFFAD)==0x61&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==0x61&&rd(c,0xFF9E)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0&&!memcmp(((struct GB*)c->board)->memory.rom+0x61*8192+0xBBD,originalPairedResources,sizeof(originalPairedResources)),"Original paired full chain guards mapping backups immutable1606 bytes",index);
 }
+static uint8_t originalEffectTiles[3][67];
+static void probeOriginalA12Effects(struct mCore *c,unsigned phase,unsigned frame,unsigned counter,unsigned flags,unsigned plane,unsigned lcd,unsigned index){
+ const unsigned pointers[]={0x6BCF,0x6C34,0x6D5D,0x6D9A,0x6DDB,0x6E18,0x6E49,0x6E7E,0x6EAF},tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};const uint8_t *rom=((struct GB*)c->board)->memory.rom;struct SM83Core *cpu=((struct GB*)c->board)->cpu;
+ unsigned pos=pointers[phase]+1+4*frame,effects=0,tile=0,code=0,t=0;bool hasTile=rom[0x61*8192+pos-0x6000]==255,hasAudio=false;
+ if(hasTile){tile=rom[0x61*8192+pos+2-0x6000]|rom[0x61*8192+pos+3-0x6000]<<8;pos+=4;effects++;while(t<3&&tiles[t]!=tile)t++;if(t==3)exit(14);}
+ if(rom[0x61*8192+pos-0x6000]==254){hasAudio=true;code=rom[0x61*8192+pos+1-0x6000];pos+=4;effects++;}
+ unsigned finalFrame=frame+effects;struct OriginalA12Primary p=originalA12PrimaryModel(c,phase,finalFrame);struct OriginalA12Secondary q=originalA12SecondaryModel(c,phase,finalFrame);const uint8_t *h=rom+0x61*8192+tile-0x6000;unsigned area=hasTile?h[2]*h[3]:0,low=hasTile?h[3]:0x37;
+ prepareA12EffectMapping(c,0x61);prepareA12EffectAudio(c);wr(c,0x37FF,0x61);wr(c,0xFFAD,0x61);wr(c,0xC115,0x61);wr(c,0xCF82,0x37);
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);
+ wr(c,0xC5CF,phase);wr(c,0xC5CE,frame);wr(c,0xC5CC,counter);wr(c,0xC5CD,0x37);wr(c,0xC5CB,0x39);wr(c,0xC5CA,0x3C);wr(c,0xC5D6,0x5A);wr(c,0xC5DB,0x37);wr(c,0xC5DC,0x39);wr(c,0xC5DF,0x3C);wr(c,0xC5E0,0x5A);wr(c,0xC5E1,0x37);
+ for(unsigned a=0xC5E2;a<=0xC5E8;a++)wr(c,a,0x37);for(unsigned a=0xC5F7;a<=0xC5FC;a++)wr(c,a,0x37);wr(c,0xC5EA,0x37);wr(c,0xC5EF,0x39);wr(c,0xC5F0,0x3C);wr(c,0xC5F3,0x5A);wr(c,0xC5F4,0xA5);wr(c,0xC5F5,0x37);
+ cpu->af=0x5A00|flags;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x6BBD;if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,0x4D82,2000000);
+ require(cpu->af==(p.dy<<8|p.f)&&cpu->bc==(p.lo<<8|low)&&cpu->de==(hasTile?tile+7:p.base)&&cpu->hl==p.end&&rd(c,0xC5CD)==p.count&&rd(c,0xC5CB)==p.threshold&&rd(c,0xC5CC)==counter&&rd(c,0xC5CE)==finalFrame&&rd(c,0xC5CF)==phase&&rd(c,0xC5D0)==p.index&&rd(c,0xC5D1)==p.nextIndex&&rd(c,0xC5D7)==p.x&&rd(c,0xC5D8)==p.y&&rd(c,0xC5D9)==p.tx&&rd(c,0xC5DA)==p.ty&&rd(c,0xC5DD)==p.dx&&rd(c,0xC5DE)==p.dy&&rd(c,0xC5FD)==p.extra,"Original primary current FF FE effect chain exact output frame increments real copy audio registers",index);
+ callWithLimit(c,0x50D8,2000000);
+ require(cpu->af==(q.dy<<8|q.f)&&cpu->bc==(q.lo<<8|low)&&cpu->de==q.base&&cpu->hl==q.end&&rd(c,0xC5CE)==finalFrame&&rd(c,0xC5CD)==p.count&&rd(c,0xC5CB)==p.threshold&&rd(c,0xC5CC)==counter&&rd(c,0xC5D7)==p.x&&rd(c,0xC5D8)==p.y&&rd(c,0xC5DD)==p.dx&&rd(c,0xC5DE)==p.dy&&rd(c,0xC5EB)==q.x&&rd(c,0xC5EC)==q.y&&rd(c,0xC5ED)==q.tx&&rd(c,0xC5EE)==q.ty&&rd(c,0xC5F1)==q.dx&&rd(c,0xC5F2)==q.dy&&rd(c,0xC5F6)==q.index,"Original current effects to secondary original read uses advanced frame preserves primary outputs",index);
+ bool exact=rd(c,0xC5CA)==0x3C&&rd(c,0xC5D6)==0x5A&&rd(c,0xC5DB)==0x37&&rd(c,0xC5DC)==0x39&&rd(c,0xC5DF)==0x3C&&rd(c,0xC5E0)==0x5A&&rd(c,0xC5E1)==0x37&&rd(c,0xC5EA)==0x37&&rd(c,0xC5EF)==0x39&&rd(c,0xC5F0)==0x3C&&rd(c,0xC5F3)==0x5A&&rd(c,0xC5F4)==0xA5&&rd(c,0xC5F5)==0x37&&rd(c,0xFFAD)==0x61&&rd(c,0xC115)==0x61&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFF9D)==0x61&&(rd(c,0xFF4F)&1)==plane&&rd(c,0xCF82)==(hasAudio?0:0x37)&&rd(c,0xCF89)==(hasAudio?0x11:0);
+ const unsigned fields[]={0xC5F9,0xC5FA,0xC5E2,0xC5E3,0xC5E6,0xC5E4,0xC5E8};for(unsigned i=0;i<7;i++)exact&=rd(c,fields[i])==(hasTile?h[i]:0x37);
+ exact&=rd(c,0xC5E5)==(hasTile?0:0x37)&&rd(c,0xC5E7)==(hasTile?0:0x37)&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==(hasTile?tile+7+2*(area&255):0x3737)&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==(hasTile?tile+7:0x3737);
+ for(unsigned i=0;i<128;i++){unsigned expected=0x5A;if(hasAudio&&i>=64&&i<80)expected=i==64?1:i==65?0xDD:i==68?8:0;exact&=rd(c,0xCF00+i)==expected;}
+ exact&=!memcmp(rom+0x61*8192+0xBBD,originalPairedResources,sizeof(originalPairedResources));for(unsigned i=0;i<3;i++)exact&=!memcmp(rom+0x61*8192+tiles[i]-0x6000,originalEffectTiles[i],sizes[i]);
+ exact&=(!hasAudio||code==0x82||code==0x83);
+ require(exact,"Original effect chain tile state synthetic82 83 upper audio guards mapper and immutable resource bytes",index);
+ wr(c,0xFF40,0);exact=true;unsigned start=hasTile?0x1800+h[0]+32*h[1]:0;
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){bool changed=hasTile&&i>=start&&i<start+32*h[3]&&((i-start)%32)<h[2];unsigned expected=changed?h[7+bank*area+((i-start)/32)*h[2]+(i-start)%32]:0xA5;exact&=rd(c,0x8000+i)==expected;}}
+ require(exact,"Original current FF first frame both whole VRAM planes exact original geometry payload FE-only unchanged",index);
+
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4576,6 +4603,12 @@ int main(int argc,char **argv){
   }
  }
  printf("Original paired resources: %u reset/read-to-secondary chains; %u ordinary frames; %u current effect frames reserved\n",sample,ordinary,effects);
+ }
+ { /* All thirteen original current effects, full readers and secondary pairing. */
+ const unsigned phases[]={0,0,0,0,0,0,3,4,5,5,6,7,8},frames[]={1,2,5,12,14,15,3,5,1,4,3,5,5},tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};const uint8_t *rom=((struct GB*)c->board)->memory.rom;
+ memcpy(originalPairedResources,rom+0x61*8192+0xBBD,sizeof(originalPairedResources));
+ for(unsigned i=0;i<3;i++){const uint8_t *h=rom+0x61*8192+tiles[i]-0x6000;memcpy(originalEffectTiles[i],h,sizes[i]);require(h[4]==2&&7+2*h[2]*h[3]*h[4]==sizes[i],"Original three FF tile resources measured two-frame extents",i);}
+ for(unsigned effect=0;effect<13;effect++)for(unsigned counter=0;counter<256;counter++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeOriginalA12Effects(c,phases[effect],frames[effect],counter,(counter&15)<<4,plane,lcd,effect*1024+counter*4+plane*2+lcd);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
