@@ -44,6 +44,22 @@ static int a1eLinearEvents(struct mCore *c,unsigned slot,unsigned start,unsigned
  }
  *count=n;return p==end&&n;
 }
+/* Original numeric tile encoding, including low quotient byte and blanks. */
+static void a16ExpectedPair(unsigned value,unsigned *out){
+ if(value>99){out[0]=0x4E;out[1]=0x47;}
+ else{out[0]=value/10?0x20+value/10:0x10;out[1]=0x20+value%10;}
+}
+static unsigned a16ExpectedField(unsigned value,int word,unsigned *out){
+ if(!word){a16ExpectedPair(value,out);out[2]=0;return 3;}
+ a16ExpectedPair((value/100)&255,out);a16ExpectedPair(value%100,out+2);
+ unsigned seen=0;
+ for(unsigned i=0;i<4;i++){
+  if(out[i]==0x10){if(seen)out[i]=0x20;}
+  else if(out[i]==0x20){if(!seen)out[i]=0x10;}
+  else seen=1;
+ }
+ out[4]=0;return 5;
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -1875,6 +1891,47 @@ int main(int argc,char **argv){
    }
   }
   require(exact,"A16 banked rectangle dimensions origin basebit and two-plane source order",sourceBank*2+high);
+ }
+ }
+ { /* A16 field dispatcher and numeric handlers, before presentation. */
+ wr(c,0x27FF,0x16);wr(c,0x2800,0);wr(c,0xFF40,0);
+ const unsigned targets[]={0x4BED,0x4BFF,0x4C11,0x4C23,0x4C3A,0x4C51,0x4C63,0x4C75};
+ const unsigned fields[]={0xC73D,0xC73E,0xC73F,0xC747,0xC745,0xC84B,0xC84C,0xC84D};
+ const unsigned stops[]={0x4BFB,0x4C0D,0x4C1F,0x4C36,0x4C4D,0x4C5F,0x4C71,0x4C83};
+ for(unsigned index=0;index<256;index++){
+  unsigned address=0x4BDD+((index*2)&255),target=rd(c,address)|(rd(c,address+1)<<8);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->a=index;cpu->pc=0x4BCA;
+  unsigned steps=0;while(cpu->pc!=0x4BDB&&steps++<100)c->step(c);
+  require(cpu->pc==0x4BDB&&cpu->hl==target&&cpu->de==target&&cpu->sp==0xCFFC&&
+          rd(c,0xCFFC)==0xDC&&rd(c,0xCFFD)==0x4B&&(index>=8||target==targets[index]),
+          "A16 field dispatch wraps doubled byte index and pushes return",index);
+ }
+ const unsigned words[]={0,1,9,10,99,100,101,255,256,999,1000,9999,10000,25599,25600,25601,65534,65535};
+ for(unsigned slot=0;slot<8;slot++){
+  unsigned word=slot==3||slot==4,n=word?sizeof(words)/sizeof(words[0]):256;
+  for(unsigned sample=0;sample<n;sample++){
+   unsigned value=word?words[sample]:sample,expected[5],length=a16ExpectedField(value,word,expected);
+   wr(c,fields[slot],value&255);if(word)wr(c,fields[slot]+1,value>>8);
+   for(unsigned i=0;i<8;i++)wr(c,0xC654+i,0xA5);
+   struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+   cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=targets[slot];
+   unsigned steps=0;while(cpu->pc!=stops[slot]&&steps++<2000)c->step(c);
+   bool exact=cpu->pc==stops[slot]&&cpu->sp==0xCFFE&&cpu->hl==0xC655;
+   for(unsigned i=0;i<length;i++)if(rd(c,0xC655+i)!=expected[i])exact=false;
+   require(exact&&rd(c,0xC654)==0xA5&&rd(c,0xC655+length)==0xA5,
+           "A16 field numeric tiles and terminator before presentation",slot*65536+value);
+  }
+  /* The eight measured entries run through the actual table dispatcher. */
+  unsigned value=word?100:42,expected[5],length=a16ExpectedField(value,word,expected);
+  wr(c,fields[slot],value&255);if(word)wr(c,fields[slot]+1,value>>8);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->a=slot;cpu->pc=0x4BCA;
+  unsigned steps=0;while(cpu->pc!=stops[slot]&&steps++<2000)c->step(c);
+  bool exact=cpu->pc==stops[slot]&&cpu->sp==0xCFFC&&cpu->hl==0xC655;
+  for(unsigned i=0;i<length;i++)if(rd(c,0xC655+i)!=expected[i])exact=false;
+  require(exact&&rd(c,0xCFFC)==0xDC&&rd(c,0xCFFD)==0x4B,
+          "A16 eight table entries reach presentation with formatted tiles",slot);
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",

@@ -1237,3 +1237,29 @@ is zero. Thus no DMA execution, active palette upload, natural menu/IRQ or
 LCD-on timing is established. The data extent is bounded by4x1 two-plane
 copy, not a larger object claim. Unknown gaps remain4312..4390,
 440C..4AEF,4BCA..4EC9 and4ED2..5FFF.
+
+## A16 field dispatcher and original numeric tile formatting
+
+**PROBABLE**, static consumers and bounded pre-presentation probes.
+engine/startup/bank_a16_fields.asm extracts4BCA..4C86:19-byte dispatcher,
+16-byte pointer prefix and154 bytes of eight handlers. home/a16_numeric_tiles.asm
+extracts two3-byte thunks015C/0162 and bodies06A6..06DE/0722..0746 (94 bytes),
+289 bytes total. Published residual aliases remain at the same addresses.
+Dispatcher doubles A in8 bits, reads4BDD+((2*A)&255), pushes4BDC and jumps;
+there is no bounds check. Only eight table entries are interpreted.
+Handlers0/1/2/5/6/7 read C73D/C73E/C73F/C84B/C84C/C84D; handlers3/4 read
+little-endian words C747/C745. Each writes C655, zero terminates and calls01E9.
+Byte formatting0..99 uses10 for zero tens and20+digit otherwise; >99 emits4E47.
+Word formatting divides by100 but keeps only the low quotient byte, formats
+two pairs and applies literal leading/internal10/20-marker adjustment.
+Zero becomes10 10 10 10;25600 aliases zero through quotient wrap. Neither
+numeric overflow nor original byte encoding is normalized or translated.
+
+256 dispatches stop before the indirectJP, checking the actual pointer and
+return frame without executing unknown indices.1536 byte-prefix cases cover
+all256 values in six handlers;36 word cases cover18 boundary values per handler.
+Eight entries via the actual table reach the pre-presentation stops. Guards,
+terminators, tile bytes and stack are checked.1836 new assertions give52949;
+private retains1173 published e38df3f symbols. No01E9 presentation call, natural
+field semantics or arbitrary-index execution is established. Division helpers
+2046/2057 remain numeric dependencies; full binary/negative gates pass.

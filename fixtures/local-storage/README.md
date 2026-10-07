@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **51,113 assertions**.
+and stack assertions, the maintained fixture reports **52,949 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -420,3 +420,17 @@ cover source banks3/7, both9800/9C00 bases, origin(3,2), dimensions4x2 and
 source order across both planes. All calls use LCD off, HRAMFF80=RET and
 C221=0. They do not establish DMA, pending palette upload, natural menu or
 active-LCD timing. The unit adds24 assertions.
+
+### A16 field dispatch and numeric tile bytes
+
+256 stopped dispatches verify the doubled8-bit index, actual pointer and
+pushed4BDC return, without executing unknown destinations. The eight extracted
+entries are a bounded prefix, not an index-admissibility claim. Six byte fields
+are checked for every0..255 value (1536 cases); two word fields use18 boundary
+values each (36 cases), including25599/25600/25601/65534/65535. Eight actual
+table entries reach the same pre-presentation stops with the return frame.
+All handlers stop before01E9; expected bytes, zero terminator and guards are
+checked. Original encoding retains10/20 markers,4E47 for values above99 and
+word quotient low-byte wrap before leading-marker adjustment. The independent
+model does not substitute ordinary decimal text. The unit adds1836 assertions;
+no presentation call, natural field meaning or full unknown-index flow is run.
