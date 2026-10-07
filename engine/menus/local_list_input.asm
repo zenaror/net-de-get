@@ -39,7 +39,7 @@ HandleLocalListInput::
 	call $508A
 	call $4E98
 .at498B:
-	call $46C1
+	call PrepareLocalDescription
 	jp .at4C3D
 .at4991:
 	ldh a, [$FF98]
@@ -69,7 +69,7 @@ HandleLocalListInput::
 	call $508A
 	call $4E98
 .at49C7:
-	call $46C1
+	call PrepareLocalDescription
 	jp .at4C3D
 .at49CD:
 	ldh a, [$FF97]
@@ -285,7 +285,7 @@ HandleLocalListInput::
 	call $50CF
 	call $508A
 	call $4E98
-	call $46C1
+	call PrepareLocalDescription
 	ld a, $01
 	ld [$D000], a
 	jp .at4C3D
@@ -361,7 +361,7 @@ HandleLocalListInput::
 	call $50CF
 	call $508A
 	call $4E98
-	call $46C1
+	call PrepareLocalDescription
 	jr .at4C3D
 .at4C19:
 	ldh a, [$FF98]

@@ -32,7 +32,7 @@ ASSERT .end - LocalMenuState2 == $13
 SECTION "Local menu state 3", ROMX[$42F9], BANK[$0A]
 LocalMenuState3::
 	call $0279
-	call $4C6F
+	call HandleLocalActionInput
 	call UpdateLocalRemoveCursor
 	ret
 .end:

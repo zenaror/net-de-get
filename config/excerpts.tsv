@@ -76,3 +76,9 @@ bank	start	end	symbol
 0A	48DA	493F	UpdateLocalMoveCursor
 0A	4940	4C3D	HandleLocalListInput
 0A	4CDA	4CEF	FindLocalListEntry
+0A	46C1	478C	PrepareLocalDescription
+0A	4C3E	4C6E	StoreLocalBoxName
+0A	4C6F	4CD9	HandleLocalActionInput
+00	0000	00FF	ResetVector
+00	0100	0103	CartridgeEntry
+00	0104	014F	CartridgeHeader

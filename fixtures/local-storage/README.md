@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **2,681 assertions**.
+and stack assertions, the maintained fixture reports **2,773 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -128,3 +128,12 @@ They do not establish natural row/category bounds or rendered motion.
 Sixteen unhandled-input combinations return from $4940 with tested menu fields
 unchanged. Four pair-lookup cases cover first/second match, exhaustion and
 B=$FF on a synthetic 256-pair list; natural list capacity is not established.
+
+Sixteen unhandled action-input fixtures return from $4C6F without modifying the
+tested fields. Fifteen $4C3E cases combine indices 0/1/6/16/255 and source lengths
+0/3/16 in a correctly sized 675-byte synthetic SYS1. They check the zero-inclusive
+or 16-byte copy, nibble-swap address arithmetic and all other payload bytes.
+Closing disables SRAM; the harness explicitly remaps disposable SRAM to inspect
+it afterward. No real save, arbitrary-record capacity or natural extreme-index
+admissibility is established. $46C1 is reconstructed statically; its complete
+text/description execution has not received a new probe here.

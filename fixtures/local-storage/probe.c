@@ -699,6 +699,37 @@ int main(int argc,char **argv){
           cpu->a==(mode==2?0xFF:1)&&cpu->b==(mode==2?1:0),
           "pair lookup match exhaustion and index wrap",mode);
  }
+ /* Action-input unhandled bits avoid external sound/text callees. */
+ for(unsigned held=0;held<4;held++)for(unsigned pressed=0;pressed<4;pressed++){
+  wr(c,0xFF98,ignoredHeld[held]);wr(c,0xFF97,ignoredPressed[pressed]);
+  for(unsigned i=0;i<32;i++)wr(c,0xD000+i,0xA5);
+  call(c,0x4C6F);unsigned ok=1;
+  for(unsigned i=0;i<32;i++)ok&=rd(c,0xD000+i)==0xA5;
+  require(ok,"unhandled action input preserves menu fields",held*4+pressed);
+ }
+ /* Correct-size synthetic SYS1; all payload bytes outside the copied span checked. */
+ const unsigned nameRows[]={0,1,6,16,255},nameLengths[]={0,3,16};
+ for(unsigned row=0;row<5;row++)for(unsigned mode=0;mode<3;mode++){
+  wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);
+  wr(c,0xFFAF,0);wr(c,0xFFB0,1);
+  for(unsigned i=0;i<4096;i++)wr(c,0xA000+i,0);
+  cpu->bc=0x02A3;cpu->de=0x3ED8;call(c,0x01B6);
+  for(unsigned i=0;i<675;i++)wr(c,0xA317+i,0xA5);
+  call(c,0x01B9);
+  for(unsigned i=0;i<17;i++)wr(c,0xD800+i,i==nameLengths[mode]?0:i+1);
+  wr(c,0xD001,nameRows[row]);cpu->de=0xD800;call(c,0x4C3E);
+  unsigned closed=rd(c,0xA317)==0xFF;
+  /* Close disables SRAM; explicitly map it again only to inspect the fixture. */
+  wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);
+  unsigned value=nameRows[row],offset=0x112+(((value<<4)|(value>>4))&255);
+  unsigned copied=nameLengths[mode]==16?16:nameLengths[mode]+1,ok=closed;
+  for(unsigned i=0;i<675;i++){
+   unsigned expected=0xA5;
+   if(i>=offset&&i<offset+copied)expected=i-offset==nameLengths[mode]?0:i-offset+1;
+   ok&=rd(c,0xA317+i)==expected;
+  }
+  require(ok,"box-name copy termination wrap and other record bytes",row*3+mode);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

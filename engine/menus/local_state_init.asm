@@ -122,7 +122,7 @@ LocalMenuState0::
 	call $4E98
 	call $517D
 	call $50CF
-	call $46C1
+	call PrepareLocalDescription
 	ld a, $02
 	ld c, $02
 	ld de, $5BEA

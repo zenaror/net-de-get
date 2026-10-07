@@ -601,3 +601,23 @@ Source: **77 sections / 14089 byte-exact bytes**; CPU suite **2681 assertions**.
 Rafael authorized continuing until a full, independently assembled 1 MiB ROM
 matches the reference exactly. The complete gate rejects matching linker padding
 without explicit sources; sparse equivalence is still an intermediate result.
+
+
+### Description preparation, label storage and original cartridge entry
+
+**PROBABLE static interpretation:** $46C1-$478C locates a category/list item,
+selects ROM or flash B, copies from $6024 through zero into $D30A and restores B.
+The unbounded terminator copy and still-numeric text callees preclude a full
+runtime/capacity claim. $4C6F-$4CD9 action input has sixteen forced unhandled-bit
+cases preserving tested fields. $4C3E-$4C6E opens SYS1, applies eight-bit SWAP to
+the row, adds $0112 to the returned data pointer, copies through zero or 16 bytes,
+and closes. Fifteen correctly sized synthetic cases check all 675 payload bytes.
+The initial failed expectation read disabled SRAM after close; the corrected
+fixture checks the closed bus then remaps disposable SRAM for inspection. No
+source-byte correction was needed; no real save or natural extreme-index claim.
+
+Vectors/entry $0000-$0103 and header $0104-$014F preserve exact original bytes,
+including explicitly declared reserved zero regions and original checksums.
+Branch targets alone do not prove boot/interrupt execution. No rgbfix on partial
+output. Source: **83 sections / 14785 byte-exact bytes**; **2773 CPU assertions**,
+**19 checker tests**. The integral gate still rejects the partial reconstruction.

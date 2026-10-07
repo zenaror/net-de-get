@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-Ainda não é uma reconstrução completa RGBDS e não contém a ROM comercial. Os trechos publicados têm limites de evidência explícitos. Implementação Mobile Adapter/REON permanece fora do escopo.
+Ainda não é uma reconstrução completa RGBDS e não contém a ROM comercial. Os trechos publicados têm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **14089 bytes em 77 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **14785 bytes em 83 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -71,7 +71,7 @@ Objetivo autorizado por Rafael: concluir uma ROM montável a partir do fonte RGB
 
 ### Trabalho a fazer
 
-1. Seguir os callees do handler `$4940`, o produtor `$46C1` e o handler `$4C6F`, preservando campos e comparações; buscar preparação natural dos gráficos/paletas.
+1. Fechar os callees ainda numéricos dos handlers e de `$46C1`; seguir os destinos de boot `$02B8/$05F5/$0601/$061B` para ampliar ROM0, preservando fronteiras e símbolos.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Medir as lacunas com `make coverage`; concluir todas as regiões de código/dados e aplicar o gate integral abaixo.
@@ -107,7 +107,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **2.681 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **2.773 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -195,3 +195,13 @@ Trinta e seis combinações sintéticas conferem os descriptors, flags, caminho 
 ### Entrada da lista e busca de pares
 
 `engine/menus/local_list_input.asm` cobre `$4940-$4C3D`, com branches e chamadas preservados. Dezesseis combinações de bits não tratados retornam sem alterar os campos testados; os caminhos que chamam rotinas ainda externas têm somente equivalência estática neste passe. `engine/menus/local_list_lookup.asm` cobre `$4CDA-$4CEF`: percorre pares em `$D1E6`, busca o enésimo byte de categoria igual a C e encerra no marcador `$FF`. Os quatro probes cobrem duas correspondências, exaustão e o wrap do índice B `$FF` numa lista sintética de 256 pares. Não há prova de capacidade natural dessa lista. As interpretações continuam `PROBABLE`.
+
+### Preparação de descrição, ações e gravação de nomes
+
+`engine/menus/local_description.asm` cobre `$46C1-$478C`: procura o item na lista, lê bytes desde `$6024` em ROM/flash até zero para `$D30A`, configura o timer/campos de texto e restaura seletor/tipo B. Essa cópia não tem limite universal demonstrado. Os callees de texto ainda numéricos impedem atribuir novo resultado de execução completa a esse helper; a evidência deste passe é estática.
+
+`engine/menus/local_action_input.asm` cobre `$4C6F-$4CD9`; dezesseis fixtures com bits não tratados retornam sem alterar os campos testados. `engine/menus/local_box_name.asm` cobre `$4C3E-$4C6E`, abrindo SYS1, calculando o destino com `SWAP` em oito bits, copiando até zero ou 16 bytes e fechando o registro. Quinze fixtures combinam índices 0/1/6/16/255 e comprimentos 0/3/16 num registro sintético de 675 bytes; conferem todos os bytes restantes. O fechamento desabilita SRAM; o harness a habilita novamente somente para inspecionar sua memória descartável. Não há garantia de capacidade de registros arbitrários ou admissibilidade natural dos índices extremos.
+
+### Vetores, entrada e cabeçalho
+
+`home/vectors.asm` cobre `$0000-$0103`, incluindo os destinos literais de reset/interrupções, os stubs JP em WRAM e a entrada `$0100`. As regiões reservadas zeradas são declaradas com tamanho explícito e comparadas; não são lacunas preenchidas pelo linker. `data/cartridge_header.asm` cobre `$0104-$014F`, preservando logo, título, código do jogo, flags e checksums originais. `rgbfix` não é aplicado à imagem parcial. Isso fecha os primeiros 336 bytes da ROM sem confirmar uma sequência natural de boot neste passe.

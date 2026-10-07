@@ -148,7 +148,7 @@ LocalMenuState5::
 	call $50CF
 	call $508A
 	call $4E98
-	call $46C1
+	call PrepareLocalDescription
 	call SumLocalFlashHeaderCounts
 	ld a, $91
 	call $024F
