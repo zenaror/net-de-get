@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,684 assertions**.
+and stack assertions, the maintained fixture reports **1,724 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -60,3 +60,11 @@ outcomes, both selector/type mirrors and restored mapper contents. Single-plane
 copy consumes B/C and advances DE by a 32-byte stride per row; the two-plane
 wrapper preserves BC/DE. No zero counters, window crossing, flash source types
 or LCD-on timing is covered.
+
+Pending-menu transfers are entered at `$5A0E`, after the two external callbacks.
+Eight positive widths (1/3/4/7/8/9/20/32) with height 2 check active flags `$80`
+and 1, descriptor consumption and padding. Other cases cover an inactive queue,
+the original nine-byte column at `$4224` in plane 1, and the independent `$D309`
+6×10 tail starting in planes 0/1. Plane 1 at entry may produce only one pass;
+these fixtures do not establish what the skipped callbacks configure naturally.
+Zero dimensions, arbitrary pointers and LCD-on safety remain outside coverage.

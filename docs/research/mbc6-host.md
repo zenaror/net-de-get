@@ -422,3 +422,29 @@ State 0 passes BC=`$2020` to `$01A4` with HL=`$5208`, bounding two consecutive
 32×32 planes at A `$14:$5208-$5A07`. The **2048 bytes** are stored as data,
 not decoded instructions, in `data/local_menu_full_tilemap.asm`. No full-menu
 rendering trace is asserted. Source totals: **46 sections / 5761 bytes**.
+
+
+### Pending transfer descriptors and the nine-byte column
+
+**PROBABLE static interpretation:** A `$14:$5A08-$5B25` calls `$FF80/$018C`,
+then processes ten six-byte descriptors at `$D028`: destination word, width,
+height and source word. It copies the destination into scratch `$D022/$D023`,
+invalidates the queued word with `$FFFF`, then copies each positive-width row
+with unrolled 8-byte/4-byte groups and 1..3 remainder bytes. Destination rows
+advance by 32 bytes. `$D021=$80` leaves the current VRAM plane selected; other
+active flags toggle after a pass and repeat only while the toggled bit is 1.
+This does not prove a universal two-plane contract independent of entry VBK.
+
+The state-0 descriptor gives destination `$98A1`, width 1, height 9 and source
+`$4224`. Only that nine-byte read interval `$4224-$422C` is extracted as data;
+its symbol now supplies the original low/high immediate bytes in state 0.
+The independent `$D309` tail writes six bytes per row for ten rows from `$D34A`
+to `$988D`, then applies its current-plane toggle/repeat condition.
+
+Forced-entry probes skip the two callbacks by entering `$5A0E`, LCD off. They
+cover eight widths in single/alternating-plane modes, inactive queue, the
+original column in plane 1 and the `$D309` tail starting in planes 0/1. They
+check consumed destinations, copied data, row stride, padding and flags. No
+natural callback preparation, zero dimensions, arbitrary destination bounds or
+LCD-on safety follows. Suite: **1724 assertions**. Source: **48 sections /
+6056 byte-exact bytes**.

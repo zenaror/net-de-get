@@ -279,6 +279,84 @@ int main(int argc,char **argv){
   require(ok,"banked copy data, padding, registers and both mapper windows",
           kind*100+window*10+shape);
  }
+ /* Forced queue body after callbacks. Positive widths/heights, LCD off. */
+ wr(c,0x27FF,0x14);wr(c,0x2800,0);wr(c,0xFF70,1);
+ const unsigned queueWidths[]={1,3,4,7,8,9,20,32};
+ for(unsigned mode=0;mode<2;mode++)for(unsigned shape=0;shape<8;shape++){
+  unsigned width=queueWidths[shape],height=2,size=width*height;
+  for(unsigned i=0;i<2*size;i++)wr(c,0xD800+i,(i*37+11)&255);
+  for(unsigned i=0;i<60;i++)wr(c,0xD028+i,0);
+  for(unsigned slot=0;slot<10;slot++){
+   wr(c,0xD028+slot*6,255);wr(c,0xD029+slot*6,255);
+  }
+  wr(c,0xD028,0x40);wr(c,0xD029,0x98);wr(c,0xD02A,width);
+  wr(c,0xD02B,height);wr(c,0xD02C,0);wr(c,0xD02D,0xD8);
+  wr(c,0xD021,mode?1:0x80);wr(c,0xD309,0);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<96;i++)wr(c,0x9840+i,0xA5);
+  }
+  wr(c,0xFF4F,0);call(c,0x5A0E);
+  unsigned ok=rd(c,0xD021)==0&&rd(c,0xC5DA)==0&&(rd(c,0xFF4F)&1)==0;
+  for(unsigned slot=0;slot<10;slot++)
+   ok&=rd(c,0xD028+slot*6)==255&&rd(c,0xD029+slot*6)==255;
+  ok&=rd(c,0xD02A)==width&&rd(c,0xD02B)==height&&rd(c,0xD02C)==0&&rd(c,0xD02D)==0xD8;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<96;i++){
+    unsigned row=i/32,col=i%32;
+    unsigned expected=(row<height&&col<width&&(plane==0||mode))?
+     ((plane*size+row*width+col)*37+11)&255:0xA5;
+    ok&=rd(c,0x9840+i)==expected;
+   }
+  }
+  require(ok,"queued transfer mode, row copy, consumed destinations and padding",mode*10+shape);
+ }
+ wr(c,0xD021,0);wr(c,0xD309,0);wr(c,0xD028,0x37);
+ call(c,0x5A0E);
+ require(rd(c,0xD028)==0x37&&rd(c,0xD021)==0&&rd(c,0xD309)==0,
+         "inactive queue leaves descriptor unchanged",0);
+ /* Actual nine-byte column read, starting in VRAM plane 1. */
+ for(unsigned i=0;i<60;i++)wr(c,0xD028+i,0);
+ for(unsigned slot=0;slot<10;slot++){
+  wr(c,0xD028+slot*6,255);wr(c,0xD029+slot*6,255);
+ }
+ wr(c,0xD028,0xA1);wr(c,0xD029,0x98);wr(c,0xD02A,1);
+ wr(c,0xD02B,9);wr(c,0xD02C,0x24);wr(c,0xD02D,0x42);
+ wr(c,0xD021,0x80);wr(c,0xD309,0);
+ for(unsigned plane=0;plane<2;plane++){
+  wr(c,0xFF4F,plane);for(unsigned i=0;i<288;i++)wr(c,0x98A0+i,0xA5);
+ }
+ wr(c,0xFF4F,1);call(c,0x5A0E);
+ unsigned columnOK=(rd(c,0xFF4F)&1)==1&&rd(c,0xD021)==0;
+ for(unsigned plane=0;plane<2;plane++){
+  wr(c,0xFF4F,plane);
+  for(unsigned i=0;i<288;i++)columnOK&=rd(c,0x98A0+i)==
+   (plane==1&&i%32==1?rd(c,0x4224+i/32):0xA5);
+ }
+ require(columnOK,"original nine-byte column, current plane only",0);
+ /* Independent D309 tail: 6 columns x 10 rows, current plane and toggle. */
+ for(unsigned firstPlane=0;firstPlane<2;firstPlane++){
+  wr(c,0xD021,0);wr(c,0xD309,1);
+  for(unsigned i=0;i<120;i++)wr(c,0xD34A+i,(i*37+11)&255);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<320;i++)wr(c,0x9880+i,0xA5);
+  }
+  wr(c,0xFF4F,firstPlane);call(c,0x5A0E);
+  unsigned ok=rd(c,0xD309)==0&&(rd(c,0xFF4F)&1)==0&&
+              cpu->hl==0xD34A+(firstPlane?60:120);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<320;i++){
+    unsigned row=i/32,col=i%32,value=0xA5;
+    if(col>=13&&col<19&&(firstPlane==0||plane==1)){
+     unsigned sourceIndex=(firstPlane?0:plane*60)+row*6+col-13;
+     value=(sourceIndex*37+11)&255;
+    }
+    ok&=rd(c,0x9880+i)==value;
+   }
+  }
+  require(ok,"D309 tail rectangle, current plane and source advancement",firstPlane);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

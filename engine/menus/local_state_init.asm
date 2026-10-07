@@ -110,9 +110,9 @@ LocalMenuState0::
 	ld [hli], a
 	ld a, $09
 	ld [hli], a
-	ld a, $24
+	ld a, LOW(LocalMenuColumn)
 	ld [hli], a
-	ld a, $42
+	ld a, HIGH(LocalMenuColumn)
 	ld [hli], a
 	ld a, $80
 	ld [$D021], a

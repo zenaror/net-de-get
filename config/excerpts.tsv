@@ -45,3 +45,5 @@ bank	start	end	symbol
 00	0AE4	0B14	CopyTilemapPlaneBody
 00	0B5F	0C5B	CopyBankedTwoPlaneTilemapBody
 0A	5208	5A07	LocalMenuFullTilemap
+0A	5A08	5B25	ProcessLocalMenuTransfers
+0A	4224	422C	LocalMenuColumn
