@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1014741 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1014705 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 361 seções**, todos comparados byte a byte com a referência externa. Os 171 trechos analisados somam 33835 bytes; os demais 1014741 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 373 seções**, todos comparados byte a byte com a referência externa. Os 183 trechos analisados somam 33871 bytes; os demais 1014705 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 361 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 373 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -377,8 +377,14 @@ A confiança é `PROBABLE`. Nove novos asserts verificam os campos dos slots 0/1
 
 ### Continuações lineares dos 12 streams originais
 
-Os três fontes `bank_b21_a1e_header.asm`, `bank_b5b_a1e_header.asm` e `bank_b5c_a1e_header.asm` refinam mais 11.667 bytes, desde o contador já verificado até antes do primeiro `$FE`. Os corpos são B `$21:$6642-$690E/$691D-$6BA3/$6BB2-$6D2A/$6D3B-$6FFB`, B `$5B:$65EB-$697A/$698C-$6CBF/$6CD1-$6EB8/$6ECA-$7254` e B `$5C:$6642-$6853/$6862-$7028/$7037-$77AF/$77BE-$7E39`. Cada linha preserva um comando e sua duração, sem traduzir ou alterar os bytes. Os aliases residuais anteriores são mantidos. `$FE` e as continuações após ele permanecem não interpretados.
+Os três fontes `bank_b21_a1e_header.asm`, `bank_b5b_a1e_header.asm` e `bank_b5c_a1e_header.asm` refinam mais 11.667 bytes, desde o contador já verificado até antes do primeiro `$FE`. Os corpos são B `$21:$6642-$690E/$691D-$6BA3/$6BB2-$6D2A/$6D3B-$6FFB`, B `$5B:$65EB-$697A/$698C-$6CBF/$6CD1-$6EB8/$6ECA-$7254` e B `$5C:$6642-$6853/$6862-$7028/$7037-$77AF/$77BE-$7E39`. Cada linha preserva um comando e sua duração, sem traduzir ou alterar os bytes. Os aliases residuais anteriores são mantidos. Essa extração linear parou antes de `$FE`; as primeiras arestas e seus fallbacks são refinados na seção seguinte.
 
 A confiança é `PROBABLE`. Um modelo limitado de framing e contadores, independente das instruções SM83, mede 3.996 eventos com contador não zero e confere a execução de 2.433/3.899/3.838 ticks residentes (10.170 no total). A fixture desabilita cada slot após carregar seu último evento, antes de entrar em `$FE`. B `$21` slot 2 para em `$6D29`: o tail `$80,$00` até `$6D2A` é interpretado estaticamente, pois executá-lo encadearia diretamente ao loop. Uma primeira validação rejeitou a suposição de que toda fronteira estática era um ponto de parada com contador positivo; o contrato passou a distinguir os dois limites.
 
 Os contadores longos preservam a divisão original dos bits e o retorno a `$FF` após decrementar o byte alto, sem substituí-los por um contador comum de 16 bits. Quatro casos de framing verificam entrada válida e rejeitam opcode desconhecido e durações truncadas. A fixture soma 51.006 asserts; a cópia privada preservou os 1.090 símbolos de `eeb564f`. Imagem inteira e negativos reais passam. Os ticks são entradas residentes forçadas: não demonstram IRQ natural, extensão completa dos loops, temporização musical ou correção audível.
+
+### Primeiras arestas `$FE` e saídas `$FF` dos streams originais
+
+Os três fontes de streams extraem mais 36 bytes: `$FE,$00,$FF` ao final de cada um dos 12 corpos lineares. `$2F`, após o `$FF`, permanece não interpretado. Os ponteiros `$FD` e contadores originais são conferidos no estado deixado pela execução anterior; todos os 12 contadores são zero. Em B `$21`, os ponteiros salvos são `$663E/$6919/$6BAE/$6D35` e o retorno carrega eventos até `$6642/$691D/$6BB2/$6D3B`. Em B `$5B`, são `$65E7/$6988/$6CCD/$6EC6`, retornando até `$65EB/$698C/$6CD1/$6ECA`. Em B `$5C`, são `$6669/$6901/$7126/$788A`, retornando até `$666D/$6905/$712D/$788E`: os retornos saltam uma introdução já coberta pelo corpo linear.
+
+A confiança é `PROBABLE`. Entradas forçadas nos quatro handlers, com estado original preservado, verificam os 12 retornos, contadores e ponteiros salvos. B `$21` slot 2 executa também o tail `$80,$00` antes do `$FE`. Outros 12 casos impõem contador 1 e ponteiro na aresta: `$FE` então lê o contador `$00`, encadeia até `$FF` e limpa exatamente os 16 bytes do slot, mantendo os guards. Esse fallback é artificial; o estado original com contador zero não demonstra uma saída natural. Os 60 novos asserts elevam a fixture a 51.066; a cópia privada preservou os 1.114 símbolos de `5008cb7`. ROM inteira e negativos reais passam, sem evidência de IRQ/menu natural, repetição musical completa ou correção audível.

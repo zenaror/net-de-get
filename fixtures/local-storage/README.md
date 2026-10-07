@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **51,006 assertions**.
+and stack assertions, the maintained fixture reports **51,066 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -374,5 +374,23 @@ calls (10170 total) match the predicted pointer and both countdown fields for
 all active slots, with mapper shadows restored each time. Slots are disabled
 only after the last bounded event is loaded. B21 slot2 stops at6D29; the static
 8000 tail at6D29..6D2A would chain straight intoFE and is not run here.
-Other slot stops coincide with the firstFE position. NoFE is executed, and
+Other slot stops coincide with the firstFE position. In these linear-body cases
+noFE is executed, and
 this does not establish complete-loop playback, natural IRQ timing or audio.
+
+### First original FE edges and artificial FF fallback
+
+The final-event snapshots retain all16 slot bytes before deactivation.
+Twelve assertions check the original lastFD pointers and zero loop counters.
+Forced handlers43E7/45A1/4752/48EC then execute the original FE edges from
+those snapshots, including B21 slot2's zero-count tail. Saved pointers and
+resulting pointer/countdown fields are checked against fixed contracts.
+B21/B5B restart the measured first events; B5C restarts after an introduction.
+
+Separate forced count1 cases place each pointer atFE; the original00 duration
+chains intoFF, clearing exactly16 bytes and retaining neighboring guards.
+This is artificial fallback reachability; it does not establish a natural exit
+from original zero-count loops, complete repeated playback, timing or audio.
+The unit adds60 assertions. The handler addresses are verified against the
+published symbol map; the initial erroneous43E6 entry was rejected before
+publication and corrected to43E7.

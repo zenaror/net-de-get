@@ -1664,6 +1664,9 @@ int main(int argc,char **argv){
  const unsigned prefixDurations[3][4]={{11,11,36,24},{27,14,29,2},{59,7,5,1}};
  const unsigned bodyEnds[3][4]={{0x690F,0x6BA4,0x6D2B,0x6FFC},{0x697B,0x6CC0,0x6EB9,0x7255},{0x6854,0x7029,0x77B0,0x7E3A}};
  const unsigned bodyStopPointers[3][4]={{0x690F,0x6BA4,0x6D29,0x6FFC},{0x697B,0x6CC0,0x6EB9,0x7255},{0x6854,0x7029,0x77B0,0x7E3A}};
+ const unsigned edgeSavedPointers[3][4]={{0x663E,0x6919,0x6BAE,0x6D35},{0x65E7,0x6988,0x6CCD,0x6EC6},{0x6669,0x6901,0x7126,0x788A}};
+ const unsigned edgeRestartPointers[3][4]={{0x6642,0x691D,0x6BB2,0x6D3B},{0x65EB,0x698C,0x6CD1,0x6ECA},{0x666D,0x6905,0x712D,0x788E}};
+ const unsigned handlers[]={0x43E7,0x45A1,0x4752,0x48EC};
  const unsigned bodyEventCounts[3][4]={{215,201,106,246},{352,315,195,285},{195,588,699,599}};
  struct A1EEvent negativeEvents[800];unsigned negativeCount;
  wr(c,0xD800,0x80);wr(c,0xD801,7);
@@ -1709,6 +1712,7 @@ int main(int argc,char **argv){
   require(exact&&rd(c,0xCF27)==waveIndices[index],"actual B C0 selected slot0/1 records and slot2 index",bank);
   /* Run full resident ticks, independently advancing the low/high counters.
      Disable each slot only after its final event is loaded, before FE executes. */
+  unsigned savedSlotState[4][16];
   unsigned next[4]={0},modelLow[4],modelHigh[4]={0},modelPointer[4],done=0,executedTicks=0;
   for(unsigned slot=0;slot<4;slot++){modelLow[slot]=prefixDurations[index][slot];modelPointer[slot]=prefixEnds[index][slot];}
   for(unsigned tick=0;done!=15&&tick<20000;tick++){
@@ -1732,11 +1736,35 @@ int main(int argc,char **argv){
            "actual B linear body resident tick matches independent framing counters",bank*20000+tick);
    for(unsigned slot=0;slot<4;slot++)if(!(done&(1<<slot))&&next[slot]==counts[slot]){
     require(modelPointer[slot]==bodyStopPointers[index][slot],"actual B stops before FE or zero-count tail",bank*4+slot);
+    unsigned base=0xCF00+slot*16,saved=rd(c,base+10)|(rd(c,base+11)<<8);
+    require(saved==edgeSavedPointers[index][slot]&&rd(c,base+12)==0,
+            "actual B final original FD pointer and zero loop count",bank*4+slot);
+    for(unsigned i=0;i<16;i++)savedSlotState[slot][i]=rd(c,base+i);
     done|=1<<slot;wr(c,0xCF01+slot*16,0);
    }
   }
   require(done==15,"actual B all four linear bodies bounded",bank);
   printf("A1E B%02X bounded linear bodies: %u resident ticks; stopped before FE\n",bank,executedTicks);
+  /* Original FE restart from the retained final event state. The slot2 B21
+     zero-count tail is included; other slots enter FE directly. No IRQ claim. */
+  wr(c,0x27FF,0x1E);wr(c,0x2800,0);wr(c,0x37FF,bank);wr(c,0x3800,0);
+  for(unsigned slot=0;slot<4;slot++){
+   unsigned base=0xCF00+slot*16;
+   for(unsigned i=0;i<16;i++)wr(c,base+i,savedSlotState[slot][i]);
+   call(c,handlers[slot]);
+   unsigned pointer=rd(c,base)|(rd(c,base+1)<<8),saved=rd(c,base+10)|(rd(c,base+11)<<8);
+   require(pointer==edgeRestartPointers[index][slot]&&rd(c,base+4)==prefixDurations[index][slot]&&
+           rd(c,base+5)==0&&saved==edgeSavedPointers[index][slot]&&rd(c,base+12)==0,
+           "actual B FE zero-count restart uses original saved pointer",bank*4+slot);
+   /* Independent forced count1 makes the original00 countdown reach FF.
+      This is fallback reachability, not an original zero-count exit. */
+   for(unsigned i=0;i<16;i++)wr(c,base+i,savedSlotState[slot][i]);
+   wr(c,base,bodyEnds[index][slot]&255);wr(c,base+1,bodyEnds[index][slot]>>8);wr(c,base+12,1);
+   unsigned before=rd(c,base-1),after=rd(c,base+16);call(c,handlers[slot]);exact=true;
+   for(unsigned i=0;i<16;i++)if(rd(c,base+i))exact=false;
+   require(exact&&rd(c,base-1)==before&&rd(c,base+16)==after,
+           "actual B forced FE count1 reaches original FF exact16 clear",bank*4+slot);
+  }
   /* Separate forced slot2 C0 entry with channel disabled: exact wave copy,
      without inferring first-tick audio access or audible output. */
   wr(c,0x27FF,0x1E);wr(c,0x2800,0);wr(c,0x37FF,bank);wr(c,0x3800,0);

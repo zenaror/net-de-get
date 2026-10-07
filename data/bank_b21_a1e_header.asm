@@ -1055,3 +1055,39 @@ BankB21Slot3LinearBody::
 	db $96, $2E, $01 ; B $6FF7
 	db $80, $0B ; B $6FFA
 ASSERT @ == $6FFC
+
+; PROBABLE FE restart with original saved count0; FF fallback tested with count1.
+SECTION "B21 slot0 first loop edge", ROMX[$690F], BANK[$10]
+ResidualROM10_690F::
+BankB21Slot0FirstLoopEdge::
+	db $FE, $00
+BankB21Slot0FirstLoopFallback::
+	db $FF
+ASSERT @ == $6912
+
+; PROBABLE FE restart with original saved count0; FF fallback tested with count1.
+SECTION "B21 slot1 first loop edge", ROMX[$6BA4], BANK[$10]
+ResidualROM10_6BA4::
+BankB21Slot1FirstLoopEdge::
+	db $FE, $00
+BankB21Slot1FirstLoopFallback::
+	db $FF
+ASSERT @ == $6BA7
+
+; PROBABLE FE restart with original saved count0; FF fallback tested with count1.
+SECTION "B21 slot2 first loop edge", ROMX[$6D2B], BANK[$10]
+ResidualROM10_6D2B::
+BankB21Slot2FirstLoopEdge::
+	db $FE, $00
+BankB21Slot2FirstLoopFallback::
+	db $FF
+ASSERT @ == $6D2E
+
+; PROBABLE FE restart with original saved count0; FF fallback tested with count1.
+SECTION "B21 slot3 first loop edge", ROMX[$6FFC], BANK[$10]
+ResidualROM10_6FFC::
+BankB21Slot3FirstLoopEdge::
+	db $FE, $00
+BankB21Slot3FirstLoopFallback::
+	db $FF
+ASSERT @ == $6FFF

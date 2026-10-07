@@ -1161,3 +1161,29 @@ Four model fixtures include positive input, unknown opcode rejection and
 truncated short/long duration rejection. Total51006 assertions pass, and the
 private cycle preserves1090 published eeb564f symbols. There is no natural
 menu/IRQ trace, full loop execution, musical timing or audible correctness claim.
+
+## First original FE edges and FF fallback
+
+**PROBABLE**, static consumers and forced original-state handler entries.
+Twelve first-edge sources extract FE00FF,36 bytes, preserving published
+ResidualROM aliases. The byte2F after eachFF remains uninterpreted: FF clears
+without consuming it. Original FD snapshots after the linear-body tick runs
+have zero loop counts. The following saved pointers point at countdown bytes,
+not necessarily at command opcodes.
+
+| B | Saved FD pointers (slots0..3) | Positive-event pointers after FE |
+| --- | --- | --- |
+|21|663E /6919 /6BAE /6D35|6642 /691D /6BB2 /6D3B|
+|5B|65E7 /6988 /6CCD /6EC6|65EB /698C /6CD1 /6ECA|
+|5C|6669 /6901 /7126 /788A|666D /6905 /712D /788E|
+
+The B5C edge restarts skip an introduction. B21 slot2 executes the zero-count
+8000 tail beforeFE. Twelve forced original-state entries verify the restart,
+zero loop count and unchanged saved pointer. Twelve independent forced count1
+cases enterFE directly: decrement-to-zero selects fallthrough, the original00
+countdown chains intoFF and exactly16 slot bytes clear with guards retained.
+This does not establish a natural zero-loop exit. Initial wrong slot0 entry
+43E6 was rejected by the runtime contract; the symbol map establishes43E7.
+The unit adds60 assertions,total51066; private retains1114 published5008cb7
+symbols. No natural IRQ/menu, complete repeated playback, timing or audio
+claim follows from these probes.

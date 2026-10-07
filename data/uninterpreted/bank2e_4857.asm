@@ -1,8 +1,8 @@
 ; HYPOTHESIS classification: uninterpreted original bytes, not asserted data/code.
 ; Byte preservation is checked; this source needs later consumer/flow analysis.
-; Physical bank $2D, address $697B-$697E.
+; Physical bank $2E, address $4857-$4857.
 ; Literal source only; building does not read the external reference ROM.
-SECTION "Uninterpreted 2D:697B-697E", ROMX[$697B], BANK[$2D]
-ResidualROM2D_697B::
-	db $FE, $00, $FF, $2F
-ASSERT @ == $697F
+SECTION "Uninterpreted 2E:4857-4857", ROMX[$4857], BANK[$2E]
+ResidualROM2E_4857::
+	db $2F
+ASSERT @ == $4858
