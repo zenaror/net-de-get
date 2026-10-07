@@ -374,5 +374,10 @@ bank	start	end	symbol
 0B	4AF0	4B35	InitializeA16MenuDisplay
 0B	4B36	4B77	FillA16MenuBackgroundPlanes
 0B	4B78	4B90	ClearA16MenuCallbacks
-0B	4312	4AEF	ResidualROM0B_4312
-0B	4B91	5FFF	ResidualROM0B_4B91
+0B	4391	440B	CopyA16BankedBackgroundRectangle
+0B	4B91	4BC9	RefreshA16MenuDisplay
+0B	4ECA	4ED1	A16MenuOverlayBytes
+0B	4312	4390	ResidualROM0B_4312
+0B	440C	4AEF	ResidualROM0B_440C
+0B	4BCA	4EC9	ResidualROM0B_4BCA
+0B	4ED2	5FFF	ResidualROM0B_4ED2

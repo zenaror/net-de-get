@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **51,089 assertions**.
+and stack assertions, the maintained fixture reports **51,113 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -408,3 +408,15 @@ Three41EA branch prefixes stop before storage/display calls, checking their
 arguments for A0/1/FF. The unit adds23 assertions, without establishing complete
 initialization/status execution, LCD-on safety, natural menu or prior IME
 preservation. DI/EI remain the original instructions.
+
+### Installed A16 refresh and banked background rectangle
+
+Eight full4B91 calls cover requests0/1/80/FF and initial WRAM banks1/3.
+Active refresh copies14x6 cells per plane from bank7:D000 sequentially,
+then overlays81..84/00..00 at9A2F..9A32 and clearsC5A9. The inactive path
+retains VRAM, C63A and VBK. Full map comparisons include outside cells and
+guards; active calls restore WRAM bank but end VBK0. Four direct4391 calls
+cover source banks3/7, both9800/9C00 bases, origin(3,2), dimensions4x2 and
+source order across both planes. All calls use LCD off, HRAMFF80=RET and
+C221=0. They do not establish DMA, pending palette upload, natural menu or
+active-LCD timing. The unit adds24 assertions.

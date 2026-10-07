@@ -1832,6 +1832,51 @@ int main(int argc,char **argv){
           "A16 status callback branch prefix stops before storage/display callee",mode);
  }
  }
+ { /* A16 installed refresh, full paths with LCD off and DMA stub. */
+ wr(c,0x27FF,0x16);wr(c,0x2800,0);wr(c,0xFF40,0);wr(c,0xFF80,0xC9);wr(c,0xC221,0);
+ const unsigned requests[]={0,1,0x80,255};
+ for(unsigned bank=1;bank<=3;bank+=2)for(unsigned mode=0;mode<4;mode++){
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);wr(c,0x97FF,0x37+plane);wr(c,0x9C00,0x39+plane);
+   for(unsigned i=0;i<1024;i++)wr(c,0x9800+i,0xA5);
+  }
+  wr(c,0xFF70,7);for(unsigned i=0;i<168;i++)wr(c,0xD000+i,(i*13+bank)&255);
+  wr(c,0xFF70,bank);wr(c,0xFF4F,1);wr(c,0xC5A9,requests[mode]);wr(c,0xC63A,0x38);
+  call(c,0x4B91);
+  bool exact=rd(c,0xC5A9)==0&&(rd(c,0xFF70)&7)==bank&&(rd(c,0xFF4F)&1)==(mode?0:1)&&rd(c,0xC63A)==(mode?7:0x38);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   if(rd(c,0x97FF)!=0x37+plane||rd(c,0x9C00)!=0x39+plane)exact=false;
+   for(unsigned i=0;i<1024;i++){
+    unsigned row=i/32,column=i%32,expected=0xA5;
+    if(mode&&row<6&&column<14)expected=((plane*84+row*14+column)*13+bank)&255;
+    if(mode&&row==17&&column>=15&&column<19)expected=plane?0:0x81+column-15;
+    if(rd(c,0x9800+i)!=expected)exact=false;
+   }
+  }
+  require(exact,"A16 full refresh pending/nonpending two planes overlay and WRAM restore",bank*4+mode);
+ }
+ /* Direct helper tests include bit7 background-base selection and banks3/7. */
+ for(unsigned sourceBank=3;sourceBank<=7;sourceBank+=4)for(unsigned high=0;high<2;high++){
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<2048;i++)wr(c,0x9800+i,0xA5);
+  }
+  wr(c,0xFF70,sourceBank);for(unsigned i=0;i<16;i++)wr(c,0xD000+i,i*7+sourceBank);
+  wr(c,0xFF70,1);wr(c,0xFF4F,1);wr(c,0xC63A,sourceBank|(high?0x80:0));
+  cpu->bc=0x0302;cpu->hl=0x0402;cpu->de=0xD000;call(c,0x4391);
+  bool exact=(rd(c,0xFF70)&7)==1&&(rd(c,0xFF4F)&1)==0;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<2048;i++){
+    unsigned local=i-(high?1024:0),row=local/32,column=local%32,expected=0xA5;
+    if(i>=(high?1024:0)&&row>=2&&row<4&&column>=3&&column<7)
+     expected=(plane*8+(row-2)*4+column-3)*7+sourceBank;
+    if(rd(c,0x9800+i)!=expected)exact=false;
+   }
+  }
+  require(exact,"A16 banked rectangle dimensions origin basebit and two-plane source order",sourceBank*2+high);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

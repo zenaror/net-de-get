@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1014483 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1014295 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 377 seções**, todos comparados byte a byte com a referência externa. Os 187 trechos analisados somam 34093 bytes; os demais 1014483 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 382 seções**, todos comparados byte a byte com a referência externa. Os 190 trechos analisados somam 34281 bytes; os demais 1014295 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 377 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 382 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -391,8 +391,14 @@ A confiança é `PROBABLE`. Entradas forçadas nos quatro handlers, com estado o
 
 ### Callback de status e helpers de menu A `$16`
 
-`engine/startup/bank_a16_menu.asm` extrai `$41EA-$4226` e `$4AF0-$4B90` (222 bytes): callback de status, inicialização de campos e callbacks, preenchimento dos dois planos de background e limpeza de callbacks. Os chamadores em `bank_a16.asm` agora usam os símbolos publicados dessas entradas. O alias `ResidualROM0B_41EA` e os demais endereços são preservados; os gaps `$4312-$4AEF` e `$4B91-$5FFF` continuam não interpretados.
+`engine/startup/bank_a16_menu.asm` extrai `$41EA-$4226` e `$4AF0-$4B90` (222 bytes): callback de status, inicialização de campos e callbacks, preenchimento dos dois planos de background e limpeza de callbacks. Os chamadores em `bank_a16.asm` agora usam os símbolos publicados dessas entradas. O alias `ResidualROM0B_41EA` e os demais endereços são preservados; nessa unidade os gaps `$4312-$4AEF` e `$4B91-$5FFF` permaneceram não interpretados; a seção seguinte refina o callback instalado e seu helper.
 
 A confiança é `PROBABLE`. `$4B36` preenche os 1.024 bytes em `$9800-$9BFF` com `$80` no plano 0 e `$00` no plano 1, deixando VBK 1, BC 0 e HL `$9C00`; suas esperas verificam STAT bit 1 e o código alterna DI/EI. `$4B78` zera os callbacks HRAM, instala `$D9` nos dois stubs, zera `$C219/$C21A` pelo thunk `$01DA` e limpa `$C1C2`. A inicialização `$4AF0` limpa cinco campos, define `$C5A3=1`, chama recursos ainda pendentes e instala callback `$4B91` em uma cauda medida. O callback `$41EA` separa A zero (BC `$02A3`, DE `$3ED8` antes da abertura) de A não zero (A `$0D`, DE `$4F5A` antes da chamada de apresentação).
 
 Os 23 novos asserts executam quatro fills completos com LCD desligado, dois clears completos, duas caudas independentes de instalação e sete prefixos parados antes de recursos externos. Os fills conferem ambos os planos e guards; os stubs vazios mantêm os operandos antigos. A fixture soma 51.089 asserts; a cópia privada preservou os 1.150 símbolos de `9d82a44`. ROM inteira e negativos reais passam. Não há execução completa da inicialização/callback de status, menu natural, garantia de acesso com LCD ativo ou preservação do estado anterior de IME.
+
+### Atualização do menu A `$16` e retângulo de dois planos
+
+`engine/startup/bank_a16_refresh.asm` extrai `$4391-$440B` e `$4B91-$4BC9`; `data/bank_a16_menu_overlay.asm` extrai `$4ECA-$4ED1`. São 188 bytes adicionais. `InitializeA16MenuDisplay` agora aponta para `RefreshA16MenuDisplay`; o alias `ResidualROM0B_4B91` permanece. `$4391` recebe origem da tela em BC, dimensões em HL e fonte em DE; `$C63A` seleciona banco WRAM pelos três bits baixos e base `$9800/$9C00` pelo bit 7. A cópia avança a fonte sequencialmente pelos dois planos, mantém stride de 32 células no destino e restaura o banco WRAM salvo. VBK é forçado para 0 antes de salvá-lo e termina em 0; não preserva o plano original do chamador.
+
+A confiança é `PROBABLE`. Com `$C5A9` não zero, o callback define `$C63A=7`, copia 14×6 células de `$D000` do banco 7 e aplica quatro células de overlay em `$9A2F-$9A32`: `$81-$84` no plano 0 e zeros no plano 1. Depois zera `$C5A9`. O caminho comum chama `$FF80` e a atualização pendente de paletas. Os 24 novos asserts executam oito callbacks completos (pedidos 0/1/80/FF, bancos iniciais 1/3) e quatro cópias diretas com bancos 3/7, origem (3,2), tamanho 4×2 e ambas as bases. Conferem todos os bytes dos mapas, guards, ordem de origem, banco WRAM e VBK. O LCD está desligado, `$FF80` contém um RET sintético temporário e não há paleta pendente; não é execução natural de DMA/menu/paletas. A fixture soma 51.113 asserts; o privado preserva os 1.161 símbolos de `00fce5d`. ROM inteira e negativos reais passam. Os gaps `$4312-$4390/$440C-$4AEF/$4BCA-$4EC9/$4ED2-$5FFF` continuam não interpretados.

@@ -58,7 +58,7 @@ InitializeA16MenuDisplay::
 	ld hl, $4EDA
 	call ResidualROM00_0177
 	di
-	ld de, $4B91
+	ld de, RefreshA16MenuDisplay
 	call StoreRuntimeCallback0
 	ld de, $0000
 	call SetRuntimeInterruptStub0

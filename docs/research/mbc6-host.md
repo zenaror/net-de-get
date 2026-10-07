@@ -1212,3 +1212,28 @@ fields and retained stub operands. Seven prefixes stop before resource calls.
 No complete init/status callback, active-LCD behavior, natural menu/IRQ timing
 or prior IME preservation is established. Remaining gaps4312..4AEF and
 4B91..5FFF are still uninterpreted, including installed callback4B91.
+
+## Installed A16 menu refresh and two-plane banked rectangle
+
+**PROBABLE**, static consumers plus complete forced LCD-off calls.
+engine/startup/bank_a16_refresh.asm extracts4391..440B and4B91..4BC9;
+data/bank_a16_menu_overlay.asm extracts4ECA..4ED1,188 additional bytes.
+The installed callback symbol replaces4B91 in the setup and retains the
+published ResidualROM alias. Copy4391 uses BC screen origin (B column/C row),
+HL dimensions (H width/L height), DE source and C63A bank/base flags.
+Bit7 selects9800/9C00, low3 bits select WRAM bank. Source bytes advance across
+plane0 then plane1; destination rows use32-cell stride. Original WRAM bank
+is saved/restored; VBK is forced0 before saving and therefore ends0.
+
+PendingC5A9 causes C63A=7,14x6 two-plane copy from WRAM7:D000, followed
+by4x1 overlay at9A2F..9A32 (column15,row17), then C5A9=0. Overlay data is
+81 82 83 84 00 00 00 00. Common tail callsFF80 and018C palette upload.
+Eight full callback cases vary pending byte0/1/80/FF and prior WRAM1/3;
+four full helper cases vary WRAM3/7 and base flag, origin(3,2),dimensions4x2.
+All map bytes, guards, plane source order and mapper registers are checked.
+24 new assertions give51113; private retains1161 published00fce5d symbols.
+LCD is off, FF80 has a temporary syntheticRET and pending palette flagC221
+is zero. Thus no DMA execution, active palette upload, natural menu/IRQ or
+LCD-on timing is established. The data extent is bounded by4x1 two-plane
+copy, not a larger object claim. Unknown gaps remain4312..4390,
+440C..4AEF,4BCA..4EC9 and4ED2..5FFF.
