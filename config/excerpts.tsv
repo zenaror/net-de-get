@@ -14,3 +14,11 @@ bank	start	end	symbol
 00	38B0	391B	CheckLocalMinigameChecksum
 0A	71D4	7243	LocalListTemplate
 0A	4000	4029	LocalMinigameMenuEntry
+00	01B6	01BB	OpenLocalStorageRecord
+00	0CA5	0D4F	OpenLocalStorageRecordImpl
+00	0F15	0F80	ComputeStorageRecordChecksum
+00	0F81	106C	CompareStorageRecordName
+00	114F	1185	GetStorageDirectoryEntry
+00	3ED8	3EDB	LocalMenuStorageName
+00	106D	108D	ComputeStorageDirectoryChecksum
+00	2000	2011	SubtractDEFromHL

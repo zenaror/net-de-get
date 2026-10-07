@@ -2,7 +2,7 @@
 ; Execution continues at $402A; this is not a complete function.
 ; PROBABLE static names. Natural held-Select observations are documented
 ; in docs/research/minigame-maintenance.md, without proving every instruction.
-; $01B6 receives BC=$02A3 and DE=$3ED8; its resulting HL remains unresolved.
+; Storage open receives requested size $02A3 and name SYS1; see local_storage.asm.
 SECTION "Local minigame menu entry prefix", ROMX[$4000], BANK[$0A]
 LocalMinigameMenuEntry::
 	ld a, $01
@@ -15,10 +15,10 @@ LocalMinigameMenuEntry::
 	and a, BUTTON_SELECT_MASK
 	jr z, .initializeBox
 	ld bc, $02A3
-	ld de, $3ED8
-	call $01B6
+	ld de, LocalMenuStorageName
+	call OpenLocalStorageRecord
 	call RebuildLocalMinigameList
-	call $01B9
+	call CloseLocalStorageRecord
 .initializeBox:
 	xor a, a
 	ld [wCurrentGameBox], a

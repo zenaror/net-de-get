@@ -244,3 +244,46 @@ natural held-Select observations are not expanded into proof of every branch.
 Final maintained intervals total **15 sections / 1099 bytes**. The canonical
 plan and unknowns are in README; AGENTS references the global OMM project rules
 and lists only this project's adaptations, including partial-byte equivalence.
+
+
+### Local storage open, pointers and bounded CPU probes
+
+**PROBABLE static interpretation:** `$01B6` jumps to `$0CA5`, saving DE as a
+four-byte name pointer and BC as requested size in HRAM `$FF9E-$FFA1`.
+The menu supplies `SYS1` at `$3ED8` and size `$02A3`. Search `$0F3E` checks
+six-byte directory entries at `$A002 + 6 * index`, stops at an empty pointer,
+compares all four name bytes, and bounds the search at `$82` entries.
+
+| Unit | Static layout / behavior | Limit |
+| --- | --- | --- |
+| Directory entry | header pointer +0/+1, name +2..+5 | 130-entry search does not admit arbitrary byte indices |
+| Record header | checksum +0/+1, name +2..+5, size +6/+7, continuation byte +8 | names/fields are static interpretations |
+| Existing record open | successful name check returns header +9 in HL | stored capacity is not compared to requested BC |
+| New record | initializes requested data length, then returns header +9 | no new natural creation trace |
+| Result helper `$1176` | preserves AF/DE; records HL at C677/C678 and A at C679 | do not assume one universal meaning for A across callers |
+
+Creation's first-header address `$A30E` follows the two-byte directory checksum
+and 130 six-byte entries. The directory-checksum helper `$106D` sums `$030C`
+bytes from `$A002`, then compares with `$A000` through `$200A`. `$200A` preserves
+HL/DE while its subtraction helper supplies equality/carry flags. Record checksum
+`$0F15` reads stored size +7 bytes beginning at header +2. Exceptional zero/wrapped
+sizes and the recovery function `$108E` remain separate investigation tasks.
+The existing-open failure path at `$0D15` deliberately pops a stack word; it is
+preserved, not normalized into a common return convention.
+
+Extracted sections total **23 / 1730 bytes**, compared exactly to the reference.
+`fixtures/local-storage/probe.c` runs original opcodes in mGBA with forced entry,
+registers and synthetic memory: **1082 assertions** passed on core
+`431041ac6e264b119476d47ecf9ab96f03f11d54`, version
+`0.11-feature/full_server-9343-431041ac6`. Artifacts:
+`/tmp/netdeget-storage-probes-f39woo7r`. These are synthetic helper checks, not
+proof of natural opening/creation, complete storage safety or physical hardware.
+No save file is loaded and the original ROM hash remains unchanged.
+
+The synthetic fixture also creates a fresh SYS1 record through `$01B6`, checks
+HL=`$A317` and the requested `$02A3` length, then forces the stored size to two
+bytes and reopens with the larger requested size. That existing-open case leaves
+the two-byte stored size unchanged and still returns `$A317`. A forced `$01B9`
+close updates the record checksum. These bounded cases test the static distinction
+between new/existing records; they do not establish the safety of arbitrary
+corrupted records, natural menu operation or disk persistence.

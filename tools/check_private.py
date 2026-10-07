@@ -11,7 +11,11 @@ import tempfile
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('reference_rom', type=Path)
+p.add_argument('--mgba-source', type=Path)
+p.add_argument('--mgba-build', type=Path)
 a = p.parse_args()
+if bool(a.mgba_source) != bool(a.mgba_build):
+    p.error('Provide both mGBA source and build paths')
 repo = Path(__file__).resolve().parents[1]
 root = Path(tempfile.mkdtemp(prefix='netdeget-private-cycle-'))
 base, candidate = root / 'baseline', root / 'candidate'
@@ -28,12 +32,27 @@ for name in ('Makefile', 'includes.asm', 'roms.sha256', 'home', 'engine', 'data'
         shutil.copytree(source, destination, ignore=shutil.ignore_patterns('__pycache__'))
     else:
         shutil.copy2(source, destination)
+if a.mgba_source:
+    destination = candidate / 'fixtures/local-storage'
+    destination.mkdir(parents=True)
+    for name in ('probe.c', 'run.py'):
+        shutil.copy2(repo / 'fixtures/local-storage' / name, destination / name)
 for tree, args in ((base, ['make']),
                    (candidate, ['make', 'verify', 'REFERENCE_ROM=' + str(a.reference_rom.resolve())])):
     result = subprocess.run(args, cwd=tree, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (root / (tree.name + '.log')).write_text(result.stdout)
     if result.returncode:
         raise SystemExit(result.stdout)
+
+if a.mgba_source:
+    args = ['make', 'storage-probe', 'REFERENCE_ROM=' + str(a.reference_rom.resolve()),
+            'MGBA_SOURCE=' + str(a.mgba_source.resolve()),
+            'MGBA_BUILD=' + str(a.mgba_build.resolve())]
+    result = subprocess.run(args, cwd=candidate, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    (root / 'storage-probe.log').write_text(result.stdout)
+    if result.returncode:
+        raise SystemExit(result.stdout)
+    print(result.stdout.strip())
 
 
 def symbols(path):
