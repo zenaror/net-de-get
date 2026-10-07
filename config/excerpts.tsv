@@ -472,7 +472,8 @@ bank	start	end	symbol
 00	2685	269B	ResolveMinigameSelector
 00	269C	2752	InitializeQueuedTextPlane
 00	2799	27A9	ConfigureAndPrepareQueuedTextRegion
-00	28E3	2BFD	ResidualROM00_28E3
+00	28E3	2944	InitializeSelectionFieldsC20A
+00	2945	2BFD	ResidualROM00_2945
 00	2BFE	2D45	DrawQueuedTextFrame
 00	2D46	2D52	ResidualROM00_2D46
 07	6F0C	6F5B	A0FGridFooterNonzero

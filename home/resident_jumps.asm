@@ -38,7 +38,7 @@ ResidentJump01EC::
 ResidentJump01EF::
 	jp RenderQueuedTextBlocking
 ResidentJump01F2::
-	jp $28E3
+	jp InitializeSelectionFieldsC20A
 ResidentJump01F5::
 	jp $2945
 ResidentJump01F8::

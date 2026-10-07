@@ -54,6 +54,21 @@ static void callWithLimit(struct mCore *c,unsigned entry,unsigned limit){
  require(cpu->pc==0xC100&&cpu->sp==0xD000,"bounded return",entry);
 }
 static void call(struct mCore *c,unsigned entry){callWithLimit(c,entry,100000);}
+/* Independent quotient/remainder model, including the original zero-divisor result. */
+static void probeSelectionFields(struct mCore *c,unsigned pointer,unsigned b,unsigned divisorC,unsigned inputD,unsigned divisorE,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;
+ unsigned q1=divisorE?inputD/divisorE:255,r1=divisorE?inputD%divisorE:inputD;
+ unsigned q2=divisorC?q1/divisorC:255,r2=divisorC?q1%divisorC:q1;
+ unsigned fieldC217=(q2+(r2!=0))&255,fieldC211=r2?(r2+(r1!=0))&255:divisorC;
+ for(unsigned a=0xC209;a<=0xC21C;a++)wr(c,a,0xA5);
+ cpu->hl=pointer;cpu->bc=b<<8|divisorC;cpu->de=inputD<<8|divisorE;cpu->a=0x5A;cpu->f.packed=flags;
+ call(c,0x1F2);
+ unsigned expected[]={pointer&255,pointer>>8,0xA5,b,divisorC,inputD,divisorE,fieldC211,0,0,0,255,255,fieldC217,0xA5,0xA5,0xA5,0,0xA5};
+ bool fields=rd(c,0xC209)==0xA5;for(unsigned i=0;i<sizeof(expected)/sizeof(expected[0]);i++)fields&=rd(c,0xC20A+i)==expected[i];
+ require(fields,"Original selection initializer fields quotient branches and adjacent guards",index);
+ require(cpu->a==255&&cpu->f.packed==0x80&&cpu->bc==(r2?divisorE:divisorC)&&cpu->de==(q1<<8|divisorE)&&cpu->hl==0xC217,
+  "Original selection initializer complete register contract",index);
+}
 /* Independent byte-state model, including the core's explicit opposing-key policy. */
 struct JoypadState {unsigned previous,repeat,counter;};
 static unsigned sampledKeys(unsigned keys,bool opposing){
@@ -3457,6 +3472,16 @@ int main(int argc,char **argv){
   call(c,0x1359); /* Forced cleanup, not completion of the invalid callback. */
  }
  require(memcmp(before,flash,GB_SIZE_MBC6_FLASH_STORAGE)==0,"Whole disposable flash backing restored including extra metadata",0);free(before);
+ }
+ { /* Selection initializer: two exhaustive byte axes and full pointer domain. */
+ const unsigned divisors[]={0,1,2,3,7,16,255};unsigned index=0;
+ wr(c,0xFF40,0);wr(c,0xFF70,1);
+ for(unsigned n=0;n<7;n++)for(unsigned count=0;count<256;count++)for(unsigned stride=0;stride<256;stride++)
+  probeSelectionFields(c,0xBEEF,0x37,divisors[n],count,stride,((count^stride)&15)<<4,index++);
+ for(unsigned n=0;n<7;n++)for(unsigned count=0;count<256;count++)for(unsigned columns=0;columns<256;columns++)
+  probeSelectionFields(c,0xBEEF,0x37,columns,count,divisors[n],((count^columns)&15)<<4,index++);
+ for(unsigned pointer=0;pointer<65536;pointer++)probeSelectionFields(c,pointer,0x37,4,43,3,(pointer&15)<<4,index++);
+ for(unsigned b=0;b<256;b++)for(unsigned flags=0;flags<16;flags++)probeSelectionFields(c,0xBEEF,b,4,43,3,flags<<4,index++);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

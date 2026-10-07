@@ -997,3 +997,32 @@ probe exposed an incorrect independent CP half-borrow expectation at H=5F;
 the oracle was corrected to flags50 (low nibble F minus0 has no half-borrow),
 without changing any original byte. Full calls and negative prefixes were
 then rerun from the final source.
+
+## Selection field initializer ($28E3–$2944)
+
+PROBABLE field/flow contract from static consumers in adjacent joypad code
+and complete synthetic calls. Fields remain named by address. HL is stored
+atC20A/B; B/C/D/E are stored atC20D..C210. C212/C213/C214/C21B become0;
+C215/C216 becomeFF. C20C/C218/C219/C21A and adjacent guards are preserved.
+
+Independent model: divideByte(x,0) gives quotient255/remainderx, otherwise
+ordinary unsigned quotient/remainder. Let (q1,r1)=divideByte(D,E) and
+(q2,r2)=divideByte(q1,C). C217=(q2+(r2!=0)) modulo256.
+C211=C when r2=0, otherwise (r2+(r1!=0)) modulo256. The conditional third
+division recomputes r1. Do not replace this formula with a general ceiling
+formula: original arithmetic performs truncation in the stated order.
+Final AF=FF80, B=0, C=E if r2!=0 else originalC, DE=(q1,E), HL=C217.
+The original pointer is stored, not dereferenced by this initializer.
+
+987136 complete calls: all65536 D/E pairs for each of seven C values
+{0,1,2,3,7,16,255}; all65536 C/D pairs for each of seven E values from the same
+set; all65536 HL pointers with fixedB=37/C=4/D=43/E=3; all256 B bytes and
+all16 flags with those fixed arithmetic inputs. Arithmetic-axis flags are
+derived from inputs, not independently exhaustive. This is two exhaustive
+byte axes with boundary divisors, not the entire C/D/E Cartesian product.
+Each call checks bounded return, all19 field/guard bytes plusC209, and full
+final AF/BC/DE/HL. No natural validity for zero divisors, pointer contents,
+visible menu size or drawing/activation call at2945 is asserted.
+
+2961408 new assertions give total8142123 plus24 verifier tests. Residual
+28E3 alias stays at28E3; remaining2945..2BFD retains literal Japanese bytes.
