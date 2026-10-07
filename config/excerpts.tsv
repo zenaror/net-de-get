@@ -121,7 +121,16 @@ bank	start	end	symbol
 09	4CA6	4CB7	ShowA12TextWindow
 09	4CB8	4CD7	HideA12TextWindowAndCopy
 09	4CD8	4CFC	CopyA12CurrentTextRegion
-09	4CFD	4FFE	ResidualROM09_4CFD
+09	4CFD	4D0A	ResetA12ResourceFrame
+09	4D0B	4D25	ResetA12ResourceAndTileFrames
+09	4D26	4D3B	SelectA12VariantResourceTable
+09	4D3C	4D43	A12VariantResourceTablePointers
+09	4D44	4D47	SelectA12Variant0ResourceTable
+09	4D48	4D4B	SelectA12Variant1ResourceTable
+09	4D4C	4D4F	SelectA12Variant2ResourceTable
+09	4D50	4D53	SelectA12Variant3ResourceTable
+09	4D54	4D81	TickA12ResourceFrame
+09	4D82	4FFE	ResidualROM09_4D82
 09	4FFF	5050	CopyA12TileFrame
 09	5051	5092	TickA12TileFrame
 09	5093	50C7	InitializeA12TileFrames

@@ -4007,6 +4007,44 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Dispatch, resets and tick: actual boundaries, never fabricated callees. */
+ struct GB *g=c->board;const unsigned entries[]={0x4D44,0x4D48,0x4D4C,0x4D50},tables[]={0x6BBD,0x6AD0,0x6AE5,0x6A3D};
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned index=0;index<256;index++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A8,index);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4D26;
+  unsigned offset=(index*2)&255,pointer=0x4D3C+offset,target=rd(c,pointer)|(rd(c,pointer+1)<<8),steps=0;
+  while(cpu->pc!=0x4D3A&&steps++<100)c->step(c);
+  require(cpu->pc==0x4D3A&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x4D3B,"A12 resource raw dispatcher original synthetic return prefix",index*16+flags);
+  require(cpu->hl==target&&cpu->de==target&&cpu->bc==0xBEEF&&cpu->a==offset&&cpu->f.packed==(offset?0:0x80)&&rd(c,0xC5A8)==index,"A12 resource all raw indices wrapped selector actual table word no validity assertion",index*16+flags);
+ }
+ for(unsigned family=0;family<3;family++)for(unsigned variant=0;variant<4;variant++)for(unsigned flags=0;flags<16;flags++){
+  unsigned raw=variant+(family==2?128:0);wr(c,0xC5A8,raw);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,family?0x4D26:entries[variant]);
+  require(cpu->hl==tables[variant]&&cpu->bc==0xBEEF&&cpu->de==(family?entries[variant]:0x1234)&&cpu->af==(family?((variant*2)<<8|(variant?0:0x80)):(0x5A00|flags<<4)),"A12 four complete table setters and valid dispatcher aliases preserve contract",family*64+variant*16+flags);
+ }
+ for(unsigned extended=0;extended<2;extended++)for(unsigned rawCase=0;rawCase<8;rawCase++)for(unsigned phase=0;phase<256;phase++){
+  unsigned variant=rawCase&3,raw=variant+(rawCase>=4?128:0);wr(c,0xC5A8,raw);wr(c,0xC5CF,phase);wr(c,0xC5CC,0xA5);wr(c,0xC5CE,0x5A);wr(c,0xC5CB,0x37);wr(c,0xC5CD,0x39);
+  wr(c,0xC5E4,0x11);wr(c,0xC5E5,0x22);wr(c,0xC5E6,0x33);wr(c,0xC5E7,0x44);wr(c,0xC5E3,0x55);wr(c,0xC5E8,0x66);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|((phase&15)<<4);cpu->bc=0xBEEF;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=extended?0x4D0B:0x4CFD;
+  unsigned steps=0;while(cpu->pc!=0x4D82&&steps++<200)c->step(c);
+  require(cpu->pc==0x4D82&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(extended?0x4D25:0x4D0A)&&cpu->hl==tables[variant]&&cpu->de==entries[variant]&&cpu->bc==0xBEEF&&cpu->af==((variant*2)<<8|(variant?0:0x80)),"A12 both resets original reader prefix stack selected table registers",extended*2048+rawCase*256+phase);
+  require(rd(c,0xC5CC)==0&&rd(c,0xC5CE)==0&&rd(c,0xC5CF)==phase&&rd(c,0xC5CB)==0x37&&rd(c,0xC5CD)==0x39&&rd(c,0xC5E4)==(extended?0:0x11)&&rd(c,0xC5E5)==(extended?0:0x22)&&rd(c,0xC5E6)==(extended?0:0x33)&&rd(c,0xC5E7)==(extended?0:0x44)&&rd(c,0xC5E3)==0x55&&rd(c,0xC5E8)==0x66,"A12 reset exact counter fields guard bytes and unchanged phase",extended*2048+rawCase*256+phase);
+ }
+ for(unsigned family=0;family<2;family++){
+ unsigned n=family?65536:1048576;
+ for(unsigned sample=0;sample<n;sample++){
+  unsigned threshold=family?0:sample>>12,counter=family?0:(sample>>4)&255,flags=family?(sample&15)<<4:(sample&15)<<4,count=family?sample>>8:10,frame=family?sample&255:6,raw=family?3:0;
+  unsigned next=(frame+1)&255;bool below=counter<threshold,reset=!below&&next==count;
+  wr(c,0xC5A8,raw);wr(c,0xC5CB,threshold);wr(c,0xC5CC,counter);wr(c,0xC5CD,count);wr(c,0xC5CE,frame);wr(c,0xC5CF,0x37);wr(c,0xC5D1,0xA5);wr(c,0xC5CA,0x3C);wr(c,0xC5D2,0x5A);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4D54;
+  unsigned target=below?0x4EEA:0x4D82,steps=0;while(cpu->pc!=target&&steps++<300)c->step(c);
+  unsigned expectedF=below?0x40|(((counter-threshold)&255)==0?0x80:0)|((counter&15)<(threshold&15)?0x20:0)|0x10:(raw?0:0x80);
+  require(cpu->pc==target&&cpu->sp==(below?0xCFFE:reset?0xCFFA:0xCFFC)&&
+   (below||((rd(c,cpu->sp)|(rd(c,cpu->sp+1)<<8))==(reset?0x4D0A:0x4D81)&&(!reset||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x4D77)))&&
+   cpu->a==(below?(counter-threshold)&255:raw*2)&&cpu->f.packed==expectedF&&cpu->bc==((below?threshold:count)<<8|0x37)&&cpu->de==(below?0x1234:entries[raw])&&cpu->hl==(below?0x5678:tables[raw]),"A12 tick exhaustive gate or frame transition actual boundary stack registers flags",family*1048576+sample);
+  require(rd(c,0xC5CC)==(below?counter:0)&&rd(c,0xC5CE)==(below?frame:reset?0:next)&&rd(c,0xC5CF)==(reset?0xA5:0x37)&&rd(c,0xC5CD)==count&&rd(c,0xC5D1)==0xA5&&rd(c,0xC5CA)==0x3C&&rd(c,0xC5D2)==0x5A,"A12 tick subtraction threshold wrap exact reset phase and WRAM guards",family*1048576+sample);
+ }
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

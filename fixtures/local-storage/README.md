@@ -1317,3 +1317,34 @@ registers/flags. Copy cases check source bytes/guard, mapper and WRAM restoratio
 Synthetic origin9800 and prepared WRAM7 are fixture preconditions; no natural
 source production, timing, arbitrary dimensions/indices, Japanese interpretation
 or hardware claim.32936 new asserts,total17445613,plus24 verifier tests.
+
+## A12 resource reset, variant dispatcher and tick
+
+PROBABLE133-byte control unit4CFD-4D81: two resets, dispatcher, four-word
+pointer table, four HL setters and tick. Published ResidualROM09_4CFD remains
+an alias. Resource destinations stay numeric6BBD/6AD0/6AE5/6A3D: the current B
+mapping is not established by a setter. Reset clearsC5CC/C5CE; extended reset
+also clearsC5E4/E5/E6/E7, then both dispatch and call actual reader4D82.
+
+Dispatcher doubles the raw C5A8 byte with wrap; pushes return4D3B and jumps
+to the selected word. Indices128-131 alias0-3; this does not validate other
+indices. Tick subtracts thresholdC5CB from counterC5CC. Below threshold it
+tail-jumps4EEA. Otherwise it clears the counter and increments C5CE with wrap;
+equality with countC5CD copies phaseC5D1 toC5CF and calls reset, otherwise
+stores the new index and dispatches. Both advancing routes reach reader4D82.
+
+1122304 bounded prefixes:4096 all raw dispatcher indices/flags before JP HL;
+4096 both reset entries/eight supported raw aliases/all phase bytes with derived
+flags before reader;1048576 all threshold/counter byte pairs/16 flags with
+fixed index6/count10/variant0;65536 all count/index byte pairs with threshold0,
+variant3,derived flags and fixed transition phaseA5.522240 threshold cases stop
+at movement4EEA; remaining threshold cases reach reader. Frame corpus covers
+256 equality/reset pairs including index255/count0, and65280 normal advances.
+No downstream reader/movement body is executed by these prefixes. Models check
+real stack returns/nesting, registers/flags and exact counter/phase/guard writes.
+
+192 complete calls:four direct HL setters and dispatcher raw0-3/128-131,
+all16 flags.2244992 new asserts,total19690605,plus24 verifier tests. Natural
+counter producer/cadence, mapping/resource contents, arbitrary selector validity,
+Japanese semantics and hardware remain unproved; no VRAM or ROM is changed by
+this new corpus. The extended reset preserves neighboring dimensions/loop bytes.
