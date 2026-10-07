@@ -143,7 +143,14 @@ bank	start	end	symbol
 09	50C8	50D7	ApplyA12ResourceAudioEffect
 09	50D8	5313	ResidualROM09_50D8
 09	5314	5333	A12TextRegionRecords
-09	5334	5CFE	ResidualROM09_5334
+09	5334	56AC	ResidualROM09_5334
+09	56AD	572A	A12PendingRecords
+09	572B	5C2E	ResidualROM09_572B
+09	5C2F	5C54	QueueA12PendingText
+09	5C55	5C76	DispatchA12PendingAction
+09	5C77	5CA3	ApplyA12PendingAction1
+09	5CA4	5CD0	ApplyA12PendingAction2
+09	5CD1	5CFE	ApplyA12PendingAction3
 09	5CFF	5D10	MultiplyA12HLBytes
 09	5D11	5FFF	ResidualROM09_5D11
 09	6000	7FFF	ResidualROM09_6000

@@ -1442,3 +1442,27 @@ No new complete reset/text/resource/5C2F/5C55 integration is claimed.
 oracle omitted N from equal CP; corrected expectedC0 instead of80,without
 changing original bytes. Natural mode/input/text trace,Japanese meaning,tails
 5C2F/5C55,IRQ/cadence and hardware remain unconfirmed.
+
+
+## A12 pending text and actions (5C2F-5CFE)
+
+PROBABLE contracts, not a natural menu trace. The original ROM is unchanged.
+The six-byte table at56AD contains21 records; the forced scanner fragment at5BEB
+stops at the first FF at572B. No meaning is assigned to the next three FF bytes.
+All256 byte inputs and16 flags are tested at the scanner fragment and at the
+actual dispatcher boundary before reading the action byte. C73B zero wraps to
+index255; arbitrary indices are not claimed to be naturally valid.
+
+All256 indices/16 flags also execute the forced5C37 message suffix through the
+real queue body. Complete5C2F calls cover all21 original pointers, both VBK and
+LCD states, and16 flags, with real frame preparation/window/audio/queue bodies.
+Both entire8192-byte VRAM planes are independently compared with the frame model.
+No Japanese string interpreter is run. Audio input tables are synthetic.
+
+The18 zero-action records run with16 flags. The three nonzero actions each run
+through the real dispatcher and color transition with all256 C5A3 values and16
+flags. The192 expanded components/deltas are compared against an independent
+bit-component model of the actual original resources. Register/state/guard
+checks include C706 preservation in action3 and INC overflow/half-carry flags.
+This unit adds44,224 assertions; suite total26,550,718. Natural controller/input
+integration, Japanese semantics, physical timing and hardware remain unproven.

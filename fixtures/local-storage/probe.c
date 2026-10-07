@@ -4186,6 +4186,47 @@ int main(int argc,char **argv){
   require(cpu->af==flags<<4&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC73B)==0&&rd(c,0xC73A)==0x37&&rd(c,0xC601)==0x39,"A12 post unexecuted5C55 suffix clears pending byte preserves every incoming flag",a*16+flags);
  }
  }
+ { /* Forced table scanner fragment, raw indices, and complete pending tails. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ const unsigned thresholds[]={0,2,8,12,16,20,24,25,28,32,36,40,44,48,49,52,56,60,64,68,72};
+ const unsigned pointers[]={0x55B2,0x572F,0x57A6,0x57BB,0x5850,0x58B4,0x58E5,0x591F,0x594A,0x5960,0x5975,0x59B8,0x5A0E,0x5A33,0x5A6C,0x5A96,0x5AD2,0x5B2D,0x5B67,0x5B78,0x5BB0};
+ for(unsigned value=0;value<256;value++)for(unsigned flags=0;flags<16;flags++){
+  unsigned row=0;while(row<21&&thresholds[row]!=value)row++;unsigned target=row<21?0x5C04:0xC100;
+  wr(c,0xC705,value);wr(c,0xC73B,0x39);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x5BEB;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<1000)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(row<21?0xCFFE:0xD000)&&cpu->hl==0x56AD+6*row&&cpu->de==6&&cpu->bc==((row<21?value:72)<<8|row+1)&&cpu->af==((row<21?value:255)<<8|0xC0)&&rd(c,0xC705)==value&&rd(c,0xC73B)==0x39,"A12 forced scanner all bytes flags first sentinel and exact 21 thresholds",value*16+flags);
+ }
+ for(unsigned pending=0;pending<256;pending++)for(unsigned flags=0;flags<16;flags++){
+  unsigned index=(pending-1)&255,address=0x56AD+6*index;
+  wr(c,0xC73B,pending);wr(c,0xC601,0x37);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x5C55;
+  unsigned steps=0;while(cpu->pc!=0x5C66&&steps++<300)c->step(c);
+  require(cpu->pc==0x5C66&&cpu->sp==0xCFFE&&cpu->af==(index<<8|0x80)&&cpu->bc==0xBEEF&&cpu->de==0x56AD&&cpu->hl==address+3&&rd(c,0xC73B)==pending&&rd(c,0xC601)==0x37,"A12 raw pending action offset all bytes flags no clamp before read",pending*16+flags);
+  unsigned pointer=rd(c,address+4)|(rd(c,address+5)<<8);wr(c,0xC1B3,0x3C);wr(c,0xC1B4,0x5A);wr(c,0xC1B8,0x39);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x5C37);
+  require(cpu->af==0xFF80&&cpu->bc==0xBEEF&&cpu->de==1&&cpu->hl==0xC1B8&&rd(c,0xC1AB)==(pointer&255)&&rd(c,0xC1AC)==pointer>>8&&rd(c,0xC1B8)==1&&rd(c,0xC1B3)==0&&rd(c,0xC1B4)==0&&rd(c,0xC601)==255&&rd(c,0xC73B)==pending,"A12 forced message suffix actual queue all raw bytes flags no interpreter execution",pending*16+flags);
+ }
+ for(unsigned row=0;row<21;row++)if(row!=6&&row!=13&&row!=20)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC73B,row+1);wr(c,0xC5A3,0x37);wr(c,0xC706,0x39);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;call(c,0x5C55);
+  require(cpu->af==0x00C0&&cpu->bc==0xBEEF&&cpu->de==0x56AD&&cpu->hl==0x56B0+6*row&&rd(c,0xC5A3)==0x37&&rd(c,0xC706)==0x39,"A12 complete zero-action rows preserve state",row*16+flags);
+ }
+ for(unsigned action=1;action<=3;action++)for(unsigned state=0;state<256;state++)for(unsigned flags=0;flags<16;flags++){
+  unsigned row=action==1?6:action==2?13:20,resource=0x5332+action*128,last=0;
+  wr(c,0xC73B,row+1);wr(c,0xC5A3,state);wr(c,0xC706,0x39);for(unsigned i=0;i<3;i++)wr(c,0xC708+i,0x5A);wr(c,0xC214,0x37);wr(c,0xC738,0x3C);wr(c,0xC213,0x3C);wr(c,0xC1C4,0x3C);wr(c,0xC21F,0x37);wr(c,0xC221,0x39);
+  unsigned colors[64];for(unsigned i=0;i<64;i++)colors[i]=rd(c,resource+2*i)|(rd(c,resource+2*i+1)<<8);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x5C55);
+  bool exact=true;for(unsigned i=0;i<192;i++){unsigned component=(colors[i/3]>>(5*(i%3)))&31,base=component*2048,delta=(31-component)*256;last=delta;exact&=rd(c,0xC2A2+2*i)==(base&255)&&rd(c,0xC2A3+2*i)==base>>8&&rd(c,0xC422+2*i)==(delta&255)&&rd(c,0xC423+2*i)==delta>>8;}
+  unsigned next=(state+1)&255,f=(next?0:0x80)|((state&15)==15?0x20:0);
+  exact&=cpu->af==(next<<8|f)&&cpu->bc==0&&cpu->de==last&&cpu->hl==0x08F4&&rd(c,0xC5A3)==next&&rd(c,0xC5A2)==2&&rd(c,0xC220)==8&&rd(c,0xC21F)==0x37&&rd(c,0xC221)==0x39&&rd(c,0xC706)==(action==3?0x39:action)&&rd(c,0xC214)==(action==3?5:4)&&rd(c,0xC738)==0&&rd(c,0xC213)==0&&rd(c,0xC1C4)==0&&rd(c,0xC73B)==row+1;
+  for(unsigned i=0;i<3;i++)exact&=rd(c,0xC708+i)==(action==3||i==action-1?6:0x5A);
+  require(exact,"A12 complete three real dispatcher actions all state bytes flags actual palettes transition and INC",action*4096+state*16+flags);
+ }
+ for(unsigned row=0;row<21;row++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)for(unsigned flags=0;flags<16;flags++){
+  prepareA12EffectMapping(c,0x63);prepareA12EffectAudio(c);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1A3,0x23);wr(c,0xC1C2,0x3C);wr(c,0xC73B,row+1);wr(c,0xC601,1);wr(c,0xC1B8,0x39);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,0x5C2F,2000000);
+  bool exact=cpu->af==0xFF80&&cpu->bc==0&&cpu->de==1&&cpu->hl==0xC1B8&&rd(c,0xC1AB)==(pointers[row]&255)&&rd(c,0xC1AC)==pointers[row]>>8&&rd(c,0xC601)==255&&rd(c,0xC73B)==row+1&&rd(c,0xC1B8)==1&&rd(c,0xC1B3)==0&&rd(c,0xC1B4)==0&&rd(c,0xC1C2)==0&&rd(c,0xC5A5)==0&&rd(c,0xC5C4)==0&&rd(c,0xFF40)==(lcd?0xF1:0x60)&&(rd(c,0xFF4F)&1)==plane&&rd(c,0xC113)==0x12&&rd(c,0xC115)==5;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){unsigned y=i>=0x1800?(i-0x1800)/32:256,x=i%32,expected=0xA5;if(y<6&&x<20)expected=bank?0x23:0x6C+(y==0?0:y==5?6:3)+(x==0?0:x==19?2:1);exact&=rd(c,0x8000+i)==expected;}}
+  require(exact,"A12 complete pending text 21 original pointers all flags both VBK LCD states exact whole VRAM",row*64+plane*32+lcd*16+flags);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

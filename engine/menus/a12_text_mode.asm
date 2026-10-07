@@ -1,5 +1,5 @@
 ; PROBABLE C601/C5CF text-mode controller; synthetic guards and forced suffixes.
-; Downstream5C2F/5C55 remain numeric; suffix probes do not fake their execution.
+; Downstream pending handlers are named; controller integration remains unproven.
 SECTION "A12 text mode control 4B70-4BDC", ROMX[$4B70], BANK[$09]
 UpdateA12TextModeController::
 	ld a, [$C601]
@@ -15,7 +15,7 @@ UpdateA12TextModeController::
 	call ResetA12ResourceFrame
 	ld a, [$C601]
 	cp a, $01
-	jp z, $5C2F
+	jp z, QueueA12PendingText
 	cp a, $02
 	jr z, A12TextMode2
 	ret
@@ -50,7 +50,7 @@ A12TextModeBusyCheck::
 	ld a, [$C73B]
 	cp a, $00
 	ret z
-	call $5C55
+	call DispatchA12PendingAction
 	ld a, $00
 	ld [$C73B], a
 	ret
