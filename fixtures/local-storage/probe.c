@@ -1505,6 +1505,75 @@ int main(int argc,char **argv){
   for(unsigned i=0;i<128;i++)if(rd(c,0xCF00+i)!=(i/16==slot+4?0:before[i]))exact=false;
   require(exact&&rd(c,0xCF89)==(255^(0x11<<slot)),"A1E full upper FF clear restore routing chain",slot);
  }
+ { /* Native A1E stream setup: bounded WRAM records and every seven-bit index. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);
+ for(unsigned index=0;index<128;index++){
+  wr(c,0xD200+index*2,0);wr(c,0xD201+index*2,0xD6);
+ }
+ for(unsigned index=0;index<127;index++)for(unsigned count=1;count<=4;count++){
+  for(unsigned i=0;i<0x80;i++)wr(c,0xCF00+i,i<64?0x5A:0);
+  wr(c,0xCF90,0);wr(c,0xCF91,0xD2);wr(c,0xCF80,0x80|index);
+  wr(c,0xD600,count);wr(c,0xD601,0);
+  for(unsigned slot=0;slot<4;slot++){
+   unsigned delta=0x100+slot*16;wr(c,0xD602+slot*2,delta>>8);wr(c,0xD603+slot*2,delta&255);
+   wr(c,0xD600+delta,7+slot);
+  }
+  call(c,0x4003);bool exact=true;
+  for(unsigned i=0;i<64;i++){
+   unsigned slot=i/16,field=i%16,expected=0;
+   if(slot<count){if(field==0)expected=1+slot*16;else if(field==1)expected=0xD7;else if(field==4)expected=8+slot;}
+   if(rd(c,0xCF00+i)!=expected||rd(c,0xCFA0+i)!=0x5A)exact=false;
+  }
+  require(exact&&rd(c,0xCF80)==0&&rd(c,0xCF88)==255,"A1E lower relative streams backup and install",index*4+count);
+ }
+ for(unsigned index=0;index<128;index++)for(unsigned channel=1;channel<=4;channel++){
+  for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,0x5A);
+  wr(c,0xCF92,0);wr(c,0xCF93,0xD2);wr(c,0xCF82,0x80|index);wr(c,0xCF89,0);
+  wr(c,0xD600,channel);wr(c,0xD601,0);wr(c,0xD605,0);wr(c,0xD606,0xD7);wr(c,0xD700,7);
+  call(c,0x4006);bool exact=true;unsigned offset=0x30+channel*16;
+  for(unsigned i=0;i<128;i++){
+   unsigned expected=0x5A;
+   if(i>=offset&&i<offset+16){expected=i==offset?1:i==offset+1?0xD7:i==offset+4?8:0;}
+   if(rd(c,0xCF00+i)!=expected)exact=false;
+  }
+  require(exact&&rd(c,0xCF82)==0&&rd(c,0xCF89)==(0x11<<(channel-1)),"A1E upper channel record installs exact slot",index*4+channel);
+ }
+ for(unsigned value=0;value<128;value++)for(unsigned which=0;which<2;which++){
+  for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,0x5A);
+  wr(c,0xCF80,value);wr(c,0xCF82,value);call(c,which?0x4006:0x4003);
+  bool exact=true;for(unsigned i=0;i<128;i++)if(rd(c,0xCF00+i)!=0x5A)exact=false;
+  require(exact&&rd(c,0xCF80)==value&&rd(c,0xCF82)==value,"A1E inactive setup requests do nothing",which*128+value);
+ }
+ /* Initialization reads literal bytes at5000, overlapping slot6 code; no remap. */
+ const unsigned initFields[]={0xCF92,0xCF93,0xCF90,0xCF91,0xCF94,0xCF95,0xCF96,0xCF97,0xCF98,0xCF99,0xCF9A,0xCF9B};
+ unsigned initBytes[12];for(unsigned i=0;i<12;i++)initBytes[i]=rd(c,0x5000+i);
+ call(c,0x4009);bool initExact=true;for(unsigned i=0;i<12;i++)if(rd(c,initFields[i])!=initBytes[i])initExact=false;
+ require(initExact&&rd(c,0xCF84)==255&&rd(c,0xCF88)==255&&rd(c,0xCF89)==0,"A1E literal pointer initialization",0);
+ for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,0x5A);wr(c,0xCEFF,0x37);wr(c,0xCF80,0x38);call(c,0x4062);
+ bool cleared=true;for(unsigned i=0;i<128;i++)if(rd(c,0xCF00+i)!=0)cleared=false;
+ require(cleared&&rd(c,0xCEFF)==0x37&&rd(c,0xCF80)==0x38,"A1E clear128 retains guards",0);
+ wr(c,0xD900,0x34);wr(c,0xD901,0x12);wr(c,0xD902,0x77);cpu->de=0xD900;cpu->bc=0xBEEF;call(c,0x405B);
+ require(cpu->hl==0x1234&&cpu->de==0xD902&&cpu->bc==0xBEEF&&rd(c,0xD902)==0x77,"A1E DE word read increments2",0);
+ /* FF lower request resumes the64-byte backup; wave source is synthetic. */
+ for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,0x5A);
+ for(unsigned i=0;i<64;i++)wr(c,0xCFA0+i,i==0x27?0:i+1);
+ wr(c,0xCF98,0);wr(c,0xCF99,0xD9);wr(c,0xD900,0);wr(c,0xD901,0xDA);
+ for(unsigned i=0;i<16;i++)wr(c,0xDA00+i,i*7);
+ wr(c,0xCF80,255);call(c,0x4003);bool resumed=true;
+ for(unsigned i=0;i<128;i++)if(rd(c,0xCF00+i)!=(i<64?(i==0x27?0:i+1):0x5A))resumed=false;
+ require(resumed&&rd(c,0xCF80)==0&&rd(c,0xCF88)==255,"A1E FF request resumes lower backup",0);
+ /* Install four streams then execute their countdowns into measured handlers. */
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xCF90,0);wr(c,0xCF91,0xD2);wr(c,0xCF80,0x80);wr(c,0xD600,4);
+ for(unsigned slot=0;slot<4;slot++){
+  unsigned delta=0x100+slot*16,address=0xD600+delta;
+  wr(c,0xD602+slot*2,delta>>8);wr(c,0xD603+slot*2,delta&255);
+  wr(c,address,1);wr(c,address+1,slot==3?0xC0:0xB0);wr(c,address+2,7);wr(c,address+3,5);
+ }
+ call(c,0x4003);call(c,0x4000);call(c,0x4000);bool streamsIntegrated=true;
+ for(unsigned slot=0;slot<4;slot++)if(rd(c,0xCF00+slot*16)!=(4+slot*16)||rd(c,0xCF01+slot*16)!=0xD7||rd(c,0xCF04+slot*16)!=5)streamsIntegrated=false;
+ require(streamsIntegrated,"A1E relative stream setup into tick and four handlers",0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

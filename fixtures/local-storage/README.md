@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **23,985 assertions**.
+and stack assertions, the maintained fixture reports **26,549 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -308,3 +308,15 @@ CF7E/CF7F without storing into CF72. Four complete upper FF chains clear only
 the selected16-byte slot and mask its routing bits, retaining other slot fields.
 Restoration/reset helpers execute, but their audible correctness is not asserted.
 No natural playback, all other bodies, table extent, IRQ timing or hardware.
+
+
+Stream installation adds 2,564 assertions. 508 lower cases cover127 indices and
+counts1-4, checking relative pointers, first-byte-plus-one counters and64-byte
+backup. CF80=FF is a reserved resume request, not lower index127. 512 upper
+cases cover128 indices and channels1-4, checking exact slot clearing/pointers
+and routing activation. 256 inactive requests retain state. Additional cases
+check literal initialization from5000,128-byte clear with guards, DE word read,
+FF backup resume with a synthetic wave source and setup->two ticks->four lower
+handlers. No natural record launch, malformed counts/channels, universal bounds
+or audio correctness. The12 initialization bytes overlap original code; their
+copy is checked without interpreting them as naturally valid pointer data.

@@ -1023,3 +1023,29 @@ CF89 masking; helper execution is not proof of audible restoration. No natural
 playback, all remaining bodies, table safety/extent, IRQ timing or hardware.
 Full/private/negative gates preserve961 published1783bae symbols and whole
 hash,24checker tests.288 sections:122 analyzed/20851 bytes,166 unknown/1027725.
+
+
+### A1E stream installation and reserved lower resume request
+
+**PROBABLE**, native entry JPs4003/4006/4009 and local call chains: extract
+4003-406D and40B8-42B0 (612 bytes), retaining both residual aliases. Lower setup
+backs up64 bytes, clears lower/global fields and reads big-endian relative
+displacements from a header, installing up to four streams. CF80=FF selects
+backup resume rather than index127. Upper setup uses CF82's seven-bit index,
+channels1-4 and a separate little-endian pointer list, clearing the selected
+slot and enabling routing bits. Both consume the first stream byte and set
+countdown to that byte+1. Out-of-contract records/counts are not made safe.
+
+Initialize401B reads12 literal bytes at5000 into CF92/93,CF90/91,CF94-9B. Those
+bytes overlap slot6 countdown code. Preserve the original access and bytes;
+no natural validity of that pointer initialization is inferred.
+
+**SYNTHETIC**: 508 lower index/count cases,512 upper index/channel cases,256
+inactive requests,literal init,clear128 with guards,DE word read,FF resume and
+setup->two ticks->four lower handlers add2564 assertions,total26549. An initial
+probe treating FF as lower index127 failed; source showed the reserved branch
+and the fixture now checks resume separately. All records/streams/waves are
+WRAM fixtures. No natural launch, malformed record safety, universal bounds,
+IRQ timing or audio correctness. Full/private/negative gates preserve991
+published33f43ea symbols and whole hash,24checker tests.290 sections:
+124 analyzed/21463 bytes,164 unknown/1027113 bytes.
