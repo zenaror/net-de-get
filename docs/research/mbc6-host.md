@@ -1088,3 +1088,22 @@ launch or audio evidence. The full hash gate rejected an initial wrong physical
 placement of even selector5C; corrected before publication. Full/private/negative
 gates preserve1024 published8ed52c9 symbols and whole hash,24checker tests.
 298 sections:132 analyzed/21953 bytes,166 unknown/1026623 bytes.
+
+
+### Original lower stream prefixes through first positive countdown
+
+**PROBABLE**, table index1/relative-offset consumers: extract two-word table
+prefixes and twelve stream prefixes (146 bytes). Prefix parsing follows original
+C0/B1/FD and80-9F dispatch with zero durations chaining until a positive short
+countdown. Three table index0 pointers remain numeric/uninterpreted; total table
+extent and stream continuations are not asserted. Preserve mapped B5C addresses
+through physical-label+2000 expressions and all published residual aliases.
+
+**SYNTHETIC forced entries with actual ROM data**: three resident first ticks
+add6 assertions,total26630, checking twelve pointer/count endpoints. B21:
+6642/0B,691D/0B,6BB2/24,6D3B/18; B5B:65EB/1B,698C/0E,6CD1/1D,6ECA/02; B5C:
+6642/3B,6862/07,7037/05,77BE/01. This extends previous forced setup through
+actual command execution, not natural menu playback, complete loops/streams,
+IRQ timing or audio correctness. Full/private/negative gates preserve1036
+publishedce7fda6 symbols and whole hash,24checker tests.325 sections:
+147 analyzed/22099 bytes,178 unknown/1026477 bytes.

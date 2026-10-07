@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1026623 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1026477 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 298 seções**, todos comparados byte a byte com a referência externa. Os 132 trechos analisados somam 21953 bytes; os demais 1026623 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 325 seções**, todos comparados byte a byte com a referência externa. Os 147 trechos analisados somam 22099 bytes; os demais 1026477 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 298 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 325 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -109,7 +109,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **26.624 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **26.630 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -361,3 +361,10 @@ A confiança é `PROBABLE`. Três fontes B, 16 solicitações inferiores, oito s
 `data/bank_b21_a1e_header.asm`, `bank_b5b_a1e_header.asm` e `bank_b5c_a1e_header.asm` extraem três cabeçalhos de 12 bytes e os respectivos registros inferiores do índice 1 de 10 bytes (66 bytes). Os consumidores são os estados residentes que carregam B `$21/$5B/$5C:$6000` e solicitam `$81`. Os seis campos de cabeçalho permanecem palavras numéricas; os registros têm contagem quatro, um byte preservado sem significado atribuído e quatro deslocamentos relativos big endian. Os streams e tabelas ao redor continuam não interpretados. B `$5C` usa a metade física `$2E:$4000-$5FFF`, mapeada em `$6000-$7FFF`; `$21/$5B` usam metades físicas superiores. Todos os aliases residuais de início permanecem no mesmo endereço.
 
 A confiança é `PROBABLE`. Quinze novos asserts verificam os três registros, carregam os cabeçalhos reais pelo thunk residente e executam a solicitação inferior `$81`, conferindo os quatro ponteiros e contadores derivados dos bytes originais. São entradas forçadas com dados de ROM, sem execução dos comandos desses streams ou lançamento natural do menu. O gate detectou e rejeitou uma localização física incorreta de `$5C`, corrigida antes da publicação. O privado preservou os 1.024 símbolos publicados em `8ed52c9`; ROM inteira idêntica e negativos reais passam.
+
+
+### Prefixos dos primeiros streams originais
+
+Os três fontes de cabeçalho agora incluem os dois primeiros ponteiros da tabela inferior e os quatro prefixos do registro 1, até o primeiro contador positivo: 146 bytes adicionais. B `$21` cobre `$6638-$6641/$6913-$691C/$6BA8-$6BB1/$6D2F-$6D3A`; B `$5B` cobre `$65DE-$65EA/$697F-$698B/$6CC4-$6CD0/$6EBD-$6EC9`; B `$5C` cobre `$6638-$6641/$6858-$6861/$702D-$7036/$77B4-$77BD`. Os símbolos de registros e ponteiros usam as posições físicas corretas; o ajuste `$2000` expressa a janela B do seletor par `$5C`. Os aliases residuais publicados continuam no mesmo endereço. Os gaps e a continuação dos streams permanecem não interpretados.
+
+A confiança é `PROBABLE`. Seis novos asserts executam um tick residente após o carregamento/solicitação dos três cabeçalhos reais e conferem os 12 ponteiros finais e contadores. O primeiro contador instalado é 1; comandos com contador zero encadeiam até a fronteira medida. Os contadores finais são `$0B/$0B/$24/$18`, `$1B/$0E/$1D/$02` e `$3B/$07/$05/$01`, respectivamente. São entradas forçadas com ROM real, sem menu natural, extensão completa dos streams, temporização ou áudio correto. O privado preservou os 1.036 símbolos publicados em `ce7fda6`; imagem inteira e negativos reais passam.

@@ -1637,6 +1637,8 @@ int main(int argc,char **argv){
  }
  { /* Published main-state B sources, actual ROM records with forced entry. */
  const unsigned banks[]={0x21,0x5B,0x5C},records[]={0x662E,0x65D4,0x662E};
+ const unsigned prefixEnds[3][4]={{0x6642,0x691d,0x6bb2,0x6d3b},{0x65eb,0x698c,0x6cd1,0x6eca},{0x6642,0x6862,0x7037,0x77be}};
+ const unsigned prefixDurations[3][4]={{11,11,36,24},{27,14,29,2},{59,7,5,1}};
  const unsigned fields[]={0xCF92,0xCF93,0xCF90,0xCF91,0xCF94,0xCF95,0xCF96,0xCF97,0xCF98,0xCF99,0xCF9A,0xCF9B};
  for(unsigned index=0;index<3;index++){
   unsigned bank=banks[index];wr(c,0x37FF,bank);wr(c,0x3800,0);
@@ -1653,6 +1655,10 @@ int main(int argc,char **argv){
   cpu->a=0x81;call(c,0x24C);exact=true;
   for(unsigned slot=0;slot<4;slot++){unsigned pointer=rd(c,0xCF00+slot*16)|(rd(c,0xCF01+slot*16)<<8);if(pointer!=streams[slot]+1||rd(c,0xCF04+slot*16)!=((durations[slot]+1)&255))exact=false;}
   require(exact&&rd(c,0xCF80)==0&&rd(c,0xC113)==4&&rd(c,0xC115)==8,"actual B lower stream offsets through resident request",bank);
+  call(c,0x2242);exact=true;
+  for(unsigned slot=0;slot<4;slot++){unsigned pointer=rd(c,0xCF00+slot*16)|(rd(c,0xCF01+slot*16)<<8);if(pointer!=prefixEnds[index][slot]||rd(c,0xCF04+slot*16)!=prefixDurations[index][slot])exact=false;}
+  require(exact&&rd(c,0xC113)==4&&rd(c,0xC115)==8,"actual B first tick consumes bounded command prefixes",bank);
+
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
