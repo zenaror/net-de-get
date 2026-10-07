@@ -1131,3 +1131,33 @@ first tick, then separately calls4825 with channel disabled and checks all16
 original wave bytes. Nine new assertions give26639 total. Private gates retain
 1066 published5d1415a address symbols. This is not a natural menu/audio trace,
 not active wave-RAM behavior, and not proof of complete table extents.
+
+## Original lower streams: straight-line bodies before first FE
+
+**PROBABLE**, static framing plus forced resident ticks over original bytes.
+Twelve source continuations extract11667 bytes after the first positive
+countdown. Every published ResidualROM alias is retained. FE remains outside
+the extracted interval; no complete-loop extent is inferred.
+
+| B | Slot0 | Slot1 | Slot2 | Slot3 |
+| --- | --- | --- | --- | --- |
+|21|6642..690E|691D..6BA3|6BB2..6D2A|6D3B..6FFB|
+|5B|65EB..697A|698C..6CBF|6CD1..6EB8|6ECA..7254|
+|5C|6642..6853|6862..7028|7037..77AF|77BE..7E39|
+
+Addresses are mapped B positions; B5C physical source positions are2000 lower.
+The independent C framing/counter model in fixtures/local-storage/probe.c
+measures event counts215/201/106/246,352/315/195/285,195/588/699/599,
+3996 total. Full2242 calls execute2433/3899/3838 ticks,10170 total, checking
+all active pointers and both countdown fields against the bounded model.
+Each slot is disabled after loading its final event, before executingFE.
+B21 slot2 runtime stops6D29 before the zero-count8000 tail; static framing
+covers that tail through6D2A. The initial gate rejected equating all static
+ends with positive-count stops, exposing this distinction before publication.
+
+Long durations retain the original upper-bit split and high-count decrement
+followed by lowFF; the fixture does not normalize to standard16-bit countdown.
+Four model fixtures include positive input, unknown opcode rejection and
+truncated short/long duration rejection. Total51006 assertions pass, and the
+private cycle preserves1090 published eeb564f symbols. There is no natural
+menu/IRQ trace, full loop execution, musical timing or audible correctness claim.

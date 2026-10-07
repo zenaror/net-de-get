@@ -21,6 +21,29 @@ static void call(struct mCore *c,unsigned entry){
  unsigned steps=0;while(cpu->pc!=0xC100&&steps++<100000)c->step(c);
  require(cpu->pc==0xC100&&cpu->sp==0xD000,"bounded return",entry);
 }
+/* Independent bounded model of lower-slot straight-line command framing.
+   It stops before FE; it does not model loop control or natural IRQ timing. */
+struct A1EEvent {unsigned pointer,low,high;};
+static int a1eLinearEvents(struct mCore *c,unsigned slot,unsigned start,unsigned end,
+                           struct A1EEvent *events,unsigned *count){
+ unsigned p=start,n=0;
+ while(p<end){
+  unsigned op=rd(c,p++);
+  if(!((op>=0x80&&op<0xA0)||op==0xB1||op==0xC0||op==0xFD||
+       (slot<3&&(op==0xB0||op==0xE0))))return 0;
+  if(op>=0x90){if(p>=end)return 0;p++;}
+  if(p>=end)return 0;
+  unsigned duration=rd(c,p++),low=duration,high=0;
+  if(!duration)continue;
+  if(duration&0x80){
+   if(p>=end)return 0;
+   unsigned upper=duration&0x7F;low=rd(c,p++)|((upper&1)?0x80:0);high=upper>>1;
+  }
+  if(n>=800)return 0;
+  events[n++]=(struct A1EEvent){p,low,high};
+ }
+ *count=n;return p==end&&n;
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -1639,9 +1662,28 @@ int main(int argc,char **argv){
  const unsigned banks[]={0x21,0x5B,0x5C},records[]={0x662E,0x65D4,0x662E};
  const unsigned prefixEnds[3][4]={{0x6642,0x691d,0x6bb2,0x6d3b},{0x65eb,0x698c,0x6cd1,0x6eca},{0x6642,0x6862,0x7037,0x77be}};
  const unsigned prefixDurations[3][4]={{11,11,36,24},{27,14,29,2},{59,7,5,1}};
+ const unsigned bodyEnds[3][4]={{0x690F,0x6BA4,0x6D2B,0x6FFC},{0x697B,0x6CC0,0x6EB9,0x7255},{0x6854,0x7029,0x77B0,0x7E3A}};
+ const unsigned bodyStopPointers[3][4]={{0x690F,0x6BA4,0x6D29,0x6FFC},{0x697B,0x6CC0,0x6EB9,0x7255},{0x6854,0x7029,0x77B0,0x7E3A}};
+ const unsigned bodyEventCounts[3][4]={{215,201,106,246},{352,315,195,285},{195,588,699,599}};
+ struct A1EEvent negativeEvents[800];unsigned negativeCount;
+ wr(c,0xD800,0x80);wr(c,0xD801,7);
+ require(a1eLinearEvents(c,0,0xD800,0xD802,negativeEvents,&negativeCount)&&negativeCount==1,
+         "A1E bounded framing positive fixture",0);
+ require(!a1eLinearEvents(c,0,0xD800,0xD801,negativeEvents,&negativeCount),"A1E truncated duration rejected",0);
+ wr(c,0xD800,0xA0);
+ require(!a1eLinearEvents(c,0,0xD800,0xD802,negativeEvents,&negativeCount),"A1E unsupported opcode rejected",0);
+ wr(c,0xD800,0x90);wr(c,0xD801,7);wr(c,0xD802,0x81);
+ require(!a1eLinearEvents(c,0,0xD800,0xD803,negativeEvents,&negativeCount),"A1E truncated long duration rejected",0);
+
  const unsigned fields[]={0xCF92,0xCF93,0xCF90,0xCF91,0xCF94,0xCF95,0xCF96,0xCF97,0xCF98,0xCF99,0xCF9A,0xCF9B};
  for(unsigned index=0;index<3;index++){
   unsigned bank=banks[index];wr(c,0x37FF,bank);wr(c,0x3800,0);
+  struct A1EEvent bodyEvents[4][800];unsigned counts[4];
+  for(unsigned slot=0;slot<4;slot++)
+   require(a1eLinearEvents(c,slot,prefixEnds[index][slot],bodyEnds[index][slot],bodyEvents[slot],&counts[slot])&&
+           counts[slot]==bodyEventCounts[index][slot]&&bodyEvents[slot][counts[slot]-1].pointer==bodyStopPointers[index][slot]&&
+           rd(c,bodyEnds[index][slot])==0xFE,
+           "actual B bounded body framing and FE frontier",bank*4+slot);
   unsigned header[12],streams[4],durations[4];for(unsigned i=0;i<12;i++)header[i]=rd(c,0x6000+i);
   unsigned table=header[2]|(header[3]<<8),record=rd(c,table+2)|(rd(c,table+3)<<8);
   require(record==records[index]&&rd(c,record)==4,"actual B lower index1 four-stream record",bank);
@@ -1665,6 +1707,36 @@ int main(int argc,char **argv){
   for(unsigned i=0;i<3;i++)if(rd(c,0xCF07+i)!=slot0Records[index][i])exact=false;
   for(unsigned i=0;i<2;i++)if(rd(c,0xCF17+i)!=slot1Records[index][i])exact=false;
   require(exact&&rd(c,0xCF27)==waveIndices[index],"actual B C0 selected slot0/1 records and slot2 index",bank);
+  /* Run full resident ticks, independently advancing the low/high counters.
+     Disable each slot only after its final event is loaded, before FE executes. */
+  unsigned next[4]={0},modelLow[4],modelHigh[4]={0},modelPointer[4],done=0,executedTicks=0;
+  for(unsigned slot=0;slot<4;slot++){modelLow[slot]=prefixDurations[index][slot];modelPointer[slot]=prefixEnds[index][slot];}
+  for(unsigned tick=0;done!=15&&tick<20000;tick++){
+   for(unsigned slot=0;slot<4;slot++)if(!(done&(1<<slot))){
+    modelLow[slot]=(modelLow[slot]-1)&255;
+    if(!modelLow[slot]){
+     if(modelHigh[slot]){modelHigh[slot]--;modelLow[slot]=255;}
+     else{
+      require(next[slot]<counts[slot],"A1E model stays within linear body",bank*4+slot);
+      struct A1EEvent event=bodyEvents[slot][next[slot]++];
+      modelLow[slot]=event.low;modelHigh[slot]=event.high;modelPointer[slot]=event.pointer;
+     }
+    }
+   }
+   call(c,0x2242);executedTicks++;exact=true;
+   for(unsigned slot=0;slot<4;slot++)if(!(done&(1<<slot))){
+    unsigned base=0xCF00+slot*16,pointer=rd(c,base)|(rd(c,base+1)<<8);
+    if(pointer!=modelPointer[slot]||rd(c,base+4)!=modelLow[slot]||rd(c,base+5)!=modelHigh[slot])exact=false;
+   }
+   require(exact&&rd(c,0xC113)==4&&rd(c,0xC115)==8,
+           "actual B linear body resident tick matches independent framing counters",bank*20000+tick);
+   for(unsigned slot=0;slot<4;slot++)if(!(done&(1<<slot))&&next[slot]==counts[slot]){
+    require(modelPointer[slot]==bodyStopPointers[index][slot],"actual B stops before FE or zero-count tail",bank*4+slot);
+    done|=1<<slot;wr(c,0xCF01+slot*16,0);
+   }
+  }
+  require(done==15,"actual B all four linear bodies bounded",bank);
+  printf("A1E B%02X bounded linear bodies: %u resident ticks; stopped before FE\n",bank,executedTicks);
   /* Separate forced slot2 C0 entry with channel disabled: exact wave copy,
      without inferring first-tick audio access or audible output. */
   wr(c,0x27FF,0x1E);wr(c,0x2800,0);wr(c,0x37FF,bank);wr(c,0x3800,0);

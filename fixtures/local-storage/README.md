@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **26,639 assertions**.
+and stack assertions, the maintained fixture reports **51,006 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -358,3 +358,21 @@ little-endian wave pointer. B21 selects6039/6053/6069→60BB, B5B selects
 A separate forced4825 call with wave channel disabled checks all16 original
 wave bytes and countdown7. Nine additional assertions do not establish
 natural playback, active wave-RAM access or audible correctness.
+
+### Twelve original straight-line stream continuations
+
+The bounded framing model accepts only lower-slot commands implemented by the
+known handlers, bounds every parameter/countdown read and caps800 events per
+slot. Fixed endpoints and event counts cover3996 positive-count events.
+It rejects unknown opcodes and truncated short/long durations in maintained
+negative fixtures. The model reproduces original long-count bit splitting and
+the tick's high-byte decrement/low-byteFF transition, rather than replacing
+these with conventional16-bit arithmetic.
+
+After forced header/request/first-tick setup,2433/3899/3838 full resident2242
+calls (10170 total) match the predicted pointer and both countdown fields for
+all active slots, with mapper shadows restored each time. Slots are disabled
+only after the last bounded event is loaded. B21 slot2 stops at6D29; the static
+8000 tail at6D29..6D2A would chain straight intoFE and is not run here.
+Other slot stops coincide with the firstFE position. NoFE is executed, and
+this does not establish complete-loop playback, natural IRQ timing or audio.
