@@ -1689,3 +1689,8 @@ payload. First oracle expected FF9D header X;actual scratch is width;corrected
 oracle,unchanged original. Adds82944 assertions,total36208115. Coverage unchanged.
 No nonempty OAM,natural menu/input,Japanese meaning,original audio,IRQ/timing or
 hardware proof.
+
+
+### Original variant0 OAM objects
+
+All 25 primary and three secondary count-prefixed objects in original B61 are emitted by the actual 4DFE/5188 routines. There are 28672 complete calls: availability 0/1/40/255, every X byte and Y=37*X modulo256, varied flags. An independent model consumes original records and checks registers/flags, availability, mapping/backups and the entire C000-C3FF shadow. The 28 pointer/count boundary contracts and two assertions per call add57372 checks, for a total36265487. Coordinates are not Cartesian exhaustive. Availability1/255 tests expose unclamped low-byte destination wrap, not natural capacity validity. No synthetic records or injected callee returns. Original data classification remains PROBABLE; no natural wrapper, visual meaning, DMA, IRQ or hardware claim.

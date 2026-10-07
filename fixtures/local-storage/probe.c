@@ -379,6 +379,16 @@ static void probeA12OAMEmission(struct mCore *c,unsigned family,unsigned availab
  for(unsigned i=0;i<records;i++)exact&=rd(c,0xD201+4*i)==((i*17+index)&255)&&rd(c,0xD202+4*i)==((i*29+count)&255)&&rd(c,0xD203+4*i)==((i*37+available)&255)&&rd(c,0xD204+4*i)==((i*43+family)&255);
  require(exact,"A12 OAM original emitters counts index coordinate wrapping whole C000-C3FF mapper mirror and source",caseIndex);
 }
+static void probeOriginalA12OAM(struct mCore *c,unsigned family,unsigned object,unsigned available,unsigned x,unsigned index){
+ const uint8_t *rom=((struct GB*)c->board)->memory.rom,*page=rom+0x61*8192;unsigned table=family?0x78EE:0x7203,p=page[table-0x6000+2*object]|page[table-0x6000+2*object+1]<<8,count=page[p-0x6000],y=(x*37)&255;struct SM83Core *cpu=((struct GB*)c->board)->cpu;
+ prepareA12EffectMapping(c,0x61);for(unsigned i=0;i<1024;i++)wr(c,0xC000+i,0xA5);wr(c,0xC115,5);wr(c,0xC116,0);wr(c,0xC113,0x12);wr(c,0xC114,0);wr(c,0xC21C,0x61);wr(c,0xC21D,0);
+ wr(c,0xC1C7,available);wr(c,0xC5F5,available);wr(c,family?0xC5F6:0xC5D0,object);wr(c,family?0xC5E9:0xC5D5,x);wr(c,family?0xC5EA:0xC5D6,y);
+ unsigned expected[1024];for(unsigned i=0;i<1024;i++)expected[i]=rd(c,0xC000+i);unsigned dest=4*((40-available)&255),base=dest&0xFF00,e=dest&255,lastX=0,lastAttr=0,carry=0;
+ if(available)for(unsigned i=0;i<count;i++){const uint8_t *r=page+p-0x6000+1+4*i;unsigned vals[]={(y+r[0]+16)&255,(x+r[1]+8)&255,r[2],r[3]};for(unsigned j=0;j<4;j++){expected[base+e]=vals[j];e=(e+1)&255;}lastX=r[1];lastAttr=r[3];carry=(((x+r[1])&255)+8)>255;}
+ cpu->af=0x5A00|((x&15)<<4);cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=table;call(c,family?0x5188:0x4DFE);
+ bool exact=cpu->af==(available?(lastAttr<<8|0xC0|(carry?0x10:0)):0x0080)&&cpu->bc==(available?lastX:0xBEEF)&&cpu->de==(available?(0xC000|base|e):0x1234)&&cpu->hl==(available?p+1+4*count:table)&&rd(c,0xC5F5)==(family?available:available?(available-count)&255:0)&&rd(c,0xC1C7)==available&&rd(c,0xFFAD)==0x61&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;
+ for(unsigned i=0;i<1024;i++)exact&=rd(c,0xC000+i)==expected[i];require(exact,"Original28 OAM objects exact full shadow registers availability mapping byte wrap",index);
+}
 struct A12StepModel {unsigned q,r;};
 static struct A12StepModel a12StepModel(unsigned distance,unsigned divisor,unsigned counter){
  struct A12StepModel m={0,0};for(unsigned i=0;i<(counter?counter:256);i++){unsigned value=(distance+m.r)&255;m.q=divisor?value/divisor:255;m.r=divisor?value%divisor:value;}return m;
@@ -4640,6 +4650,15 @@ int main(int argc,char **argv){
  const unsigned tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};const uint8_t *rom=((struct GB*)c->board)->memory.rom;
  for(unsigned i=0;i<3;i++)memcpy(originalEffectTiles[i],rom+0x61*8192+tiles[i]-0x6000,sizes[i]);
  for(unsigned tile=0;tile<3;tile++)for(unsigned stage=0;stage<3;stage++)for(unsigned counter=0;counter<256;counter++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeOriginalA12TileTick(c,tiles[tile],stage,counter,(counter&15)<<4,plane,lcd,tile*3072+stage*1024+counter*4+plane*2+lcd);
+ }
+ { /* All original primary/secondary OAM objects, no synthetic source records. */
+ const uint8_t *page=((struct GB*)c->board)->memory.rom+0x61*8192;const unsigned availability[]={0,1,40,255};unsigned sample=0;
+ for(unsigned family=0;family<2;family++){unsigned table=family?0x78EE:0x7203,objects=family?3:25;
+  for(unsigned object=0;object<objects;object++){unsigned p=page[table-0x6000+2*object]|page[table-0x6000+2*object+1]<<8,n=object+1<objects?(page[table-0x6000+2*object+2]|page[table-0x6000+2*object+3]<<8):(family?0x7913:0x78EE);
+   require(page[p-0x6000]>0&&p+1+4*page[p-0x6000]==n,"Original OAM28 pointer count exact contiguous boundaries",family*25+object);
+   for(unsigned a=0;a<4;a++)for(unsigned x=0;x<256;x++)probeOriginalA12OAM(c,family,object,availability[a],x,sample++);
+  }
+ }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

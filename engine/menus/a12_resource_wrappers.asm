@@ -11,9 +11,9 @@ TickA12Variant0ResourceWrapper::
 	call CopyA12SecondaryResourcePosition
 	call TickA12ResourceFrame
 	call CopyA12ResourcePosition
-	ld hl, $7203
+	ld hl, A12Variant0PrimaryOAMTable
 	call EmitA12ResourceOAM
-	ld hl, $78EE
+	ld hl, A12Variant0SecondaryOAMTable
 	call EmitA12SecondaryResourceOAM
 	ld hl, $C5CC
 	inc [hl]
