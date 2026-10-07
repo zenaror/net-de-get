@@ -116,7 +116,8 @@ bank	start	end	symbol
 09	4BDD	4BE5	SeedA12RandomState
 09	4BE6	4C10	StepA12RandomState
 09	4C11	4C40	TryA12Variant1TileFrames
-09	4C41	4FFE	ResidualROM09_4C41
+09	4C41	4C87	CycleA12Variant2TilePairs
+09	4C88	4FFE	ResidualROM09_4C88
 09	4FFF	5050	CopyA12TileFrame
 09	5051	5092	TickA12TileFrame
 09	5093	50C7	InitializeA12TileFrames

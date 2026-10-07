@@ -1261,3 +1261,27 @@ The initial oracle needed A=H for the setter and the9800 tilemap limit (excludin
 9C00); fixed without ROM changes.2515196 new assertions,total17109273,plus24
 verifier tests. Natural mapping/frame timing/random use/menu/IRQ, Japanese
 interpretation and hardware remain unproved; no disk saves or ROM edits.
+
+## A12 variant2 paired-tile cycle
+
+`CycleA12Variant2TilePairs` at A12:4C41-4C87 is PROBABLE from its
+published variant2 caller and forced execution. It visits9920-9933, advancing
+`(17*state+5C93)&FFFF` once per column. A generated high byte masked with7F
+must be zero to inspect the upper byte. A5/A6/A7 become A6/A7/A5 and their
+lower-row bytes at +32 become A9/AA/A8; other values and columns stay intact.
+This code neither selects VBK nor waits for LCD access. The LCD-off contract
+must not be generalized to unrestricted LCD-on bus access or natural cadence.
+
+75776 complete calls: all65536 seeds with derived flags/tile inputs and
+alternating VBK; then20 selected seeds (one high-zero trigger at each column),
+all256 upper-byte values at that column and both VBKs. Independent twenty-step
+arithmetic/substitution models check state, all forty bytes across two row spans,
+registers/flags and adjacent WRAM guards.280 cases additionally compare every
+byte in both complete8192-byte VRAM planes. High128 candidate behavior is
+covered by the all-seed corpus, not by the selected high-zero corpus. Input
+flags are derived, not a full seed/flags Cartesian product.
+
+303404 new assertions,total17412677,plus24 verifier tests. The initial oracle
+incorrectly compared the entire FF4F readback to the selected bit; correcting
+its mask resolved that fixture failure without changing original bytes.
+Natural caller timing, visual meaning, IRQs and hardware remain unproven.

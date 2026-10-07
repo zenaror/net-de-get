@@ -81,7 +81,7 @@ A12SelectionVariant2::
 	ld a, $00
 	ld [$C21D], a
 	call TickA12TileFrame
-	call $4C41
+	call CycleA12Variant2TilePairs
 	ld hl, $C5E5
 	inc [hl]
 	ld a, [$C73A]

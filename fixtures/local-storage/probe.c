@@ -271,6 +271,35 @@ static void probeA12TriggerPrefix(struct mCore *c,unsigned seed,unsigned flags,u
  require(cpu->pc==target&&cpu->sp==(choice?0xCFFC:0xD000)&&(!choice||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(choice==1?0x4C31:0x4C40)),"A12 guarded consumer original RNG chain returns or reaches actual setup prefix",index);
  require(cpu->bc==0xBEEF&&cpu->de==((state&255)<<8|state>>8)&&cpu->hl==expectedHL&&cpu->a==(choice?0:(state>>8)&15)&&cpu->f.packed==(choice?0xA0:0x20)&&(rd(c,0xC5D2)|(rd(c,0xC5D3)<<8))==state&&rd(c,0xC5D1)==0x33&&rd(c,0xC5D4)==0x3C&&rd(c,0xC5E4)==0&&rd(c,0xC5E5)==0xA5&&rd(c,0xC5E7)==0x5A,"A12 consumer all seed paths recurrence steps target registers flags and guards",index);
 }
+/* Independent twenty-step recurrence and pair substitution oracle. LCD off. */
+static void probeA12TileCycle(struct mCore *c,unsigned seed,unsigned tile,unsigned plane,bool whole,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;unsigned state=seed,expectedA=0,expectedDE=0,carry=0;
+ unsigned upper[20],lower[20];
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ if(whole)for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0x3C);}
+ wr(c,0xFF4F,plane);
+ for(unsigned i=0;i<20;i++){upper[i]=(tile+i)%256;lower[i]=(0x51+i)%256;wr(c,0x9920+i,upper[i]);wr(c,0x9940+i,lower[i]);}
+ wr(c,0xC5D1,0xA5);wr(c,0xC5D2,seed&255);wr(c,0xC5D3,seed>>8);wr(c,0xC5D4,0x5A);
+ for(unsigned i=0;i<20;i++){
+  state=a12NextState(state);expectedDE=(state&255)<<8|state>>8;expectedA=(state>>8)&127;carry=0;
+  if(!expectedA){expectedDE=32;expectedA=upper[i];carry=upper[i]<0xA7;
+   if(upper[i]>=0xA5&&upper[i]<=0xA7){upper[i]=upper[i]==0xA7?0xA5:upper[i]+1;lower[i]=upper[i]+3;expectedA=lower[i];carry=0;}
+  }
+ }
+ cpu->af=0x5A00|((index&15)<<4);cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x4C41);
+ require(cpu->a==expectedA&&cpu->f.packed==(0xC0|carry<<4)&&cpu->bc==0x0037&&cpu->de==expectedDE&&cpu->hl==0x9934,
+  "A12 paired cycle exact terminal registers flags twenty columns",index);
+ require((rd(c,0xC5D2)|(rd(c,0xC5D3)<<8))==state&&rd(c,0xC5D1)==0xA5&&rd(c,0xC5D4)==0x5A&&(rd(c,0xFF4F)&1)==plane,
+  "A12 paired cycle twenty RNG steps WRAM guards and unchanged VBK",index);
+ bool exact=true;for(unsigned i=0;i<20;i++)exact&=rd(c,0x9920+i)==upper[i]&&rd(c,0x9940+i)==lower[i];
+ require(exact,"A12 paired cycle recognized substitutions and unrecognized bytes unchanged",index);
+ if(whole){exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){
+  unsigned address=0x8000+i,expected=0x3C;
+  if(bank==plane&&address>=0x9920&&address<0x9934)expected=upper[address-0x9920];
+  if(bank==plane&&address>=0x9940&&address<0x9954)expected=lower[address-0x9940];
+  exact&=rd(c,address)==expected;
+ }}require(exact,"A12 paired cycle both entire VRAM planes exact bounded footprint",index);wr(c,0xFF4F,plane);}
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -3917,6 +3946,17 @@ int main(int argc,char **argv){
   index++;
  }
  }
+ }
+ { /* All seeds: exact twenty RNG steps and all forty row bytes. */
+ for(unsigned seed=0;seed<65536;seed++)probeA12TileCycle(c,seed,seed>>8,seed&1,false,seed);
+ /* For every column, force a candidate high byte of zero, then all tile bytes
+    on both planes. Complete VRAM comparison for recognized/edge tile values. */
+ unsigned chosen[20];for(unsigned col=0;col<20;col++){chosen[col]=65536;for(unsigned seed=0;seed<65536;seed++){
+  unsigned state=seed;for(unsigned i=0;i<=col;i++)state=a12NextState(state);
+  if(!(state>>8)){chosen[col]=seed;break;}
+ }require(chosen[col]<65536,"A12 synthetic trigger seed exists at each column",col);}
+ for(unsigned col=0;col<20;col++)for(unsigned tile=0;tile<256;tile++)for(unsigned plane=0;plane<2;plane++)
+  probeA12TileCycle(c,chosen[col],(tile-col)&255,plane,tile==0||tile==0xA4||tile==0xA5||tile==0xA6||tile==0xA7||tile==0xA8||tile==255,65536+col*512+tile*2+plane);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
