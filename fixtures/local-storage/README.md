@@ -667,3 +667,22 @@ Destination/SP, precedence, column choice, state, variant and countdown
 are checked; these stops do not prove the callee return or natural menu.
 139520 complete calls and6912 prefixes add292864 assertions. Semantics
 remain PROBABLE; no safety of unterminated lists is asserted.
+
+
+## A0F action helper contracts
+
+43BF selector complete calls cover all65536 mode/input pairs, exact four
+pointer choices and fallback, without resource extent claims.3072 trim
+prefixes at451F cover every counter byte, four preceding-byte classes and
+three auxiliary counts, comparing258 memory bytes to a mutation model.
+Counter aliasing is retained; count1 reads the preceding guardC74D, so
+artificial FE/FF guards can produce byte underflow. Nonzero cases stop
+before45A0 redraw.128 dispatcher calls with button02 and zero count return
+completely through the original empty upper-stream fixture and position
+producer. This does not prove nonempty-list redraw or natural counters.
+4628 complete row drawing covers512LCDoff and8LCDon cases, both initial
+VBKs and all256 byte values at each tile/attribute input position via
+patterned seeds. All8192 bytes in each VRAM plane are checked: inputpair
+at9A02,8E/8F at9A08,90/91 at9A0E with unchanged C777/C778 attributes.
+FinalVBK0 and C775/C776=90/91 are checked.138512 assertions are added.
+Semantics stay PROBABLE; no natural screen/IRQ/hardware timing proof.

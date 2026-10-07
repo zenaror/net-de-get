@@ -94,7 +94,7 @@ A0FInput_4264::
 	jr z, A0FInput_4275
 	ld a, $85
 	call ResidentJump024F
-	call $451F
+	call TrimA0FListTail - $2000
 	jp A0FInput_4305 - $2000
 A0FInput_4275::
 	ldh a, [$FF97]

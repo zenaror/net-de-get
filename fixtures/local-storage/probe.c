@@ -2689,6 +2689,65 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF97,0);wr(c,0xFF98,0);
  }
+ { /* Original A0F mode resource selector, trim prefix and indicator row. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ const unsigned pointers[]={0x5334,0x537C,0x53C4,0x540C};
+ for(unsigned mode=0;mode<256;mode++)for(unsigned input=0;input<256;input++){
+  wr(c,0xC764,0xA5);wr(c,0xC765,mode);wr(c,0xC766,0x5A);cpu->a=input;call(c,0x43BF);
+  unsigned selected=(mode&1)?2+(input&1):input;
+  require(cpu->hl==pointers[selected<3?selected:3]&&cpu->a==selected&&rd(c,0xC765)==mode&&rd(c,0xC764)==0xA5&&rd(c,0xC766)==0x5A,
+   "A0F resource selector all mode/input bytes exact pointer fallback",mode*256+input);
+ }
+ const unsigned previous[]={0,0xFD,0xFE,0xFF},metas[]={0,1,255};
+ for(unsigned count=0;count<256;count++)for(unsigned kind=0;kind<4;kind++)for(unsigned meta=0;meta<3;meta++){
+  unsigned expected[258];for(unsigned i=0;i<258;i++)wr(c,0xC74D+i,(i*73+count*29)&255);
+  if(count)wr(c,0xC74D+count-1,previous[kind]);wr(c,0xC76C,count);wr(c,0xC76D,metas[meta]);
+  for(unsigned i=0;i<258;i++)expected[i]=rd(c,0xC74D+i);
+  if(count){
+   expected[31]=(expected[31]-1)&255;unsigned index=expected[31]+1;expected[index]=0;--index;
+   if(expected[index]>=254){expected[index]=0;expected[31]=(expected[31]-1)&255;expected[32]=(expected[32]-1)&255;}
+  }
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x451F;
+  unsigned steps=0;while(cpu->pc!=0x45A0&&cpu->pc!=0xC100&&steps++<100000)c->step(c);
+  unsigned sample=count*12+kind*3+meta;
+  require(cpu->pc==(count?0x45A0:0xC100)&&cpu->sp==(count?0xCFFC:0xD000),"A0F trim prefix stops before redraw or returns empty count",sample);
+  bool exact=true;for(unsigned i=0;i<258;i++)exact&=rd(c,0xC74D+i)==expected[i];
+  require(exact,"A0F trim exact memory includes counter alias and previous FE FF underflow",sample);
+ }
+ wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);wr(c,0xFFAD,0x15);wr(c,0xFFAE,0);
+ wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xCF92,0);wr(c,0xCF93,0xD3);
+ for(unsigned i=0;i<8;i++){wr(c,0xD300+2*i,0x10);wr(c,0xD301+2*i,0xD6);}wr(c,0xD610,0);
+ for(unsigned pressed=0;pressed<256;pressed++){
+  if(!(pressed&2))continue;
+  wr(c,0xC1B8,0);wr(c,0xC772,1);wr(c,0xC76C,0);wr(c,0xC76D,pressed);wr(c,0xC74E,0xA5);
+  wr(c,0xC766,2);wr(c,0xC767,3);wr(c,0xC76B,0);wr(c,0xC1C4,16);wr(c,0xC20A,0x3C);
+  wr(c,0xFF98,0);wr(c,0xFF97,pressed);call(c,0x41C5);
+  require(rd(c,0xC76C)==0&&rd(c,0xC76D)==pressed&&rd(c,0xC74E)==0xA5&&rd(c,0xC766)==2&&rd(c,0xC767)==3&&
+   rd(c,0xC772)==1&&rd(c,0xC768)==32&&rd(c,0xC769)==128&&rd(c,0xC1C4)==16&&rd(c,0xC20A)==0x3C,
+   "A0F complete dispatcher button02 precedence empty trim and queued position",pressed);
+ }
+ wr(c,0xFF97,0);wr(c,0xFF98,0);
+ for(unsigned lcd=0;lcd<2;lcd++)for(unsigned seed=0;seed<256;seed++)for(unsigned initial=0;initial<2;initial++){
+  if(lcd&&seed!=0&&seed!=1&&seed!=128&&seed!=255)continue;
+  unsigned tile0=seed,tile1=(seed*73+1)&255,attr0=(seed*29+3)&255,attr1=(seed*53+5)&255;
+  wr(c,0xFF40,0);for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xC774,0x3C);wr(c,0xC775,tile0);wr(c,0xC776,tile1);wr(c,0xC777,attr0);wr(c,0xC778,attr1);wr(c,0xC779,0x5A);
+  wr(c,0xFF4F,initial);if(lcd)wr(c,0xFF40,0x91);call(c,0x4628);
+  bool exact=(rd(c,0xFF4F)&1)==0&&rd(c,0xC775)==0x90&&rd(c,0xC776)==0x91&&rd(c,0xC777)==attr0&&rd(c,0xC778)==attr1&&rd(c,0xC774)==0x3C&&rd(c,0xC779)==0x5A;
+  wr(c,0xFF40,0);for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned address=0x8000;address<0xA000;address++){
+    unsigned value=0xA5;
+    if(address==0x9A02)value=plane?attr0:tile0;if(address==0x9A03)value=plane?attr1:tile1;
+    if(address==0x9A08)value=plane?attr0:0x8E;if(address==0x9A09)value=plane?attr1:0x8F;
+    if(address==0x9A0E)value=plane?attr0:0x90;if(address==0x9A0F)value=plane?attr1:0x91;
+    exact&=rd(c,address)==value;
+   }
+  }
+  require(exact,"A0F three indicator pairs original attributes both full VRAM planes",lcd*512+seed*2+initial);
+ }
+ wr(c,0xFF40,0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
