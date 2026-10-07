@@ -9,3 +9,13 @@ Este repositório reúne a análise MBC6 e o disassembly incremental do Net de G
 - A organização do disassembly pode avançar além das rotinas MBC6. Implementação Mobile Adapter/REON e tradução permanecem fora do escopo. Preserve os bytes japoneses originais.
 - Commit e push somente quando Rafael pedir nesta conversa.
 - Ao terminar, atualize a OMM no escopo `mgba` e deixe handoff com fatos, limites e próximos passos.
+
+## Ciclo de trabalho
+
+- Encadeie frentes úteis de disassembly sem pedir a próxima etapa a Rafael. Meça as fronteiras, extraia um trecho coerente e repita a validação antes de publicar.
+- Depois de alterar fontes, rode `make verify REFERENCE_ROM="/caminho/externo/ROM.gbc"`: montagem, manifesto de seções/símbolos, testes do verificador e equivalência byte a byte. Nunca trate a imagem parcial com padding como uma ROM completa.
+- Mantenha `config/excerpts.tsv` com as fronteiras e símbolos de entrada esperados. Uma mudança deve preservar os endereços dos símbolos existentes.
+- Verifique mudanças em cópia privada e repita os gates no fonte final. Testes negativos devem detectar defeitos que a checagem pretende impedir.
+- Equivalência binária e execução natural são evidências diferentes: os testes sintéticos do verificador não promovem a interpretação de rotinas a `CONFIRMED`.
+- A orientação de continuidade e testes foi autorizada por Rafael nesta conversa, seguindo o método do Mobile Trainer consultado na OMM.
+- Não informe o chat mGBA enquanto ele não chamar, conforme orientação de Rafael. A atualização da OMM no escopo `mgba` continua valendo.

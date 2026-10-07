@@ -8,7 +8,7 @@ SOURCES := $(shell rg --files home engine data -g '*.asm' | LC_ALL=C sort)
 OBJECTS := $(SOURCES:%.asm=build/%.o)
 INCLUDES := includes.asm $(wildcard constants/*.asm ram/*.asm)
 
-.PHONY: all compare
+.PHONY: all compare sym-check test verify
 all: build/excerpts.gb
 
 build/%.o: %.asm $(INCLUDES)
@@ -22,3 +22,12 @@ build/excerpts.gb: $(OBJECTS)
 compare:
 	@test -n "$(REFERENCE_ROM)" || (echo 'Set REFERENCE_ROM to the external original'; exit 1)
 	$(PYTHON) tools/check_excerpts.py "$(REFERENCE_ROM)"
+
+# Run these gates for each coherent source change before publishing.
+sym-check: build/excerpts.gb
+	$(PYTHON) tools/check_symbols.py build/excerpts.map build/excerpts.sym
+
+test:
+	$(PYTHON) -m unittest discover -s tools -p 'test_*.py' -v
+
+verify: all sym-check test compare

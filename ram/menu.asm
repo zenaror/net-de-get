@@ -13,3 +13,17 @@ DEF wCurrentGameBox EQU $D001
 DEF wTitleListCount EQU $D003
 DEF wGameIndexBoxPairs EQU $D1E6
 DEF wGameTitleList EQU $D3C2
+
+; Dispatcher $254E saves the selector but restores ROM type unconditionally.
+DEF hWindowASelector EQU $FFAB
+DEF hWindowAType EQU $FFAC
+DEF wWindowASelectorMirror EQU $C113
+DEF wWindowATypeMirror EQU $C114
+DEF wMinigameFlashSelector EQU $C66C
+DEF wMinigameSavedWindowASelector EQU $C66D
+
+; PROBABLE scan scratch roles from ROM0 $3E00; not a WRAM bank allocation.
+DEF wLocalScanSector EQU $C5C4
+DEF wLocalScanDestinationLow EQU $C5C9
+DEF wLocalScanDestinationHigh EQU $C5CA
+DEF wLocalScanReservedSector EQU $C5CB

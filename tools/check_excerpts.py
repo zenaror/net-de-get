@@ -3,7 +3,7 @@
 import argparse
 import hashlib
 from pathlib import Path
-import re
+from excerpt_checks import check_layout, compare_sections, read_manifest
 import subprocess
 import tempfile
 
@@ -26,27 +26,17 @@ for n, src in enumerate(sources):
     subprocess.run(['rgbasm', '-I', str(repo) + '/', '-P', str(repo / 'includes.asm'),
                     '-o', str(obj), str(src)], check=True)
     objects.append(str(obj))
-out, mp = root / 'excerpts.gb', root / 'excerpts.map'
-subprocess.run(['rgblink', '-p', '0', '-o', str(out), '-m', str(mp), *objects], check=True)
-image = out.read_bytes()
-bank = count = sections = 0
-for line in mp.read_text().splitlines():
-    b = re.search(r'ROM[0X] bank #(\d+)', line)
-    if b:
-        bank = int(b[1])
-    m = re.search(r'SECTION: \$([0-9a-f]+)-\$([0-9a-f]+)', line, re.I)
-    if m:
-        start, end = (int(x, 16) for x in m.groups())
-        offset = start if bank == 0 else bank * 0x4000 + start - 0x4000
-        size = end - start + 1
-        if image[offset:offset + size] != rom[offset:offset + size]:
-            raise SystemExit(f'Mismatch: RGBDS bank {bank:02X}, address {start:04X}')
-        print(f'PASS equivalent: RGBDS {bank:02X}:{start:04X}-{end:04X} ({size} bytes)')
-        count += size
-        sections += 1
-if not sections:
-    raise SystemExit('No ROM sections checked')
-print(f'Compared {sections} sections, {count} bytes; padding was not compared')
+out, mp, sym = (root / f'excerpts.{ext}' for ext in ('gb', 'map', 'sym'))
+subprocess.run(['rgblink', '-p', '0', '-o', str(out), '-m', str(mp), '-n', str(sym), *objects], check=True)
+try:
+    entries = read_manifest(repo / 'config/excerpts.tsv')
+    sections = check_layout(mp.read_text(), sym.read_text(), entries)
+    count = compare_sections(out.read_bytes(), rom, sections)
+except ValueError as error:
+    raise SystemExit(str(error))
+for bank, start, end in sections:
+    print(f'PASS equivalent: RGBDS {bank:02X}:{start:04X}-{end:04X} ({end - start + 1} bytes)')
+print(f'Compared {len(sections)} sections, {count} bytes; padding was not compared')
 if hashlib.sha256(a.reference_rom.read_bytes()).hexdigest() != expected:
     raise SystemExit('Reference ROM hash changed')
 print(f'Partial excerpt comparison only; artifacts: {root}')

@@ -189,3 +189,14 @@ analysis, not a complete ROM reconstruction or server implementation.
   4 KiB callback at selector6/windowB 61C5, checksum 38B0 and dispatcher026D.
   Opposite-window status, post-erase selector and hidden-map interpretations
   remain unresolved; preserve external cartridge-specific reset references.
+
+
+## Incremental disassembly verification cycle (2026-10-06)
+
+The published excerpts now include the local dispatcher at ROM0 `$254E-$25CA` and the local-list rebuild/template-copy code at ROM0 `$3E00-$3ED7`. Their semantic names remain **PROBABLE**; static byte equivalence does not establish natural execution of all branches. The entry HL allocation and the `$38B0` callee remain unresolved in this source tree.
+
+`make verify REFERENCE_ROM="/external/path/game.gbc"` assembles, checks section boundaries and entry symbols against `config/excerpts.tsv`, runs 11 synthetic checker tests, and compares all emitted sections against the hash-checked external original. The final pass compared **12 sections / 837 bytes** with no difference. It excludes padding and makes no complete-ROM reconstruction claim.
+
+The same cycle passed in a private source copy. A baseline assembled from prior published `6312b21` had 30 address symbols; all 30 remain at the same coordinates in the candidate. The private candidate and working-tree sparse images are identical. Local artifacts: `/tmp/netdeget-private-cycle-m0z212gg`; final equivalence artifacts: `/tmp/netdeget-excerpt-equivalence-cmtqfp11`. Temporary artifacts are supporting receipts; the maintained manifest and scripts reproduce the checks.
+
+Negative fixtures demonstrate rejection of altered section bytes, missing/extra/moved sections, missing/moved/duplicate entry symbols, invalid coordinates, overlapping intervals and equally truncated byte slices. These fixtures test the checker, not the game or hardware. The original ROM was opened read-only and its hash was rechecked after comparison.
