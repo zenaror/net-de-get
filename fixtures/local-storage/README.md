@@ -1694,3 +1694,12 @@ hardware proof.
 ### Original variant0 OAM objects
 
 All 25 primary and three secondary count-prefixed objects in original B61 are emitted by the actual 4DFE/5188 routines. There are 28672 complete calls: availability 0/1/40/255, every X byte and Y=37*X modulo256, varied flags. An independent model consumes original records and checks registers/flags, availability, mapping/backups and the entire C000-C3FF shadow. The 28 pointer/count boundary contracts and two assertions per call add57372 checks, for a total36265487. Coordinates are not Cartesian exhaustive. Availability1/255 tests expose unclamped low-byte destination wrap, not natural capacity validity. No synthetic records or injected callee returns. Original data classification remains PROBABLE; no natural wrapper, visual meaning, DMA, IRQ or hardware claim.
+
+
+### Original variant0 full wrapper chains
+
+The real `$4CFD` reset and `$50D8` secondary load prepare the first ordinary frames of all nine original phases. The full `$4A36` wrapper executes actual secondary/primary movement, coordinate copies, both OAM emitters and counter increment. All counters below the original thresholds (16/88/40/20/20/20/20/20/20) are tested. Counter is controlled after checked real preparation; no callee returns are injected.
+
+Availability 40 covers every acceleration byte. Acceleration 0/1/255 also covers availability 0/1/255 and exactly the primary count, including secondary zero after positive primary emission. There are 70,752 chains, 212,256 complete calls and 566,016 added assertions, for a total of 36,831,503. Independent models compare registers/flags, movement quotient/remainder, fields/guards/mapping, the entire 1,024-byte `$C000-$C3FF` shadow and 3,414 immutable original animation/OAM bytes. Counter-zero recurrence and coordinate-equality early returns are preserved.
+
+Initial shadow filling accidentally overwrote availability/request fields. Failing contracts identified it, and fixture preparation order was corrected. No original code was modified. Interpretation remains `PROBABLE`: first-frame movement only, without all transitions/effects, natural input/menu, DMA, original sound, IRQ timing or hardware.
