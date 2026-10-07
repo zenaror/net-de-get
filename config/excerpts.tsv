@@ -39,7 +39,7 @@ bank	start	end	symbol
 00	106D	108D	ComputeStorageDirectoryChecksum
 00	108E	114E	RebuildLocalStorageDirectory
 00	114F	1185	GetStorageDirectoryEntry
-00	1186	118E	ResidualROM00_1186
+00	1186	118E	SetDisplayObjectTablePointer
 00	12B9	12BE	ResidualROM00_12B9
 00	12BF	12CD	MBC6_MapWindowB
 00	12CE	12E8	ResidualROM00_12CE
@@ -88,7 +88,10 @@ bank	start	end	symbol
 06	4000	5FFF	ResidualROM06_4000
 06	6000	7FFF	ResidualROM06_6000
 07	4000	5FFF	ResidualROM07_4000
-07	6000	7FFF	ResidualROM07_6000
+07	6000	609B	ResidualROM07_6000
+07	60B2	7287	ResidualROM07_60B2
+07	728A	729D	ResidualROM07_728A
+07	72EC	7FFF	ResidualROM07_72EC
 08	4000	5FFF	ResidualROM08_4000
 08	6000	7FFF	ResidualROM08_6000
 09	4000	5FFF	ResidualROM09_4000
@@ -423,3 +426,8 @@ bank	start	end	symbol
 00	2FF1	3030	QueuedTilemapRowOffsets
 00	2D53	2DC2	FillQueuedTextRectangle
 00	11AA	12B8	BuildQueuedDisplayShadow
+07	609C	60B1	PrepareA0FDisplayTablePrefix
+07	7288	7289	A0FDisplayTablePrefix
+07	729E	72A1	A0FDisplayVariants0
+07	72A2	72C2	A0FDisplayObject0
+07	72C3	72EB	A0FDisplayObject1

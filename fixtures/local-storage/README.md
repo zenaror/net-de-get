@@ -535,3 +535,17 @@ corrupted return or claim natural reachability. Large expanded objects alone
 complete normally with40 emitted entries.2113 assertions are added. These
 SYNTHETIC cases establish shadow bytes only, not actual OAM DMA, sprites,
 real object-table bounds or natural menu behavior; semantics stay PROBABLE.
+
+
+### Original A0F display table and objects
+
+Four0258 setter calls verify pointer bytes, guards and preserved registers.
+The original409C setup prefix stops at40B2 before callback installation,
+checking mapper fields and5288 pointer setup. Three mapped-data checks verify
+5288->529E and variants0/1->52A2/52C3 with8/10 pieces. Both original objects
+are expanded for every65536 X/Y pair. Every shadow byte, zero tail, guard,
+remaining capacity and restoredA window is checked.262156 assertions are
+added. Data is original mapped ROM; indices and positions are forced. No
+natural sprite identity, full table extent, menu setup or OAM DMA is claimed.
+Physical bank07 upper8KiB maps at A0F4000; source pointer expressions retain
+physical label minus2000. Confidence remains PROBABLE.

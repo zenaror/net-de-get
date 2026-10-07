@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 424 seções**, todos comparados byte a byte com a referência externa. Os 228 trechos analisados somam 35953 bytes; os demais 1012623 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 432 seções**, todos comparados byte a byte com a referência externa. Os 234 trechos analisados somam 36064 bytes; os demais 1012512 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 424 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 432 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -475,3 +475,12 @@ A fixture executa 544 casos diretos (contagens 0–16, 16 padrões e ambos os ca
 Um prefixo artificial expande 40 entradas e depois solicita um registro direto `$FF`. Ele para em `$122A` com capacidade zero e SP `$CFF8`, antes dos pops: o branch do caminho direto pula o `pop af` que existe no caminho com espaço, mantendo o AF empilhado. Isso documenta uma discrepância de pilha nesse estado forçado, sem executar o retorno corrompido ou afirmar que o menu natural o produz. A expansão comum com objetos maiores que 40 é verificada separadamente até retorno completo. Não houve correção dos bytes originais.
 
 Os 2.113 novos asserts elevam a fixture a 1.249.284; o privado preserva os 1.262 símbolos publicados em `a9cfe26`. Montagem integral e negativos reais passam. Continuam pendentes objetos/tabelas reais, consumidores naturais da fila e DMA do shadow; equivalência binária e esses casos sintéticos não confirmam sprites visíveis nem o estado artificial como falha natural.
+
+
+### Ponteiro de tabela e dois objetos originais A `$0F`
+
+`home/display_object_table.asm` extrai o setter `$1186-$118E` (9 bytes), preservando seu alias; `$0258` usa o nome simbólico. `data/bank_a0f_display_objects.asm` extrai o prefixo de setup A `$0F:$409C-$40B1`, o primeiro ponteiro em `$5288`, dois ponteiros de variante em `$529E` e os objetos `$52A2-$52C2/$52C3-$52EB`: 102 bytes adicionais. A metade superior física `$07:$6000-$7FFF` aparece em A `$0F:$4000-$5FFF`; os ponteiros usam explicitamente símbolos físicos menos `$2000`. O alias residual `$07:$6000` permanece. Gaps e o tamanho integral das tabelas continuam não interpretados.
+
+O setter guarda HL em `$C1C5/$C1C6`. O prefixo original desabilita interrupções, seleciona VBK 0/WRAM 0, define `$C21C=$0F/$C21D=0` e chama `$0258` com HL `$5288`; o probe para antes da continuação `$40B2`, sem afirmar inicialização completa. O primeiro ponteiro chega a `$529E`; variantes 0/1 apontam para objetos com contagem 8/10, cada peça formada pelos quatro bytes consumidos pelo shadow. Os objetos são extraídos até `1 + 4*contagem`, sem estender essa fronteira às tabelas vizinhas.
+
+A confiança permanece `PROBABLE`. Quatro chamadas do setter conferem guards e registradores; um prefixo original verifica os campos; três checks conferem ponteiros/contagens mapeados. A expansão dos dois objetos originais executa todas as 65.536 combinações X/Y por variante, verificando todos os 160 bytes do shadow, zeros finais, guarda, capacidade e restauração de A. São 262.156 novos asserts, somando 1.511.440; o privado preserva os 1.277 símbolos publicados em `83e67d1`. Montagem integral e negativos reais passam. Os dados dos objetos são ROM real, mas os índices 0/1 e as posições são entradas forçadas; não provam uso natural, significado visual, fronteiras integrais das tabelas ou OAM DMA.

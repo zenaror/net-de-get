@@ -106,7 +106,7 @@ ResidentJump0252::
 ResidentJump0255::
 	jp BeginA1EGlobalCountdown
 ResidentJump0258::
-	jp $1186
+	jp SetDisplayObjectTablePointer
 ResidentJump025B::
 	jp AppendFourByteDisplayRecord
 ResidentJump025E::

@@ -2301,6 +2301,47 @@ int main(int argc,char **argv){
  require(cpu->pc==0x122A&&rd(c,0xC1C7)==0&&cpu->sp==0xCFF8&&rd(c,0xC0A0)==0xA5,
   "shadow artificial capacity40 then direct stops before unmatched AF pop path",0);
  }
+ { /* Original A0F two-variant display objects; bounded forced expansion. */
+ const unsigned pointers[]={0,0x5288,0xD800,0xFFFF};
+ for(unsigned n=0;n<4;n++){
+  wr(c,0xC1C4,0xA5);wr(c,0xC1C7,0x5A);cpu->hl=pointers[n];cpu->bc=0xBEEF;cpu->de=0x1234;call(c,0x258);
+  require(rd(c,0xC1C5)==(pointers[n]&255)&&rd(c,0xC1C6)==(pointers[n]>>8)&&
+   rd(c,0xC1C4)==0xA5&&rd(c,0xC1C7)==0x5A&&cpu->hl==pointers[n]&&cpu->bc==0xBEEF&&cpu->de==0x1234,
+   "display pointer setter preserves registers and guards",n);
+ }
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+ cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x409C;
+ unsigned steps=0;while(cpu->pc!=0x40B2&&steps++<100)c->step(c);
+ require(cpu->pc==0x40B2&&cpu->sp==0xCFFE&&rd(c,0xC21C)==0x0F&&rd(c,0xC21D)==0&&
+  rd(c,0xC1C5)==0x88&&rd(c,0xC1C6)==0x52&&(rd(c,0xFF4F)&1)==0&&!g->memory.ime,
+  "A0F actual setup prefix stops before callback installation",0);
+ const unsigned objectPointers[]={0x52A2,0x52C3},pieceCounts[]={8,10};
+ unsigned records[2][40];
+ require((rd(c,0x5288)|(rd(c,0x5289)<<8))==0x529E&&
+  (rd(c,0x529E)|(rd(c,0x529F)<<8))==objectPointers[0]&&
+  (rd(c,0x52A0)|(rd(c,0x52A1)<<8))==objectPointers[1],"A0F actual two-level pointer prefix",0);
+ for(unsigned variant=0;variant<2;variant++){
+  require(rd(c,objectPointers[variant])==pieceCounts[variant],"A0F actual object count measured extent",variant);
+  for(unsigned i=0;i<pieceCounts[variant]*4;i++)records[variant][i]=rd(c,objectPointers[variant]+1+i);
+ }
+ for(unsigned variant=0;variant<2;variant++)for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++){
+  wr(c,0xC1CA,x);wr(c,0xC1CB,y);wr(c,0xC1CC,0);wr(c,0xC1CD,variant);wr(c,0xC1C4,1);
+  wr(c,0xC1C5,0x88);wr(c,0xC1C6,0x52);wr(c,0xC21C,0x0F);wr(c,0xC21D,0);
+  wr(c,0xFFAB,4);wr(c,0xFFAC,0);wr(c,0x27FF,4);wr(c,0x2800,0);wr(c,0xC0A0,0xA5);
+  unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x4000+i);call(c,0x261);
+  bool exact=rd(c,0xC1C4)==0&&rd(c,0xC1C7)==40-pieceCounts[variant]&&rd(c,0xC0A0)==0xA5&&rd(c,0xC113)==4&&rd(c,0xC114)==0;
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==restored[i];
+  for(unsigned i=0;i<160;i++){
+   unsigned slot=i/4,value=0;
+   if(slot<pieceCounts[variant]){
+    value=records[variant][i];if(i%4==0)value=(value+y)&255;if(i%4==1)value=(value+x)&255;
+   }
+   exact&=rd(c,0xC000+i)==value;
+  }
+  require(exact,"A0F original objects both variants full XY byte domains",variant*65536+x*256+y);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
