@@ -621,3 +621,23 @@ including explicitly declared reserved zero regions and original checksums.
 Branch targets alone do not prove boot/interrupt execution. No rgbfix on partial
 output. Source: **83 sections / 14785 byte-exact bytes**; **2773 CPU assertions**,
 **19 checker tests**. The integral gate still rejects the partial reconstruction.
+
+
+### Matching source baseline across the whole ROM
+
+The complete build now emits exactly 1,048,576 bytes with SHA-256
+`9fb1e6e4a637796b8624bd2de6c9abaa9e758546b620cb5dc8441b07c288bc63`.
+Building reads only committed source and the recorded hash; the reference is
+read only by optional validation and was unchanged. Existing 83 analyzed ranges
+(14,785 bytes) and all 385 published symbols of 574a20a were preserved.
+161 remaining ranges (1,033,791 bytes) are explicit literal source, split at
+8 KiB page boundaries and marked **HYPOTHESIS classification / uninterpreted**.
+They do not establish functions, data types, natural execution or hardware.
+The one-time bootstrap was private and is frozen against project overwrite.
+This follows the Mobile Trainer matching-base-then-refinement workflow.
+
+24 checker tests and 2773 synthetic CPU assertions pass. Private validation
+checks all address symbols and image equality. Real negative builds mutate a
+literal byte or delete a zero page. The latter retains the original hash through
+matching linker padding but fails the explicit-source-coverage gate. No original
+ROM include, real save, translation, programming/erase or new network feature.

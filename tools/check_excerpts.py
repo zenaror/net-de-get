@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble partial RGBDS excerpts and compare only their sections to a read-only ROM."""
+"""Assemble explicit RGBDS sources and compare their sections to a read-only ROM."""
 import argparse
 import hashlib
 from pathlib import Path
@@ -39,4 +39,4 @@ for bank, start, end in sections:
 print(f'Compared {len(sections)} sections, {count} bytes; padding was not compared')
 if hashlib.sha256(a.reference_rom.read_bytes()).hexdigest() != expected:
     raise SystemExit('Reference ROM hash changed')
-print(f'Partial excerpt comparison only; artifacts: {root}')
+print(f'Explicit source section comparison; artifacts: {root}')

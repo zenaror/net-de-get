@@ -1,8 +1,8 @@
-# Net de Get — disassembly incremental
+# Net de Get — disassembly e montagem idêntica
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-Ainda não é uma reconstrução completa RGBDS e não contém a ROM comercial. Os trechos publicados têm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1033791 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -10,18 +10,20 @@ Ainda não é uma reconstrução completa RGBDS e não contém a ROM comercial. 
 - Disassembly organizado por domínio: [`engine/`](engine/) e [`data/`](data/) (trechos parciais, com níveis de evidência anotados)
 - Fixture de controles, entrada natural, saída e reabertura: [`fixtures/input-tester/README.md`](fixtures/input-tester/README.md)
 - Produtor da ROM → flash → persistência, com entrada sintética explícita: [`fixtures/host-writer/README.md`](fixtures/host-writer/README.md)
-- Equivalência dos trechos: `python3 tools/check_excerpts.py ORIGINAL_ROM` (compara só as seções reconstruídas, sem copiar a ROM).
+- Montagem independente: `make`; comparação integral: `make verify-full REFERENCE_ROM="/caminho/externo/ROM.gbc"`.
 - Hash da ROM externa: [`roms.sha256`](roms.sha256)
 - Ferramentas e ambiente: [`INSTALL.md`](INSTALL.md)
 
-## Organização e montagem parcial
+## Organização e montagem
 
 - `home/`: rotinas ROM0 residentes, incluindo os helpers MBC6.
 - `engine/`: seleção, catálogo e menus; `engine/menus/local_titles.asm` cobre a lista de títulos em A `$14:$4D43-$4E27`.
 - `data/`: tabelas extraídas; nenhum título japonês foi traduzido.
 - `constants/` e `ram/`: valores e endereços simbólicos, carregados por `includes.asm`. Os nomes de campos seguem o nível de evidência de cada trecho.
 
-`make` monta e liga somente os trechos publicados em `build/excerpts.gb`, com mapa e símbolos. Esse arquivo tem lacunas preenchidas com zero e **não é uma ROM reconstruída ou jogável**. Não use seu hash como hash do jogo.
+`make` monta e liga todos os fontes, valida cobertura explícita, tamanho e SHA-256, e produz `build/net-de-get.gbc`. O arquivo interno `build/excerpts.gb` é mantido para compatibilidade com os verificadores; agora contém a mesma imagem completa. Não há lacunas preenchidas a partir da referência ou pelo linker. Os arquivos de mapa e símbolos continuam em `build/excerpts.map` e `build/excerpts.sym`.
+
+`data/uninterpreted/` contém 161 intervalos residuais, delimitados por banco físico e páginas nativas de 8 KiB. São fontes literais `db` e runs constantes `ds` com tamanho explícito. A classificação permanece `HYPOTHESIS`: os bytes estão preservados, mas esses intervalos ainda podem misturar código, gráficos, texto e outras tabelas. A base montável permite refiná-los mantendo a igualdade integral.
 
 Para comparar explicitamente cada seção com a ROM original externa:
 
@@ -39,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **14785 bytes em 83 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem contém **1048576 bytes em 244 seções**, todos comparados byte a byte com a referência externa. Os 83 trechos anteriormente analisados somam 14785 bytes; os demais 1033791 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -49,7 +51,7 @@ O trabalho segue o ciclo do Mobile Trainer: medir a próxima frente, extrair uma
 make verify REFERENCE_ROM="/caminho/externo/Net de Get - Minigame @ 100 (Japan).gbc"
 ```
 
-Esse alvo executa montagem, `sym-check`, `test` e `compare`. `make private-check REFERENCE_ROM="/caminho/externo/ROM.gbc"` repete o ciclo em cópia privada, compara a imagem com a árvore atual e exige a preservação de todos os símbolos de endereço do HEAD publicado. O manifesto `config/excerpts.tsv` fixa banco físico RGBDS, início, fim inclusivo e símbolo de entrada de cada seção. Os 19 testes do verificador incluem falhas deliberadas: seções ausentes/extras/movidas, símbolos ausentes/movidos/duplicados, sobreposição, bytes alterados e imagens truncadas. São testes sintéticos da ferramenta, sem evidência de execução natural do jogo.
+Esse alvo executa montagem, `sym-check`, `test` e `compare`. `make private-check REFERENCE_ROM="/caminho/externo/ROM.gbc"` repete o ciclo em cópia privada, compara a imagem com a árvore atual e exige a preservação de todos os símbolos de endereço do HEAD publicado. O manifesto `config/excerpts.tsv` fixa banco físico RGBDS, início, fim inclusivo e símbolo de entrada de cada seção. Os 24 testes do verificador incluem falhas deliberadas: seções ausentes/extras/movidas, símbolos ausentes/movidos/duplicados, sobreposição, bytes alterados e imagens truncadas. São testes sintéticos da ferramenta, sem evidência de execução natural do jogo.
 
 As novas rotinas cobrem ROM0 `$254E-$25CA` (dispatcher, 125 bytes) e `$3E00-$3ED7` (reconstrução da lista e cópia de template, 216 bytes). Seus nomes descritivos permanecem `PROBABLE`. O dispatcher restaura o seletor A salvo e impõe tipo ROM; a varredura pula o setor reservado `$70`, percorre seletores até `$80` e chama o checksum `$38B0`, agora extraído em `home/minigame_checksum.asm`. O ponteiro inicial HL da lista vem do chamador; nenhuma capacidade universal do destino foi demonstrada.
 
@@ -59,7 +61,7 @@ A rotina de checksum `$38B0-$391B` preserva o atalho para o valor armazenado `$B
 
 ## Plano e pendências
 
-Objetivo autorizado por Rafael: concluir uma ROM montável a partir do fonte RGBDS, idêntica byte a byte à referência original de 1 MiB. A referência externa é usada somente para verificação. O trabalho continua autonomamente até esse critério, preservando os bytes japoneses e os níveis de evidência. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
+Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGBDS, idêntica byte a byte à referência original de 1 MiB. Esse critério foi atingido com a base completa de fontes, usando a referência externa somente para verificação. O trabalho semântico continua sobre os intervalos não interpretados, preservando os bytes japoneses e os níveis de evidência. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
 
 | Fase | Estado | Critério de conclusão | Dependências |
 | --- | --- | --- | --- |
@@ -67,14 +69,14 @@ Objetivo autorizado por Rafael: concluir uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução completa | Pendente | montagem independente da referência; cobertura explícita de todos os 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | fonte de todos os bancos, dados e regiões de preenchimento identificadas |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 244 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
 1. Fechar os callees ainda numéricos dos handlers e de `$46C1`; seguir os destinos de boot `$02B8/$05F5/$0601/$061B` para ampliar ROM0, preservando fronteiras e símbolos.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
-4. Medir as lacunas com `make coverage`; concluir todas as regiões de código/dados e aplicar o gate integral abaixo.
+4. Refinar os intervalos `ResidualROM` por consumidores e fluxo, preservando seus símbolos de início quando extraídos; `make coverage` informa o volume ainda não interpretado.
 5. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
 
 ### Critério de reconstrução completa
@@ -84,9 +86,9 @@ make coverage
 make verify-full REFERENCE_ROM="/caminho/externo/ROM.gbc"
 ```
 
-`coverage` enumera intervalos ainda sem fonte explícito em offsets físicos do arquivo. `verify-full` exige todos os gates parciais, cobertura integral pelo manifesto, tamanho de 1048576 bytes e igualdade de todos os bytes. A montagem usa somente fontes/ativos do projeto; a ROM original não preenche lacunas. O padding do linker não conta como fonte, mesmo quando seus bytes coincidem com a referência. O gate integral falha enquanto houver regiões sem fonte; a imagem atual continua parcial. O hash final esperado é `9fb1e6e4a637796b8624bd2de6c9abaa9e758546b620cb5dc8441b07c288bc63`.
+`coverage` informa cobertura binária e bytes explicitamente não interpretados; enumera lacunas caso sejam introduzidas. `verify-full` exige todos os gates parciais, cobertura integral pelo manifesto, tamanho de 1048576 bytes e igualdade de todos os bytes. A montagem usa somente fontes/ativos do projeto; a ROM original não preenche lacunas. O padding do linker não conta como fonte, mesmo quando seus bytes coincidem com a referência. O gate integral passa na base atual e rejeita qualquer nova lacuna, mudança de tamanho ou alteração de byte. O hash final esperado é `9fb1e6e4a637796b8624bd2de6c9abaa9e758546b620cb5dc8441b07c288bc63`.
 
-O critério de ROM idêntica é distinto da conclusão de todos os nomes e interpretações semânticas: igualdade binária não promove hipóteses a `CONFIRMED`. Os oito novos testes do gate integral verificam cobertura, lacunas, padding coincidente, sobreposição, tamanho, bytes alterados e transição entre bancos físicos.
+O critério de ROM idêntica é distinto da conclusão de todos os nomes e interpretações semânticas: igualdade binária não promove hipóteses a `CONFIRMED`. Os oito testes do gate integral verificam cobertura, lacunas, padding coincidente, sobreposição, tamanho, bytes alterados e transição entre bancos físicos. Cinco testes adicionais verificam o bootstrap literal, a divisão de páginas e a ausência de includes da referência. `make full-negative-check` monta duas cópias descartáveis: uma com byte alterado e outra sem uma página zerada. Ambas são rejeitadas; a segunda ainda tem o hash original por coincidência do padding, demonstrando por que hash sozinho não substitui cobertura de fonte.
 
 ### Perguntas sem evidência suficiente
 
@@ -204,4 +206,8 @@ Trinta e seis combinações sintéticas conferem os descriptors, flags, caminho 
 
 ### Vetores, entrada e cabeçalho
 
-`home/vectors.asm` cobre `$0000-$0103`, incluindo os destinos literais de reset/interrupções, os stubs JP em WRAM e a entrada `$0100`. As regiões reservadas zeradas são declaradas com tamanho explícito e comparadas; não são lacunas preenchidas pelo linker. `data/cartridge_header.asm` cobre `$0104-$014F`, preservando logo, título, código do jogo, flags e checksums originais. `rgbfix` não é aplicado à imagem parcial. Isso fecha os primeiros 336 bytes da ROM sem confirmar uma sequência natural de boot neste passe.
+`home/vectors.asm` cobre `$0000-$0103`, incluindo os destinos literais de RST/interrupções, os stubs JP em WRAM e a entrada `$0100`. As regiões reservadas zeradas são declaradas com tamanho explícito e comparadas; não são lacunas preenchidas pelo linker. `data/cartridge_header.asm` cobre `$0104-$014F`, preservando logo, título, código do jogo, flags e checksums originais. `rgbfix` não é aplicado à imagem; os checksums originais são preservados. Isso fecha os primeiros 336 bytes da ROM sem confirmar uma sequência natural de boot neste passe.
+
+### Base completa e proveniência
+
+A base montável preserva todos os 385 símbolos de endereço do checkpoint `574a20a`. O bootstrap `tools/bootstrap_remaining.py` foi executado em diretório privado, gerou somente os intervalos restantes e manteve a referência externa intacta. O fonte resultante foi importado como base de trabalho; o bootstrap recusa regenerar dentro do projeto ou substituir uma base já importada. A manutenção passa a ser dos arquivos publicados, com comparação integral a cada mudança. Os arquivos não interpretados não são evidência de comportamento natural ou de completude da análise.
