@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **7,825 assertions**.
+and stack assertions, the maintained fixture reports **9,145 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -248,3 +248,13 @@ countdowns retain CF15, and CF04 remains untouched. This checks slot-specific
 behavior without inferring equivalence to slot0's bits 0/4 and three-byte stride.
 Other opcode bodies, natural playback, universal stream/table bounds and audio
 correctness remain outside the evidence. No real save or original ROM write.
+
+
+Slot2 adds 1,320 assertions: 256 dispatch stops, 19 B0 duration streams, all256
+B1 parameters, all256 C0 parameters and one tick->B0 chain. B1 edits CF88 bits
+2/6, retaining the slot1 CF19 sentinel. C0 masks the index into CF27, reads a
+two-byte pointer through CF98/CF99 at 2*(parameter&31), then copies16 bytes to
+wave RAM. Synthetic WRAM supplies32 pointers and32 distinct16-byte waves; the
+wave channel is disabled before each case. Short durations retain CF25 and the
+slot1 CF14 sentinel. No active-channel wave-RAM behavior, natural playback,
+other opcode bodies, universal stream/table safety or audible correctness proof.

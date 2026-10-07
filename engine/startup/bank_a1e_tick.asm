@@ -57,7 +57,7 @@ TickBankA1EState::
 	ld [hl], $FF
 	jr .at42FF
 .at42FC:
-	call $4752
+	call HandleA1ESlot2Commands
 .at42FF:
 	ld a, [$CF31]
 	or a, a

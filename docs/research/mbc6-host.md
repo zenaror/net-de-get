@@ -905,3 +905,23 @@ is untouched. This does not cover every opcode body, natural playback, universal
 stream/table bounds or audio correctness. Full/private/negative gates preserve
 807 published bdc6663 symbols and whole hash, with24 checker tests.
 281 sections:116 analyzed/18351 bytes,165 unknown/1030225 bytes.
+
+
+### A1E slot2 pointer-based wave copy
+
+**PROBABLE**, static tick consumer: extract native A1E $4752-$48EB (410 bytes),
+retaining ResidualROM0F_4752. CF20/CF21 supplies the stream. B1 edits CF88 bits
+2/6 without slot1's extra field. C0 stores parameter&31 in CF27, reads a pointer
+at CF98/CF99 + 2*(parameter&31), then copies16 bytes to FF30-FF3F. Unlike slot1,
+there is no index increment; the two-byte record supplies a pointer. Numeric
+target4A07/table4A0E remain unresolved. E0/90-range audio effects are statically
+represented but not runtime-validated by this unit.
+
+**SYNTHETIC**: 256 opcode stops, 19 B0 durations, all256 B1 parameters, all256
+C0 parameters and one tick->B0 chain add1320 assertions,total9145. C0 uses a
+synthetic WRAM pointer table and32 waves, with the wave channel disabled. Short
+durations retain CF25; CF14 remains intact. No other bodies, natural playback,
+active-channel wave-RAM behavior, arbitrary table/stream bounds or audible
+correctness. Full/private/negative gates preserve834 published69f2a73 symbols
+and whole hash, with24 checker tests.282 sections:117 analyzed/18761 bytes,
+165 unknown/1029815 bytes.
