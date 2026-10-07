@@ -965,3 +965,20 @@ No FF helper execution, other bodies, natural playback, arbitrary stream/table
 bounds or audio correctness. Full/private/negative gates preserve884 published
 f995835 symbols and whole hash,24checker tests.285 sections:119 analyzed/19456
 bytes,166 unknown/1029120 bytes.
+
+
+### A1E upper slot5 own-count decrement
+
+**PROBABLE**, static tick consumer: extract $4D23-$4EA9 (391 bytes), retaining
+ResidualROM0F_4D23. Stream CF50/CF51; B1 edits CF89 bits1/5; C0 reads two-byte
+records via CF96/CF97 at2*((parameter&31)+1). Unlike slot4, FE stores its
+decrement in its own CF5C. FF calls51C7/5202/527A, still unresolved. Sub90
+dispatch has no early sub80 return; audio bodies remain statically represented.
+
+**SYNTHETIC**: 256 dispatch stops,19 B0 streams,all256 B1/C0 parameters,four FE
+counts0/1/2/FF and one tick->B0 add1328 assertions,total13129. FE updates CF5C
+only above1 and retains CF0C; count1 uses current pointer without storingzero,
+otherwise saved pointer. No FF helpers, other bodies, natural playback,
+arbitrary table/stream bounds or audio correctness. Full/private/negative gates
+preserve909 published ed80d01 symbols and whole hash,24checker tests.
+286 sections:120 analyzed/19847 bytes,166 unknown/1028729 bytes.
