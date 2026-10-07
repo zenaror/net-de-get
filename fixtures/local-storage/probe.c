@@ -1574,6 +1574,67 @@ int main(int argc,char **argv){
  for(unsigned slot=0;slot<4;slot++)if(rd(c,0xCF00+slot*16)!=(4+slot*16)||rd(c,0xCF01+slot*16)!=0xD7||rd(c,0xCF04+slot*16)!=5)streamsIntegrated=false;
  require(streamsIntegrated,"A1E relative stream setup into tick and four handlers",0);
  }
+ { /* Resident pointer loader and full request wrappers, synthetic records. */
+ const unsigned pointerFields[]={0xCF92,0xCF93,0xCF90,0xCF91,0xCF94,0xCF95,0xCF96,0xCF97,0xCF98,0xCF99,0xCF9A,0xCF9B};
+ const unsigned sourceBanks[]={0,0x14,0x16};
+ for(unsigned index=0;index<3;index++){
+  unsigned bank=sourceBanks[index];wr(c,0x37FF,bank);wr(c,0x3800,0);
+  unsigned bytes[12];for(unsigned i=0;i<12;i++)bytes[i]=rd(c,0x6000+i);
+  wr(c,0xFFAD,4);wr(c,0xFFAE,0);wr(c,0x37FF,4);wr(c,0x3800,0);unsigned old=rd(c,0x6010);
+  cpu->de=bank;cpu->hl=0x6000;cpu->bc=0xBEEF;call(c,0x21D7);bool exact=true;
+  for(unsigned i=0;i<12;i++)if(rd(c,pointerFields[i])!=bytes[i])exact=false;
+  require(exact&&cpu->hl==0x600C&&cpu->de==bank&&cpu->bc==0xBEEF&&
+          rd(c,0xC663)==bank&&rd(c,0xC664)==0&&rd(c,0xC666)==bank&&rd(c,0xC667)==0&&
+          rd(c,0xC115)==4&&rd(c,0xC116)==0&&rd(c,0x6010)==old,
+          "resident A1E pointers read mapped B and restore previous B",bank);
+ }
+ for(unsigned map=0;map<2;map++)for(unsigned index=0;index<2;index++)for(unsigned count=1;count<=4;count++){
+  unsigned select=index?126:0,aBank=map?0x16:4,bBank=map?0x14:8;
+  wr(c,0xFFAB,aBank);wr(c,0xFFAC,0);wr(c,0xFFAD,bBank);wr(c,0xFFAE,0);
+  wr(c,0x27FF,aBank);wr(c,0x2800,0);wr(c,0x37FF,bBank);wr(c,0x3800,0);
+  unsigned aByte=rd(c,0x4010),bByte=rd(c,0x6010);
+  for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,i<64?0x5A:0);
+  wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xCF90,0);wr(c,0xCF91,0xD2);
+  wr(c,0xD200+select*2,0);wr(c,0xD201+select*2,0xD6);wr(c,0xD600,count);wr(c,0xD601,0);
+  for(unsigned slot=0;slot<4;slot++){unsigned delta=0x100+slot*16;wr(c,0xD602+slot*2,delta>>8);wr(c,0xD603+slot*2,delta&255);wr(c,0xD600+delta,7+slot);}
+  unsigned af=((0x80|select)<<8)|0xB0;cpu->af=af;cpu->bc=0xBEEF;cpu->de=0xCAFE;cpu->hl=0xD123;call(c,0x22A7);
+  bool exact=true;for(unsigned i=0;i<64;i++){unsigned slot=i/16,field=i%16,expected=0;if(slot<count){if(field==0)expected=1+slot*16;else if(field==1)expected=0xD7;else if(field==4)expected=8+slot;}if(rd(c,0xCF00+i)!=expected||rd(c,0xCFA0+i)!=0x5A)exact=false;}
+  require(exact&&cpu->af==af&&cpu->bc==0xBEEF&&cpu->de==0xCAFE&&cpu->hl==0xD123&&
+          rd(c,0xC113)==aBank&&rd(c,0xC114)==0&&rd(c,0xC115)==bBank&&rd(c,0xC116)==0&&
+          rd(c,0x4010)==aByte&&rd(c,0x6010)==bByte&&rd(c,0xCF80)==0&&rd(c,0xC665)==(0x80|select)&&rd(c,0xC66B)==(0x80|select),
+          "resident lower request complete stream setup and mapper/register restore",map*8+index*4+count);
+ }
+ for(unsigned map=0;map<2;map++)for(unsigned channel=1;channel<=4;channel++){
+  unsigned aBank=map?0x16:4,bBank=map?0x14:8;
+  wr(c,0xFFAB,aBank);wr(c,0xFFAC,0);wr(c,0xFFAD,bBank);wr(c,0xFFAE,0);
+  wr(c,0x27FF,aBank);wr(c,0x2800,0);wr(c,0x37FF,bBank);wr(c,0x3800,0);
+  unsigned aByte=rd(c,0x4010),bByte=rd(c,0x6010);
+  for(unsigned i=0;i<128;i++)wr(c,0xCF00+i,0x5A);
+  wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xCF92,0);wr(c,0xCF93,0xD3);wr(c,0xCF89,0);
+  wr(c,0xD300,0x10);wr(c,0xD301,0xD6);wr(c,0xD610,channel);wr(c,0xD611,0);wr(c,0xD615,0);wr(c,0xD616,0xD7);wr(c,0xD700,7);
+  cpu->af=0x80B0;cpu->bc=0xBEEF;cpu->de=0xCAFE;cpu->hl=0xD123;call(c,0x230C);
+  bool exact=true;unsigned offset=0x30+channel*16;for(unsigned i=0;i<128;i++){unsigned expected=0x5A;if(i>=offset&&i<offset+16)expected=i==offset?1:i==offset+1?0xD7:i==offset+4?8:0;if(rd(c,0xCF00+i)!=expected)exact=false;}
+  require(exact&&cpu->af==0x80B0&&cpu->bc==0xBEEF&&cpu->de==0xCAFE&&cpu->hl==0xD123&&
+          rd(c,0xC113)==aBank&&rd(c,0xC114)==0&&rd(c,0xC115)==bBank&&rd(c,0xC116)==0&&
+          rd(c,0x4010)==aByte&&rd(c,0x6010)==bByte&&rd(c,0xCF82)==0&&rd(c,0xCF89)==(0x11<<(channel-1)),
+          "resident upper request complete setup mapper/register restore",map*4+channel);
+ }
+ /* Combined resident request followed by resident tick enters both handlers. */
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xC672,0);
+ wr(c,0xCF90,0);wr(c,0xCF91,0xD2);wr(c,0xCF92,0);wr(c,0xCF93,0xD3);
+ wr(c,0xD200,0);wr(c,0xD201,0xD6);wr(c,0xD600,1);wr(c,0xD602,1);wr(c,0xD603,0);
+ wr(c,0xD300,0x10);wr(c,0xD301,0xD6);wr(c,0xD610,1);wr(c,0xD611,0);wr(c,0xD615,0x10);wr(c,0xD616,0xD7);
+ for(unsigned slot=0;slot<2;slot++){unsigned address=0xD700+slot*16;wr(c,address,1);wr(c,address+1,0xB0);wr(c,address+2,7+slot);wr(c,address+3,5);}
+ cpu->af=0x37B0;cpu->bc=0xBEEF;cpu->de=0xCAFE;cpu->hl=0xD123;call(c,0x235F);
+ require(rd(c,0xCF04)==1&&rd(c,0xCF44)==1&&rd(c,0xC665)==0&&rd(c,0xC666)==0&&rd(c,0xC667)==0&&rd(c,0xC66B)==0&&
+         cpu->af==0x37B0&&cpu->bc==0xBEEF&&cpu->de==0xCAFE&&cpu->hl==0xD123,"resident combined request setup and first tick",0);
+ call(c,0x2242);require(rd(c,0xCF0D)==7&&rd(c,0xCF4D)==8&&rd(c,0xCF04)==5&&rd(c,0xCF44)==5&&rd(c,0xCF00)==4&&rd(c,0xCF40)==0x14,
+                       "resident tick after combined setup reaches both B0 handlers",0);
+ wr(c,0xC665,255);wr(c,0xC666,255);wr(c,0xC667,255);wr(c,0xC66B,255);call(c,0x23CC);
+ require(rd(c,0xCF86)==2&&rd(c,0xCF87)==1&&rd(c,0xC665)==0&&rd(c,0xC666)==0&&rd(c,0xC667)==0&&rd(c,0xC66B)==0,
+         "resident global countdown request fields",0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

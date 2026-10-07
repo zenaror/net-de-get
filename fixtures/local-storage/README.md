@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **26,549 assertions**.
+and stack assertions, the maintained fixture reports **26,609 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -320,3 +320,13 @@ FF backup resume with a synthetic wave source and setup->two ticks->four lower
 handlers. No natural record launch, malformed counts/channels, universal bounds
 or audio correctness. The12 initialization bytes overlap original code; their
 copy is checked without interpreting them as naturally valid pointer data.
+
+
+Resident A1E setup adds60 assertions: three B-bank pointer-load cases,16 lower
+and eight upper full request wrappers across two previous mapper configurations,
+a combined request followed by the resident tick and one global-countdown
+request. Actual mapped ROM bytes and restoration shadows are checked; wrappers
+preserve AF/BC/DE/HL. The combined synthetic record reaches lower/upper B0
+handlers via resident calls. Original DI/EI remains: prior IME preservation and
+natural IRQ timing are not asserted. No natural launch, arbitrary record safety
+or audio correctness; WRAM records/streams remain synthetic.

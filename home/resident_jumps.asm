@@ -94,17 +94,17 @@ ResidentJump0240::
 ResidentJump0243::
 	jp $2198
 ResidentJump0246::
-	jp $21D7
+	jp LoadA1EPointersFromBankB
 ResidentJump0249::
 	jp CallBankA1EAndRestoreMapping
 ResidentJump024C::
-	jp $22A7
+	jp RequestA1ELowerStreams
 ResidentJump024F::
-	jp $230C
+	jp RequestA1EUpperStreams
 ResidentJump0252::
-	jp $235F
+	jp RequestA1EBothStreamsAndTick
 ResidentJump0255::
-	jp $23CC
+	jp BeginA1EGlobalCountdown
 ResidentJump0258::
 	jp $1186
 ResidentJump025B::

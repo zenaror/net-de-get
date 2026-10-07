@@ -1049,3 +1049,24 @@ WRAM fixtures. No natural launch, malformed record safety, universal bounds,
 IRQ timing or audio correctness. Full/private/negative gates preserve991
 published33f43ea symbols and whole hash,24checker tests.290 sections:
 124 analyzed/21463 bytes,164 unknown/1027113 bytes.
+
+
+### Resident A1E pointer source and full request wrappers
+
+**PROBABLE**, five resident JP thunks: extract21D7-2241 and22A7-23E3 (424 bytes).
+Retain ResidualROM00_2012 ending21D6 and ResidualROM00_22A7 alias. Loader21D7
+selects B by E/D, copies12 bytes via HL into CF92/93,CF90/91,CF94-9B, then
+restores B via FFAD/AE and shadows. Unlike the A1E literal5000 initializer, this
+provides caller-selected mapped source bytes. Wrappers22A7/230C/235F select B
+and A1E, call lower/upper setup or both plus tick, then restore HRAM mapper
+pairs/shadows and AF/BC/DE/HL. Original DI/EI does not promise prior IME.
+23CC sets CF86=2,CF87=1 and clears the four request-tracking fields.
+
+**SYNTHETIC**: three mapped B sources,16 lower/eight upper full wrappers with
+two prior mapper pairs,combined request->resident tick and global request add60
+assertions,total26609. Checks actual mapped bytes,restored shadows/registers
+and exact installed fields. Combined flow reaches lower/upper B0 handlers from
+WRAM records. No natural launch, IRQ timing, universal pointer/record safety or
+audio correctness. Full/private/negative gates preserve1019 publishedd02dcb7
+symbols and whole hash,24checker tests.291 sections:126 analyzed/21887 bytes,
+163 unknown/1026689 bytes.
