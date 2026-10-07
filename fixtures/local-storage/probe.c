@@ -3958,6 +3958,55 @@ int main(int argc,char **argv){
  for(unsigned col=0;col<20;col++)for(unsigned tile=0;tile<256;tile++)for(unsigned plane=0;plane<2;plane++)
   probeA12TileCycle(c,chosen[col],(tile-col)&255,plane,tile==0||tile==0xA4||tile==0xA5||tile==0xA6||tile==0xA7||tile==0xA8||tile==255,65536+col*512+tile*2+plane);
  }
+ { /* Raw indices: stop at the real indexed-record thunk, do not consume invalid records. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned entry=0;entry<2;entry++)for(unsigned index=0;index<256;index++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A5,index);wr(c,0xC5C4,0xA5);wr(c,0xC1C2,0x5A);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=index<<8|flags<<4;cpu->bc=0xBEEF;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=entry?0x4CD8:0x4C88;
+  unsigned steps=0;while(cpu->pc!=0x1E3&&steps++<100)c->step(c);
+  require(cpu->pc==0x1E3&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(entry?0x4CE4:0x4C91),"A12 text raw index actual thunk and original return prefix",entry*4096+index*16+flags);
+  require(cpu->af==(index<<8|flags<<4)&&cpu->de==0x5314&&cpu->bc==0xBEEF&&cpu->hl==0x5678&&rd(c,0xC5C4)==index&&rd(c,0xC5A5)==index&&rd(c,0xC1C2)==0x5A,"A12 text raw index flags fields preserved no validity clamp",entry*4096+index*16+flags);
+ }
+ /* Both LCD control wrappers, every incoming LCDC and flags, actual callee boundary. */
+ for(unsigned hide=0;hide<2;hide++)for(unsigned lcd=0;lcd<256;lcd++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xFF40,0);wr(c,0xFF40,lcd);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=hide?0x4CB8:0x4CA6;
+  unsigned target=hide?0x294:0x24F,steps=0;while(cpu->pc!=target&&steps++<10000)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(hide?0x4CD7:0x4CB7),"A12 visibility actual copy or audio thunk prefix",hide*4096+lcd*16+flags);
+  require(rd(c,0xFF40)==(hide?lcd&0x9F:lcd|0x60)&&cpu->af==(hide?0x8700:0x9A00)&&cpu->bc==(hide?0:0xBEEF)&&cpu->de==(hide?0xD000:0x1234)&&cpu->hl==(hide?0x1408:0x5678),"A12 visibility all LCDC flags exact mask and callee arguments",hide*4096+lcd*16+flags);
+ }
+ /* Complete preparation: four real records, both planes/LCD states and four attrs. */
+ const unsigned widths[]={18,14,11,5},heights[]={2,3,2,3},attrs[]={0,1,0x23,255};
+ for(unsigned record=0;record<4;record++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)for(unsigned attr=0;attr<4;attr++){
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xFF70,2);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1A3,attrs[attr]);wr(c,0xC1B8,0x5A);wr(c,0xC1AB,0x3C);wr(c,0xC1C2,0xA5);wr(c,0xC5C3,0x37);wr(c,0xC5A6,0x39);wr(c,0xC1C1,0x41);
+  cpu->af=record<<8|attr<<4;cpu->bc=0xBEFF;cpu->de=0x1234;cpu->hl=0x5678;if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,0x4C88,2000000);
+  unsigned rows=2*heights[record]+2,width=widths[record];
+  bool exact=cpu->a==0&&cpu->f.packed==(plane?0x20:0xA0)&&cpu->bc==0&&cpu->de==0x9874&&cpu->hl==0x9800+(rows-1)*32+width+1&&rd(c,0xC5C4)==record&&rd(c,0xC5A5)==record&&rd(c,0xC1C2)==0&&rd(c,0xC1A4)==1&&rd(c,0xC1A7)==2&&rd(c,0xC1A8)==width&&rd(c,0xC1A9)==heights[record]&&rd(c,0xC1AA)==1&&rd(c,0xC1B8)==0x5A&&rd(c,0xC1AB)==0x3C&&rd(c,0xC5C3)==0x37&&rd(c,0xC5A6)==0x39&&rd(c,0xC1C1)==0x41&&(rd(c,0xFF4F)&1)==plane;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){
+   unsigned row=i>=0x1800?(i-0x1800)/32:256,col=i%32,expected=0xA5;
+   if(row<rows&&col<width+2)expected=bank?attrs[attr]:0x6C+(row==0?0:row==rows-1?6:3)+(col==0?0:col==width+1?2:1);
+   exact&=rd(c,0x8000+i)==expected;
+  }}require(exact,"A12 complete indexed preparation exact both VRAM planes records registers fields guards",record*16+plane*8+lcd*4+attr);
+ }
+ /* Complete copies: fixed hide rectangle and four record-sized current regions. */
+ for(unsigned family=0;family<5;family++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++){
+  unsigned width=family?widths[family-1]+2:20,height=family?2*heights[family-1]+2:8,area=width*height,base=family?0x9800:0x9C00;
+  wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);wr(c,0xFFAB,0x12);wr(c,0xFFAC,0);wr(c,0xC113,0x12);wr(c,0xC114,0);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF70,7);for(unsigned i=0;i<2*area;i++)wr(c,0xD000+i,(i*13+family)&255);wr(c,0xCFFF,0x3C);wr(c,0xD000+2*area,0x5A);wr(c,0xFF70,2);wr(c,0xFF4F,plane);
+  wr(c,0xC5A5,family?family-1:3);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1B8,0x37);wr(c,0xC1C2,0x39);cpu->bc=0xBEFF;cpu->af=0x5AF0;
+  wr(c,0xFF40,lcd?0xF1:0x60);callWithLimit(c,family?0x4CD8:0x4CB8,2000000);
+  bool exact=(rd(c,0xFF70)&7)==2&&(rd(c,0xFF4F)&1)==0&&rd(c,0xFFAB)==0x12&&rd(c,0xFFAC)==0&&rd(c,0xC113)==0x12&&rd(c,0xC114)==0&&rd(c,0xC1B8)==0x37&&rd(c,0xC1C2)==0x39&&rd(c,0xC63A)==(family?7:0x87)&&rd(c,0xFF40)==(family?(lcd?0xF1:0x60):(lcd?0x91:0));
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){
+   unsigned address=0x8000+i,row=address>=base?(address-base)/32:256,col=i%32,expected=0xA5;
+   if(row<height&&col<width)expected=((bank*area+row*width+col)*13+family)&255;
+   exact&=rd(c,address)==expected;
+  }}wr(c,0xFF70,7);for(unsigned i=0;i<2*area;i++)exact&=rd(c,0xD000+i)==((i*13+family)&255);exact&=rd(c,0xD000+2*area)==0x5A;wr(c,0xFF70,2);
+  require(exact,"A12 complete real resident banked copy exact VRAM source guards mapper and WRAM restoration",family*4+plane*2+lcd);
+ }
+ wr(c,0xFF40,0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

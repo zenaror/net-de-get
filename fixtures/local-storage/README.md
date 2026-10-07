@@ -1285,3 +1285,35 @@ flags are derived, not a full seed/flags Cartesian product.
 incorrectly compared the entire FF4F readback to the selected bit; correcting
 its mask resolved that fixture failure without changing original bytes.
 Natural caller timing, visual meaning, IRQs and hardware remain unproven.
+
+## A12 indexed text region and window wrappers
+
+PROBABLE helpers4C88-4CFC (117 bytes) and four indexed8-byte records5314-5333
+(32 bytes). PrepareA12TextRegion saves A atC5C4, calls both actual indexed
+thunks01E3/01E6 with the same table, stores the index atC5A5 and clearsC1C2.
+First five fields consumed: x,y,width,height,frame kind; the trailing three
+bytes stay literal, without an asserted purpose. Raw indices are not clamped.
+
+ShowA12TextWindow waits for STAT bit1 clear, sets LCDC bits5/6 and reaches
+original audio thunk024F with A9A. HideA12TextWindowAndCopy clears those bits
+and calls0294 with A87,BC0,HL1408,DED000. CopyA12CurrentTextRegion first
+configures the selected C5A5 record, then calls0294 with A7,BC0,
+HL=(width+2,2*height+2),DED000. The actual resident wrapper16D6 temporarily
+maps A16 and invokes the already published banked background-copy helper:
+source WRAM7, two planes, high A bit selects9C00 versus9800, mapper restored.
+These operations copy a prepared source; no implicit zeroing is inferred.
+
+16384 bounded prefixes: both indexed helpers with all256 indices and16 flags
+stop at01E3 before consuming arbitrary records; both LCD control helpers
+with all256 LCDC values and16 flags stop at their real audio/copy thunk.
+Checks include stack return, arguments, masks and relevant untouched fields.
+Show's audio body is not executed by this new corpus.
+
+84 complete calls:64 frame preparations (four records, both VBKs, LCDoff/on,
+four attrs) and20 original resident copies (fixed20x8 hide and four dynamic
+record sizes, both VBKs and LCDoff/on). Independent models compare both
+complete8192-byte VRAM planes, fields/guards; preparation also checks terminal
+registers/flags. Copy cases check source bytes/guard, mapper and WRAM restoration.
+Synthetic origin9800 and prepared WRAM7 are fixture preconditions; no natural
+source production, timing, arbitrary dimensions/indices, Japanese interpretation
+or hardware claim.32936 new asserts,total17445613,plus24 verifier tests.
