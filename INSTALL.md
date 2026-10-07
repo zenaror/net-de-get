@@ -8,4 +8,6 @@ The original `Net de Get - Minigame @ 100 (Japan).gbc` is a commercial dump supp
 
 At project setup, Python 3, RGBDS `rgbasm v1.0.3`, Podman `4.9.3`, and Ghidra 12.1.3 with GhidraBoy were already installed in the local environment. No tools were installed for this project.
 
-The current scope uses the mGBA checkout and MBC6 Test ROM project for implementation and validation. A full RGBDS reconstruction/build pipeline is not part of this initial milestone.
+The incremental disassembly uses RGBDS and Python 3. Run `make` from the repository root to assemble the published excerpts with a shared `includes.asm`, as in the local Mobile Trainer workflow. Output lives in ignored `build/`. This sparse image is not a complete ROM reconstruction.
+
+The optional `make compare REFERENCE_ROM="/external/path/game.gbc"` compares only emitted sections to the known external reference; it never fills missing sections from that reference. The MBC6 research still uses the separate mGBA and MBC6 Test ROM projects.

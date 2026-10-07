@@ -16,9 +16,9 @@ if hashlib.sha256(rom).hexdigest() != expected:
     raise SystemExit('Unexpected reference ROM hash')
 repo = Path(__file__).resolve().parents[1]
 root = Path(tempfile.mkdtemp(prefix='netdeget-excerpt-equivalence-'))
-for n, src in enumerate(sorted((repo / 'src').rglob('*.asm'))):
+for n, src in enumerate(sorted(src for domain in ('home', 'engine', 'data') for src in (repo / domain).rglob('*.asm'))):
     obj, out, mp = (root / f'{n}{ext}' for ext in ('.o', '.gb', '.map'))
-    subprocess.run(['rgbasm', '-o', str(obj), str(src)], check=True)
+    subprocess.run(['rgbasm', '-I', str(repo) + '/', '-P', str(repo / 'includes.asm'), '-o', str(obj), str(src)], check=True)
     subprocess.run(['rgblink', '-p', '0', '-o', str(out), '-m', str(mp), str(obj)], check=True)
     image = out.read_bytes()
     bank = count = 0

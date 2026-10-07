@@ -1,0 +1,3 @@
+INCLUDE "constants/mbc6.asm"
+INCLUDE "constants/minigames.asm"
+INCLUDE "ram/menu.asm"
