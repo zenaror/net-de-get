@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 432 seções**, todos comparados byte a byte com a referência externa. Os 234 trechos analisados somam 36064 bytes; os demais 1012512 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 436 seções**, todos comparados byte a byte com a referência externa. Os 236 trechos analisados somam 36137 bytes; os demais 1012439 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 432 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 436 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -484,3 +484,12 @@ Os 2.113 novos asserts elevam a fixture a 1.249.284; o privado preserva os 1.262
 O setter guarda HL em `$C1C5/$C1C6`. O prefixo original desabilita interrupções, seleciona VBK 0/WRAM 0, define `$C21C=$0F/$C21D=0` e chama `$0258` com HL `$5288`; o probe para antes da continuação `$40B2`, sem afirmar inicialização completa. O primeiro ponteiro chega a `$529E`; variantes 0/1 apontam para objetos com contagem 8/10, cada peça formada pelos quatro bytes consumidos pelo shadow. Os objetos são extraídos até `1 + 4*contagem`, sem estender essa fronteira às tabelas vizinhas.
 
 A confiança permanece `PROBABLE`. Quatro chamadas do setter conferem guards e registradores; um prefixo original verifica os campos; três checks conferem ponteiros/contagens mapeados. A expansão dos dois objetos originais executa todas as 65.536 combinações X/Y por variante, verificando todos os 160 bytes do shadow, zeros finais, guarda, capacidade e restauração de A. São 262.156 novos asserts, somando 1.511.440; o privado preserva os 1.277 símbolos publicados em `83e67d1`. Montagem integral e negativos reais passam. Os dados dos objetos são ROM real, mas os índices 0/1 e as posições são entradas forçadas; não provam uso natural, significado visual, fronteiras integrais das tabelas ou OAM DMA.
+
+
+### Seleção de variante e produtor de posição A `$0F`
+
+`engine/startup/bank_a0f_position.asm` extrai A `$0F:$4306-$4319/$438A-$43BE` (73 bytes), em posições físicas `$07:$6306-$6319/$638A-$63BE`. O alias residual `$07:$60B2` permanece; os gaps `$60B2-$6305/$631A-$6389/$63BF-$7287` continuam não interpretados. A montagem primeiro rejeitou JR com alvo ajustado por `$2000`; os branches relativos usam os labels físicos, enquanto ponteiros absolutos de janela mantêm seu ajuste explícito. Os bytes finais são originais.
+
+A interpretação é `PROBABLE`. O seletor define `$C76B=0` para `$C767<4`, ou 1 nos demais casos. O produtor lê `$C766`, soma 1 quando o valor é pelo menos 5, compara o resultado com `$0B` e soma mais 1 quando necessário; ambas as somas são de oito bits. Executa três RLCA e soma `$10`, guardando X em `$C768`. Para Y, lê `$C767`, executa quatro RLCA e soma `$50`, guardando em `$C769`. Enfileira DE=X/Y, C=0 e B=`$C76B` pelo thunk `$025E`; isso liga estaticamente o primeiro índice da tabela às duas variantes originais. As rotações mantêm os bits que voltam pelo wrap, sem substituí-las por multiplicações ampliadas.
+
+A fixture encadeia seletor → produtor → objetos originais → shadow para todos os 65.536 pares `$C766/$C767`, conferindo variante, posição, quatro bytes de fila, todos os 160 bytes finais, guarda, capacidade e campos do mapper restaurado. Quatro chamadas adicionais verificam contagens de fila 0/15/16/255: a posição é atualizada mesmo quando a fila rejeita o registro; os bytes de fila e guards permanecem conforme a capacidade original. São 393.225 novos asserts, somando 1.904.665. O privado preserva os 1.286 símbolos publicados em `33dbe88`; montagem integral e negativos reais passam. Esse é um encadeamento forçado de componentes originais, sem execução natural do menu, prova de domínio geométrico admissível ou transferência OAM.

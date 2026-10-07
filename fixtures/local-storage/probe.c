@@ -2342,6 +2342,45 @@ int main(int argc,char **argv){
   require(exact,"A0F original objects both variants full XY byte domains",variant*65536+x*256+y);
  }
  }
+ { /* A0F variant->position->original object->shadow, forced full byte domain. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ const unsigned objectPointers[]={0x52A2,0x52C3},pieceCounts[]={8,10};unsigned records[2][40];
+ for(unsigned variant=0;variant<2;variant++)for(unsigned i=0;i<pieceCounts[variant]*4;i++)records[variant][i]=rd(c,objectPointers[variant]+1+i);
+ wr(c,0xC21C,0x0F);wr(c,0xC21D,0);cpu->hl=0x5288;call(c,0x258);
+ wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);
+ for(unsigned col=0;col<256;col++)for(unsigned row=0;row<256;row++){
+  unsigned adjusted=col;if(adjusted>=5)adjusted=(adjusted+1)&255;if(adjusted>=11)adjusted=(adjusted+1)&255;
+  unsigned x=((((adjusted<<3)|(adjusted>>5))&255)+0x10)&255;
+  unsigned y=((((row<<4)|(row>>4))&255)+0x50)&255,variant=row<4?0:1;
+  wr(c,0xC766,col);wr(c,0xC767,row);wr(c,0xC76B,0xA5);wr(c,0xC1C4,0);
+  call(c,0x4306);require(rd(c,0xC76B)==variant&&rd(c,0xC766)==col&&rd(c,0xC767)==row,
+   "A0F selector all row bytes threshold4",col*256+row);
+  call(c,0x438A);
+  require(rd(c,0xC768)==x&&rd(c,0xC769)==y&&rd(c,0xC1C4)==1&&
+   rd(c,0xC1CA)==x&&rd(c,0xC1CB)==y&&rd(c,0xC1CC)==0&&rd(c,0xC1CD)==variant,
+   "A0F position literal comparisons rotation wrap and queued tableindex0",col*256+row);
+  wr(c,0xC0A0,0xA5);call(c,0x261);
+  bool exact=rd(c,0xC1C4)==0&&rd(c,0xC1C7)==40-pieceCounts[variant]&&rd(c,0xC0A0)==0xA5&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0;
+  for(unsigned i=0;i<160;i++){
+   unsigned value=0;
+   if(i/4<pieceCounts[variant]){value=records[variant][i];if(i%4==0)value=(value+y)&255;if(i%4==1)value=(value+x)&255;}
+   exact&=rd(c,0xC000+i)==value;
+  }
+  require(exact,"A0F full selector producer ROM-object shadow chain",col*256+row);
+ }
+ const unsigned counts[]={0,15,16,255};
+ for(unsigned n=0;n<4;n++){
+  for(unsigned i=0;i<66;i++)wr(c,0xC1C9+i,0xA5);
+  wr(c,0xC1C4,counts[n]);wr(c,0xC766,255);wr(c,0xC767,255);wr(c,0xC76B,1);call(c,0x438A);
+  bool exact=rd(c,0xC768)==0x10&&rd(c,0xC769)==0x4F&&rd(c,0xC1C4)==(counts[n]<16?counts[n]+1:counts[n]);
+  for(unsigned i=0;i<66;i++){
+   unsigned value=0xA5;
+   if(counts[n]<16&&i>=1+counts[n]*4&&i<5+counts[n]*4){const unsigned record[]={0x10,0x4F,0,1};value=record[i-1-counts[n]*4];}
+   exact&=rd(c,0xC1C9+i)==value;
+  }
+  require(exact,"A0F producer updates fields even when queue full and preserves guards",n);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

@@ -549,3 +549,18 @@ added. Data is original mapped ROM; indices and positions are forced. No
 natural sprite identity, full table extent, menu setup or OAM DMA is claimed.
 Physical bank07 upper8KiB maps at A0F4000; source pointer expressions retain
 physical label minus2000. Confidence remains PROBABLE.
+
+
+### A0F variant and position producer chain
+
+Every65536 C766/C767 pair executes4306 variant selection,438A position and
+queue production, then0261 expansion of original ROM objects. The model
+retains both sequential byte comparisons/increments,3/4 RLCA and wrapping
+10/50 additions. Variant0 is selected only for C767<4. The queue uses table
+index0 and selected variant, then the exact160-byte shadow, guard, capacity
+and restored mapper fields are checked. Counts0/15/16/255 verify that a full
+queue rejects the record while position fields still update.393225 assertions
+are added. This forced original-component chain does not establish natural
+menu geometry, OAM DMA or screen identity. Relative JR targets use physical
+labels; the linker rejected subtracting2000 from relative targets before the
+final byte-identical build. Semantics remain PROBABLE.
