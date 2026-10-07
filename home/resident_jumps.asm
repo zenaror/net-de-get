@@ -32,9 +32,9 @@ ResidentJump01E3::
 ResidentJump01E6::
 	jp $2799
 ResidentJump01E9::
-	jp $27AA
+	jp QueueTileTextPointer
 ResidentJump01EC::
-	jp $27C1
+	jp DispatchQueuedTileTextState
 ResidentJump01EF::
 	jp $28BE
 ResidentJump01F2::

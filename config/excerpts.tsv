@@ -63,7 +63,8 @@ bank	start	end	symbol
 00	254E	25CA	DispatchLocalMinigame
 00	25CB	2612	ResidualROM00_25CB
 00	2613	261B	CopyBytesHLToDE
-00	261C	2DC2	ResidualROM00_261C
+00	261C	27A9	ResidualROM00_261C
+00	28BE	2DC2	ResidualROM00_28BE
 00	2DC3	2DCF	LocalCursorHorizontalJitter
 00	2DD0	38AF	ResidualROM00_2DD0
 00	38B0	391B	CheckLocalMinigameChecksum
@@ -402,3 +403,11 @@ bank	start	end	symbol
 00	2046	2056	DivideByteByByte
 00	2057	2069	DivideWordByByte
 00	206A	21D6	ResidualROM00_206A
+00	27AA	27C0	QueueTileTextPointer
+00	27C1	27CA	DispatchQueuedTileTextState
+00	27CB	27D4	QueuedTileTextStatePointers
+00	27D5	27D5	QueuedTileTextState0
+00	27D6	287A	QueuedTileTextState1
+00	287B	28A6	QueuedTileTextState2
+00	28A7	28AB	QueuedTileTextState3
+00	28AC	28BD	QueuedTileTextState4

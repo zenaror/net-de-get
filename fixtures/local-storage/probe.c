@@ -1984,6 +1984,72 @@ int main(int argc,char **argv){
           "resident word division other divisor boundaries",divisor*65536+value);
  }
  }
+ { /* Queued tile-text: isolated state paths, never unknown rendering callees. */
+ const unsigned pointers[]={0,0xC655,0xD800,0xFFFF};
+ for(unsigned n=0;n<4;n++){
+  wr(c,0xC1AA,0xA5);wr(c,0xC1AD,0x5A);wr(c,0xC1B3,0xA5);wr(c,0xC1B4,0x5A);wr(c,0xC1B8,4);
+  cpu->hl=pointers[n];cpu->bc=0xBEEF;call(c,0x1E9);
+  require(rd(c,0xC1AB)==(pointers[n]&255)&&rd(c,0xC1AC)==(pointers[n]>>8)&&
+   rd(c,0xC1AA)==0xA5&&rd(c,0xC1AD)==0x5A&&rd(c,0xC1B3)==0&&rd(c,0xC1B4)==0&&
+   rd(c,0xC1B8)==1&&cpu->hl==0xC1B8&&cpu->de==1&&cpu->bc==0xBEEF,
+   "queued pointer setter preserves guards and initializes state",n);
+ }
+ for(unsigned index=0;index<256;index++){
+  unsigned address=0x27CB+((index*2)&255),target=rd(c,address)|(rd(c,address+1)<<8);
+  wr(c,0xC1B8,index);wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x1EC;
+  unsigned steps=0;while(cpu->pc!=0x600&&steps++<100)c->step(c);
+  require(cpu->pc==0x600&&cpu->hl==target&&cpu->de==target&&cpu->sp==0xCFFE,
+   "queued dispatch doubled8bit index stops before unknown target",index);
+ }
+ for(unsigned state=0;state<=3;state++){
+  if(state==1)continue;
+  wr(c,0xC1B8,state);wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC655,0);wr(c,0xC1B9,0);
+  wr(c,0xC1B4,0xA5);call(c,0x1EC);
+  require(rd(c,0xC1B8)==0&&rd(c,0xC1B4)==0xA5&&rd(c,0xC1AB)==0x55&&rd(c,0xC1AC)==0xC6,
+   "queued known no-op clear and terminated paths complete through dispatcher",state);
+ }
+ const unsigned delays[]={0,1,2,255};
+ for(unsigned n=0;n<4;n++)for(unsigned pressed=0;pressed<2;pressed++)for(unsigned count=0;count<256;count++){
+  unsigned delay=delays[n],next=(count+1)&255;
+  bool render=delay==0||pressed||next==(delay==1?4:10);unsigned target=render?0x2805:0x281E;
+  wr(c,0xC1BA,delay);wr(c,0xC1BB,count);wr(c,0xFF96,pressed);wr(c,0xFFFF,0);wr(c,0xFF0F,0);
+  struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;cpu->pc=0x27D6;unsigned steps=0;while(cpu->pc!=target&&steps++<100)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xCFFE&&rd(c,0xC1BB)==(render?0:next),
+   "queued delay prefix stops before renderer or joypad poll",n*512+pressed*256+count);
+ }
+ for(unsigned mask=0;mask<256;mask++){
+  wr(c,0xFF97,mask);wr(c,0xC1B8,4);wr(c,0xC1B4,0xA5);call(c,0x28AF);
+  require(rd(c,0xC1B8)==((mask&1)?1:4)&&rd(c,0xC1B4)==((mask&1)?0:0xA5)&&rd(c,0xFF97)==mask,
+   "queued state4 independent tail uses input bit0",mask);
+ }
+ for(unsigned mode=0;mode<3;mode++){
+  wr(c,0xC1AB,0x55);wr(c,0xC1AC,0xC6);wr(c,0xC655,mode==0?1:0);wr(c,0xC1B9,mode==0?0:mode);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x287B;
+  unsigned steps=0;while(cpu->pc!=0x2892&&steps++<100)c->step(c);
+  require(cpu->pc==0x2892&&cpu->hl==0xC655&&cpu->sp==0xCFFE,
+   "queued state2 nonterminating prefix stops before renderer",mode);
+ }
+ for(unsigned mask=0;mask<256;mask++){
+  wr(c,0xFF97,mask);wr(c,0xC1B8,2);wr(c,0xC1B4,0xA5);
+  if(!(mask&1)){
+   call(c,0x2895);require(rd(c,0xC1B8)==2&&rd(c,0xC1B4)==0xA5,
+    "queued state2 independent no-input tail returns",mask);
+  }else{
+   wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+   cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x2895;
+   unsigned steps=0;while(cpu->pc!=0x289A&&steps++<100)c->step(c);
+   require(cpu->pc==0x289A&&cpu->sp==0xCFFE&&rd(c,0xC1B8)==2,
+    "queued state2 input tail stops before unknown helper",mask);
+  }
+ }
+ wr(c,0xC1B8,2);wr(c,0xC1B4,0xA5);call(c,0x289D);
+ require(rd(c,0xC1B8)==1&&rd(c,0xC1B4)==0,"queued state2 final independent tail resets state",0);
+ wr(c,0xC1BA,0);wr(c,0xC1B3,3);call(c,0x2808);
+ require(rd(c,0xC1B3)==0,"queued state1 independent four-count tail returns",0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

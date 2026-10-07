@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 403 seções**, todos comparados byte a byte com a referência externa. Os 209 trechos analisados somam 34658 bytes; os demais 1013918 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 412 seções**, todos comparados byte a byte com a referência externa. Os 217 trechos analisados somam 34934 bytes; os demais 1013642 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 403 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 412 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -418,3 +418,12 @@ Os 1.836 novos asserts conferem 256 despachos parados antes do JP, 1.536 prefixo
 A confiança é `PROBABLE`. Os produtos de byte retornam A baixo ou HL completo e devolvem C após oito rotações; o produto de words retorna `(DE*BC)&$FFFF`, deixa DE/A zero e mantém BC. A divisão de byte retorna H=resto/L=quociente; divisor zero retorna H=dividendo/L=`$FF`. A divisão de word executa 16 rodadas com resto intermediário de oito bits e devolve H=resto/L=byte baixo do quociente. Esse algoritmo não equivale a uma divisão ampliada para todos os divisores: 256 ÷ 255 retorna H/L zero, por overflow do resto; divisor zero retorna H=byte baixo do dividendo/L=`$FF`. A formatação por divisor 100 mantém seu quociente truncado original.
 
 A fixture verifica todos os 65.536 pares de bytes nas três operações correspondentes, todos os 65.536 valores de DE com BC `$FFFF`, 324 pares representativos de words, todos os dividendos de word para divisores 0/100/255 e 126 casos de fronteira para divisores 1/2/10/127/128/129/254. O modelo de word reproduz as 16 rodadas e o overflow; não usa divisão de host como substituto. São 918.404 novos asserts, elevando o total a 971.353. O privado preservou os 1.200 símbolos publicados em `57113d1`; ROM inteira e negativos reais passam. Os domínios completos citados são sintéticos; não demonstram admissibilidade ou uso natural de todos esses operandos pelo jogo.
+
+
+### Fila de apresentação e estados residentes
+
+`home/queued_tile_text.asm` extrai `$27AA-$28BD` (276 bytes): setter, dispatcher, prefixo de cinco ponteiros e cinco handlers. Os thunks `$01E9/$01EC` usam os novos símbolos. O residual `$261C-$27A9` preserva seu alias; `$28BE-$2DC2` permanece não interpretado. O setter guarda HL em `$C1AB/$C1AC`, define estado 1 em `$C1B8` e zera `$C1B3/$C1B4`. O dispatcher usa `DispatchReturnTable`, dobra o índice em oito bits e não verifica limites; os cinco ponteiros são um prefixo medido.
+
+A confiança é `PROBABLE`. O estado 0 retorna; o estado 3 zera o estado. O estado 2 zera o estado quando o byte apontado e `$C1B9` são zero; os demais caminhos chamam `$2DD0`. O prefixo do estado 1 usa `$C1BA`, bit 0 de `$FF96` e contador `$C1BB`: zero ou bit pressionado limpa o contador e chega a `$2E15`; caso contrário incrementa com wrap e compara com 4 para valor 1, ou 10 para os demais valores não zero. As caudas dos estados 2/4 usam bit 0 de `$FF97`, com chamadas externas ainda pendentes. Esses nomes não comprovam apresentação natural ou significado completo dos controles.
+
+Os 3.221 novos asserts conferem quatro ponteiros pelo setter residente, 256 despachos parados antes do salto, três caminhos completos conhecidos, 2.048 prefixos de atraso, todas as 256 máscaras em cada cauda de entrada dos estados 2/4, três prefixos não terminados e duas caudas independentes. Param antes dos callees de renderização, polling e helper desconhecidos; não os substituem por stubs. A fixture soma 974.574 asserts. O privado preservou os 1.216 símbolos publicados em `9537816`; montagem integral, comparação byte a byte e negativos reais passam. Renderização, entrada natural, temporização e estados 1/4 completos permanecem pendentes.

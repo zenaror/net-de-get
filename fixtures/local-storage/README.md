@@ -449,3 +449,19 @@ an8-bit intermediate remainder and low quotient byte, retaining overflow.
 not replace the original algorithm with ordinary wide division. The unit adds
 918404 assertions; complete synthetic domains do not establish natural caller
 admissibility or arbitrary-divisor correctness beyond the tested contracts.
+
+
+### Queued tile-text resident state machine
+
+Four pointer inputs verify01E9 setter fields, guards and register effects.
+All256 state indices stop before DispatchReturnTable jumps to the selected
+pointer; doubled8-bit wrap is retained and unknown targets never execute.
+States0/3 and a terminated state2 complete through01EC.2048 delay-prefix cases
+cover delays0/1/2/255, input bit0 and every counter byte, stopping before2E15
+or joypad polling. All256 input masks cover independent state4 tails and
+state2 tails (bit0 clear returns; set stops before2D53). Three nonterminating
+state2 prefixes stop before2DD0. Two independent tails verify state reset and
+four-count wrap. The unit adds3221 assertions. Unknown renderers are not
+stubbed or called; no full state1/4 path, natural display or input timing is
+established. PROBABLE semantic names remain bounded by static callers and
+these SYNTHETIC cases.
