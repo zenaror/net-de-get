@@ -1,7 +1,7 @@
 ; ROM0 $3E00-$3ED7. PROBABLE static reconstruction and descriptive names.
 ; HL is supplied by the caller; this file does not establish its allocation.
 ; Natural held-Select rebuild evidence: docs/research/minigame-maintenance.md.
-; $38B0 remains an unresolved external call; do not infer every branch observed.
+; The checksum callee is extracted separately; not every branch is observed.
 SECTION "Local minigame list rebuild", ROM0[$3E00]
 RebuildLocalMinigameList::
 	ld b, $08
@@ -59,7 +59,7 @@ RebuildLocalMinigameList::
 	ld a, [MINIGAME_BLOCK_COUNT]
 	cp a, MINIGAME_MAX_BLOCKS_PLUS_ONE
 	jr nc, .nextBlock
-	call $38B0
+	call CheckLocalMinigameChecksum
 	jr nz, .nextBlock
 	ld a, [wLocalScanDestinationLow]
 	ld l, a

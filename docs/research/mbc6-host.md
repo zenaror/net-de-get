@@ -200,3 +200,28 @@ The published excerpts now include the local dispatcher at ROM0 `$254E-$25CA` an
 The same cycle passed in a private source copy. A baseline assembled from prior published `6312b21` had 30 address symbols; all 30 remain at the same coordinates in the candidate. The private candidate and working-tree sparse images are identical. Local artifacts: `/tmp/netdeget-private-cycle-m0z212gg`; final equivalence artifacts: `/tmp/netdeget-excerpt-equivalence-cmtqfp11`. Temporary artifacts are supporting receipts; the maintained manifest and scripts reproduce the checks.
 
 Negative fixtures demonstrate rejection of altered section bytes, missing/extra/moved sections, missing/moved/duplicate entry symbols, invalid coordinates, overlapping intervals and equally truncated byte slices. These fixtures test the checker, not the game or hardware. The original ROM was opened read-only and its hash was rechecked after comparison.
+
+
+### Checksum follow-up
+
+ROM0 `$38B0-$391B` is now extracted as `CheckLocalMinigameChecksum` (108 bytes).
+**PROBABLE static interpretation:** stored bytes `$606D/$606E` equal to `$3B/$B3`
+return early with Z set. Otherwise BC starts with the two's-complement negative
+of the sum of those stored bytes; the routine adds bytes read through window B,
+restores its saved selector, and compares BC with the stored little-endian word.
+The scan caller tests NZ after this call. This describes the decoded arithmetic,
+not a new natural checksum trace or a guarantee for arbitrary payload sizes.
+
+The page counter D is formed by `SWAP A; RLCA` on the byte at `$6005` and then
+consumed by an 8-bit decrement loop. Preserve that operation rather than
+replacing it with widened multiplication: e.g. input `$08` produces D=`$01`,
+while zero D wraps the loop through 256 iterations. The static interpretation
+must retain those cases; the meaning of exceptional counts remains unresolved.
+Window B advances to the next selector whenever HL reaches `$8000` and restarts
+at `$6000`. No original ROM logic was patched.
+
+Final gates passed: **13 sections / 945 bytes**, 11 synthetic checker tests,
+private candidate identical to the working-tree image, and all 45 address symbols
+from published `4dc64ca` unchanged. Artifacts: `/tmp/netdeget-private-cycle-mxhfid_h`
+and `/tmp/netdeget-excerpt-equivalence-2xa_anya`. `make private-check` now maintains
+this reproducible source-copy and published-symbol preservation check.

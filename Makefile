@@ -8,7 +8,7 @@ SOURCES := $(shell rg --files home engine data -g '*.asm' | LC_ALL=C sort)
 OBJECTS := $(SOURCES:%.asm=build/%.o)
 INCLUDES := includes.asm $(wildcard constants/*.asm ram/*.asm)
 
-.PHONY: all compare sym-check test verify
+.PHONY: all compare sym-check test verify private-check
 all: build/excerpts.gb
 
 build/%.o: %.asm $(INCLUDES)
@@ -31,3 +31,7 @@ test:
 	$(PYTHON) -m unittest discover -s tools -p 'test_*.py' -v
 
 verify: all sym-check test compare
+
+private-check: all
+	@test -n "$(REFERENCE_ROM)" || (echo 'Set REFERENCE_ROM to the external original'; exit 1)
+	$(PYTHON) tools/check_private.py "$(REFERENCE_ROM)"
