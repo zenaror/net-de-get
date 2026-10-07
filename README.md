@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 472 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 475 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -592,3 +592,14 @@ A interpretação é `PROBABLE`, sustentada pela leitura do fonte e por chamadas
 Width é o número de células internas; zero percorre 256 células. As linhas internas são `2*height` com wrap de byte e laço após decremento: resultado zero percorre 256 linhas. O stride é 32 e não há clipping; larguras grandes sobrepõem linhas, por isso o modelo da fixture aplica as escritas na ordem original. Alturas 0/128 não cabem integralmente na VRAM a partir de `$8000`: oito probes limitados param em `$2C79`, HL=`$A000`, C=1, antes de escrever a última linha interna fora da VRAM. Verificam a linha superior e as 255 linhas internas anteriores, sem executar os acessos seguintes.
 
 São 1.600 chamadas completas: 1.024 cobrindo todos os 256 kinds, ambos os VBKs e LCD desligado/ativo; 512 cobrindo todas as larguras com height 1 e LCD desligado; 64 preparações completas dos registros originais 0/3, com ambos os VBKs, LCD desligado/ativo, quatro atributos e dois fallbacks. Os retornos conferem AF/BC/DE/HL, campos e guards; o resultado verifica os 8.192 bytes de cada plano, inclusive células intocadas. Os oito prefixos de altura extrema conferem fronteira, stack, contador e VRAM. Acrescentam 3.216 asserts ao total de 3.004.281. Não se afirmam domínio geométrico natural, menu exibido, IRQ natural ou temporização física.
+
+
+### Dependências de contagem e marcação do redesenho A0F
+
+`engine/startup/bank_a0f_list_helpers.asm` extrai `$4496-$44AD` (24 bytes) e `$474C-$47A9` (94) da janela A `$0F`, endereços físicos `$07:$6496/$674C`. São 118 bytes adicionais. Os símbolos residuais `$63F0/$668B` ficam nos endereços publicados; `$67AA-$67DF` permanece sem interpretação. A cobertura chega a 475 seções: 270 analisadas (39.916 bytes) e 205 residuais (1.008.660 bytes).
+
+`IsA0FNonMarkerCountBelowCapacity` retorna A=1 quando `(($C76C-$C76D)&255) < $C76F`, A=0 caso contrário; B guarda a diferença, C a capacidade e flags preservam a comparação. A subtração não tem saturação. A fixture percorre todos os 65.536 pares de bytes de contagem/marcadores, usando a capacidade igual aos marcadores; essa escolha também percorre todos os pares diferença/capacidade. Não equivale a enumerar os 16.777.216 trios independentes. Verifica AF/BC, DE/HL preservados e ausência de alteração nos campos.
+
+`DrawA0FMarkedTextRow` zera posição local e delay, calcula `HL = ($9800 + 32*(($C1A7-1)&255) + $C1A4 + $C770)&65535` pela multiplicação residente original e escreve `$C771` células consecutivas: tile `$88` no plano 0 e atributo `$07` no plano 1. Contagem zero percorre 256 células. Os waits de STAT e DI/EI permanecem; VBK inicial é restaurado. Não há clipping nem preservação do IME inicial.
+
+Há 65.536 prefixos com todos os pares de coordenadas e offsets/contagens derivados, parando em `$4788` antes da primeira escrita, inclusive quando o endereço sairia da VRAM. Conferem endereço, stack/AF salvo, campos e a ausência de escritas nos dois planos. Outras 1.024 chamadas completas cobrem todos os bytes de contagem, ambos os VBKs e LCD desligado/ativo em endereços escolhidos dentro da VRAM; conferem retorno, registradores, guards e cada um dos 8.192 bytes de ambos os planos. São 66.560 calls completos e 65.536 prefixos, 264.193 novos asserts, total 3.268.474. A interpretação permanece `PROBABLE`: os testes são sintéticos, sem domínio natural de contadores/coordenadas, menu exibido ou temporização física. O chamador `$45A0-$4627` continua como próxima unidade.

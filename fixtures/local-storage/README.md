@@ -735,3 +735,24 @@ outside-VRAM accesses or claim complete return for these extreme cases.
 1600 full calls plus8 prefixes add3216 assertions. All inputs remain
 SYNTHETIC; semantics PROBABLE, with no natural geometry/menu/IRQ or
 physical timing claim.
+
+
+## A0F redraw count predicate and marked row
+
+4496..44AD returns A=1 iff bytewrapped(C76C-C76D)<C76F, else0. B is
+the difference,C the capacity; flags remain from CP.65536 count/marker
+pairs with capacity=markers also exhaust all difference/capacity pairs,
+not all independent three-field combinations. Verify AF/BC, preserved
+DE/HL and unchanged WRAM fields.
+474C..47A9 clears cursor/delay, computes9800+32*byte(C1A7-1)+C1A4+C770
+in16bits using original resident0231 multiplication, and writes C771
+cells (zero256) as plane0 tile88 / plane1 attribute07. Restore VBK with
+original STAT waits/DI/EI; no clipping or preservation of initial IME.
+65536 coordinate prefixes use derived offset/count bytes and stop4788
+before the first write, including non-VRAM destinations. Verify HL,
+BC/DE, saved AF on stack, cleared fields and full VRAM unchanged after
+the group.1024 complete calls exhaust counts, bothVBKs and LCDoff/on
+within VRAM; check AF/BC/DE/HL, guards and entire8192 bytes perplane.
+66560 complete calls plus65536 prefixes add264193 assertions. All are
+SYNTHETIC, interpretation PROBABLE. Natural geometry/count admissibility,
+menu appearance, hardware timing and caller45A0 remain open.

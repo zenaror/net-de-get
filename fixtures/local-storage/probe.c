@@ -2749,6 +2749,46 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Redraw dependencies: byte arithmetic and row address before any write. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ for(unsigned total=0;total<256;total++)for(unsigned markers=0;markers<256;markers++){
+  unsigned count=(total-markers)&255,capacity=markers;
+  unsigned flags=0x40|(count==capacity?0x80:0)|((count&15)<(capacity&15)?0x20:0)|(count<capacity?0x10:0);
+  wr(c,0xC76C,total);wr(c,0xC76D,markers);wr(c,0xC76F,capacity);wr(c,0xC76E,0xA5);cpu->de=0x5A3C;cpu->hl=0xC123;call(c,0x4496);
+  require(cpu->a==(count<capacity)&&cpu->b==count&&cpu->c==capacity&&cpu->f.packed==flags&&cpu->de==0x5A3C&&cpu->hl==0xC123&&
+   rd(c,0xC76C)==total&&rd(c,0xC76D)==markers&&rd(c,0xC76F)==capacity&&rd(c,0xC76E)==0xA5,
+   "Nonmarker predicate all subtraction pairs and all count capacity pairs bytewrap flags",total*256+markers);
+ }
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+ for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++){
+  unsigned offset=(x+y)&255,count=(x*73+y*29)&255,plane=(x^y)&1,dest=(0x9800+32*((y-1)&255)+x+offset)&65535;
+  wr(c,0xFF4F,plane);wr(c,0xC1A4,x);wr(c,0xC1A7,y);wr(c,0xC770,offset);wr(c,0xC771,count);
+  wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x3C);wr(c,0xC1BA,0x5A);wr(c,0xC1B8,0xA5);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x474C;unsigned steps=0;
+  while(cpu->pc!=0x4788&&steps++<1000)c->step(c);
+  require(cpu->pc==0x4788&&cpu->sp==0xCFFC&&rd(c,0xCFFD)==plane&&rd(c,0xCFFC)==(plane?0x20:0xA0),
+   "Marked row all coordinate prefixes stop before VRAM write saved AF",x*256+y);
+  require(cpu->hl==dest&&cpu->bc==count*256&&cpu->de==0x88&&cpu->a==count&&(rd(c,0xFF4F)&1)==0&&rd(c,0xC1BC)==0&&
+   rd(c,0xC1BD)==0&&rd(c,0xC1BA)==0&&rd(c,0xC1B8)==0xA5&&rd(c,0xC1A4)==x&&rd(c,0xC1A7)==y&&rd(c,0xC770)==offset&&rd(c,0xC771)==count,
+   "Marked row wrapped origin fields and counter at first write no geometry clamp",x*256+y);
+ }
+ bool untouched=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)untouched&=rd(c,0x8000+i)==0xA5;}
+ require(untouched,"All marked row prefixes leave both entire VRAM planes untouched",0);
+ for(unsigned count=0;count<256;count++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++){
+  unsigned x=(count*73)&255,y=1+count%40,offset=(count*29)&255,origin=0x9800+32*(y-1)+x+offset,n=count?count:256;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC1A4,x);wr(c,0xC1A7,y);wr(c,0xC770,offset);wr(c,0xC771,count);wr(c,0xC1B8,0x5A);wr(c,0xC1A3,0x23);
+  wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x3C);wr(c,0xC1BA,0x5A);if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,0x474C,2000000);
+  bool exact=cpu->hl==origin+n&&cpu->bc==0&&cpu->de==0x88&&cpu->a==plane&&cpu->f.packed==(plane?0x20:0xA0)&&
+   (rd(c,0xFF4F)&1)==plane&&rd(c,0xC1BC)==0&&rd(c,0xC1BD)==0&&rd(c,0xC1BA)==0&&rd(c,0xC1B8)==0x5A&&rd(c,0xC1A3)==0x23&&
+   rd(c,0xC1A4)==x&&rd(c,0xC1A7)==y&&rd(c,0xC770)==offset&&rd(c,0xC771)==count;
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned address=0x8000;address<0xA000;address++){
+   bool written=address>=origin&&address<origin+n;exact&=rd(c,address)==(written?(bank?7:0x88):0xA5);
+  }}
+  require(exact,"Marked row all byte counts full return exact VRAM LCDoff on restored VBK registers",count*4+plane*2+lcd);
+ }
+ }
  { /* Frame writes: independent row/cell memory model, including overlapping rows. */
  const unsigned attrs[]={0,1,0x23,255};
  for(unsigned family=0;family<3;family++){
