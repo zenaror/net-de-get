@@ -486,6 +486,32 @@ static void probeOriginalA12Effects(struct mCore *c,unsigned phase,unsigned fram
  require(exact,"Original current FF first frame both whole VRAM planes exact original geometry payload FE-only unchanged",index);
 
 }
+static void verifyOriginalA12TileTick(struct mCore *c,unsigned tile,unsigned counter,unsigned frame,unsigned delay,unsigned source,unsigned image,unsigned af,unsigned bc,unsigned de,unsigned hl,unsigned plane,bool ime,unsigned index){
+ const unsigned tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};const uint8_t *rom=((struct GB*)c->board)->memory.rom,*h=rom+0x61*8192+tile-0x6000;struct SM83Core *cpu=((struct GB*)c->board)->cpu;
+ const unsigned fields[]={0xC5F9,0xC5FA,0xC5E2,0xC5E3,0xC5E6,0xC5E8},offsets[]={0,1,2,3,4,6};bool exact=cpu->af==af&&cpu->bc==bc&&cpu->de==de&&cpu->hl==hl&&rd(c,0xC5E4)==delay&&rd(c,0xC5E5)==counter&&rd(c,0xC5E7)==frame&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==source&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==tile+7&&rd(c,0xC5E1)==0x37&&rd(c,0xC5E9)==0x39&&rd(c,0xC5F6)==0x3C&&rd(c,0xC5FD)==0x5A&&rd(c,0xC21C)==0x61&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==0x61&&rd(c,0xC115)==0x61&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFF9D)==h[2]&&(rd(c,0xFF4F)&1)==plane&&((struct GB*)c->board)->memory.ime==ime;
+ for(unsigned i=0;i<6;i++)exact&=rd(c,fields[i])==h[offsets[i]];for(unsigned i=0;i<3;i++)exact&=!memcmp(rom+0x61*8192+tiles[i]-0x6000,originalEffectTiles[i],sizes[i]);
+ require(exact,"Original tile tick exact source rewind stop delay frame counter registers mapping guards and immutable177 bytes",index);
+ wr(c,0xFF40,0);exact=true;unsigned area=h[2]*h[3],start=0x1800+h[0]+32*h[1];
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){bool changed=i>=start&&i<start+32*h[3]&&((i-start)%32)<h[2];unsigned expected=changed?h[7+image*2*area+bank*area+((i-start)/32)*h[2]+(i-start)%32]:0xA5;exact&=rd(c,0x8000+i)==expected;}}
+ require(exact,"Original tile first second stopped or loop image both complete VRAM planes original payload",index);wr(c,0xFF4F,plane);
+}
+static void probeOriginalA12TileTick(struct mCore *c,unsigned tile,unsigned stage,unsigned counter,unsigned flags,unsigned plane,unsigned lcd,unsigned index){
+ const uint8_t *rom=((struct GB*)c->board)->memory.rom,*h=rom+0x61*8192+tile-0x6000;struct SM83Core *cpu=((struct GB*)c->board)->cpu;unsigned area=h[2]*h[3],base=tile+7,source=base+2*area,frame=0,delay=h[5],image=0;
+ prepareA12EffectMapping(c,0x61);wr(c,0x37FF,0x61);wr(c,0xFFAD,0x61);wr(c,0xC115,0x61);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);
+ wr(c,0xC5E1,0x37);wr(c,0xC5E9,0x39);wr(c,0xC5F6,0x3C);wr(c,0xC5FD,0x5A);wr(c,0xC5E5,counter);wr(c,0xC5E7,(counter*37)&255);cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=tile;wr(c,0xFF40,lcd?0x91:0);callWithLimit(c,0x5093,2000000);
+ verifyOriginalA12TileTick(c,tile,0,frame,delay,source,image,0x0080,h[2]<<8|h[3],base,source,plane,true,index);
+ for(unsigned step=0;step<stage;step++){
+  wr(c,0xC5E5,delay);cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;wr(c,0xFF40,lcd?0x91:0);callWithLimit(c,0x5051,2000000);
+  bool copy=step==0||h[6];if(step==0){frame=1;image=1;source=base+4*area;}else{frame=0;if(h[6]){image=0;source=base+2*area;}else delay=0;}
+  verifyOriginalA12TileTick(c,tile,0,frame,delay,source,image,copy?((source&255)<<8|0x80):0x0080,copy?(h[2]<<8|h[3]):0x02EF,copy?(step==0?base+2*area:base):0x1234,copy?source:0x5678,plane,copy,index);
+ }
+ wr(c,0xC5E5,counter);cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;wr(c,0xFF40,lcd?0x91:0);callWithLimit(c,0x5051,2000000);
+ unsigned af,bc=0xBEEF,de=0x1234,hl=0x5678,outCounter=counter;bool copy=false;
+ if(!delay)af=0x00C0;
+ else if(counter<delay){unsigned diff=(counter-delay)&255;af=diff<<8|0x50|((counter&15)<(delay&15)?0x20:0);bc=delay<<8|0xEF;}
+ else{outCounter=0;if(frame==0){frame=1;image=1;source=base+4*area;copy=true;de=base+2*area;}else{frame=0;if(h[6]){image=0;source=base+2*area;copy=true;de=base;}else delay=0;}if(copy){af=(source&255)<<8|0x80;bc=h[2]<<8|h[3];hl=source;}else{af=0x0080;bc=0x02EF;}}
+ verifyOriginalA12TileTick(c,tile,outCounter,frame,delay,source,image,af,bc,de,hl,plane,copy,index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4609,6 +4635,11 @@ int main(int argc,char **argv){
  memcpy(originalPairedResources,rom+0x61*8192+0xBBD,sizeof(originalPairedResources));
  for(unsigned i=0;i<3;i++){const uint8_t *h=rom+0x61*8192+tiles[i]-0x6000;memcpy(originalEffectTiles[i],h,sizes[i]);require(h[4]==2&&7+2*h[2]*h[3]*h[4]==sizes[i],"Original three FF tile resources measured two-frame extents",i);}
  for(unsigned effect=0;effect<13;effect++)for(unsigned counter=0;counter<256;counter++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeOriginalA12Effects(c,phases[effect],frames[effect],counter,(counter&15)<<4,plane,lcd,effect*1024+counter*4+plane*2+lcd);
+ }
+ { /* Original resource lifecycle: actual setup, first advance, stop/loop, gate. */
+ const unsigned tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};const uint8_t *rom=((struct GB*)c->board)->memory.rom;
+ for(unsigned i=0;i<3;i++)memcpy(originalEffectTiles[i],rom+0x61*8192+tiles[i]-0x6000,sizes[i]);
+ for(unsigned tile=0;tile<3;tile++)for(unsigned stage=0;stage<3;stage++)for(unsigned counter=0;counter<256;counter++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeOriginalA12TileTick(c,tiles[tile],stage,counter,(counter&15)<<4,plane,lcd,tile*3072+stage*1024+counter*4+plane*2+lcd);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

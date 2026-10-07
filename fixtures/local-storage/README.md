@@ -1671,3 +1671,21 @@ checked. Does not discriminate original sounds or prove original audio streams.
 Adds79875 assertions,total36125171. Current13 effects now covered by full synthetic
 read pairing;no original second-frame execution,nonempty OAM,natural menu/input,
 Japanese meaning,original audio,IRQ/timing or hardware proof.
+
+
+## Original two-frame tile lifecycles
+
+PROBABLE original6800/6837/6A0F setup5093 and tick5051 chains.9216 scenarios:
+three actual stages(first,second,completion stop/loop),all counter bytes,varied
+flags,both VBK/LCD. Setup plus zero/one/two real preparation ticks plus tested
+tick produce27648 complete calls. Only delay counter controlled;frame/pointer
+states produced by actual callees;no injected returns or natural timing claim.
+First two resources stop,clear delay/frame,retain second image/final pointer;
+subsequent calls take delay-zero guard. Third loops,rewinds and copies first.
+After each call compare registers/flags,headers,counter/frame/delay,pointers,
+guards,mapping/backups,VBK,IME with fixture-disabled entry interrupts,immutable
+177 source bytes,and both entire8192-byte VRAM planes against first/second original
+payload. First oracle expected FF9D header X;actual scratch is width;corrected
+oracle,unchanged original. Adds82944 assertions,total36208115. Coverage unchanged.
+No nonempty OAM,natural menu/input,Japanese meaning,original audio,IRQ/timing or
+hardware proof.
