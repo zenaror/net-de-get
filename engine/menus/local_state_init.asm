@@ -43,14 +43,14 @@ LocalMenuState0::
 	ld hl, $5208
 	ld de, $9800
 	ld bc, $2020
-	call $01A4
+	call CopyTwoPlaneTilemap
 	ld a, [$D004]
 	cp $04
 	jr nz, .at410B
-	ld hl, $427D
+	ld hl, LocalMenuMap427D
 	ld de, $9800
 	ld bc, $1402
-	call $01A4
+	call CopyTwoPlaneTilemap
 .at410B:
 	ld a, $FF
 	ld [$D028], a
@@ -132,20 +132,20 @@ LocalMenuState0::
 	ld a, [$D004]
 	cp $04
 	jr z, .at41EC
-	ld hl, $426D
+	ld hl, LocalMenuMap426D
 	ld de, $9A2F
 	ld bc, $0401
-	call $01A4
-	ld hl, $4275
+	call CopyTwoPlaneTilemap
+	ld hl, LocalMenuMap4275
 	ld de, $9A2A
 	ld bc, $0401
-	call $01A4
+	call CopyTwoPlaneTilemap
 	jr .at41F8
 .at41EC:
-	ld hl, $4275
+	ld hl, LocalMenuMap4275
 	ld de, $9A2F
 	ld bc, $0401
-	call $01A4
+	call CopyTwoPlaneTilemap
 .at41F8:
 	ldh a, [$FF40]
 	or $02

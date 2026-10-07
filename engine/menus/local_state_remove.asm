@@ -104,27 +104,27 @@ LocalMenuState5::
 	call $01BC
 	call $01B3
 .at4484:
-	ld hl, $450F
+	ld hl, LocalMenuMap450F
 	ld de, $9880
 	ld bc, $1402
-	call $01A4
-	ld hl, $450F
+	call CopyTwoPlaneTilemap
+	ld hl, LocalMenuMap450F
 	ld de, $98C0
 	ld bc, $1402
-	call $01A4
-	ld hl, $450F
+	call CopyTwoPlaneTilemap
+	ld hl, LocalMenuMap450F
 	ld de, $9900
 	ld bc, $1402
-	call $01A4
+	call CopyTwoPlaneTilemap
 	call $517D
-	ld hl, $450F
+	ld hl, LocalMenuMap450F
 	ld de, $9940
 	ld bc, $1402
-	call $01A4
-	ld hl, $450F
+	call CopyTwoPlaneTilemap
+	ld hl, LocalMenuMap450F
 	ld de, $9980
 	ld bc, $1402
-	call $01A4
+	call CopyTwoPlaneTilemap
 	call BuildLocalMinigameTitleList
 	ld a, [$D007]
 	ld b, a

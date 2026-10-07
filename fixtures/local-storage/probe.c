@@ -184,6 +184,30 @@ int main(int argc,char **argv){
   for(unsigned i=0;i<4;i++)ok&=rd(c,0xD00A+i)==(mode==1?saved[i]:0xA5);
   require(ok,"state 4 bounded paths and saved fields",mode);
  }
+ /* Two-plane copy with LCD off: data/stride only, no timing assertion. */
+ wr(c,0xFF40,0);
+ const unsigned widths[]={4,20,3},heights[]={1,2,3};
+ for(unsigned shape=0;shape<3;shape++){
+  unsigned width=widths[shape],height=heights[shape],size=width*height;
+  for(unsigned i=0;i<2*size;i++)wr(c,0xD800+i,(i*37+11)&255);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<96;i++)wr(c,0x9800+i,0xA5);
+  }
+  wr(c,0xFF4F,1);cpu->hl=0xD800;cpu->de=0x9800;cpu->bc=(width<<8)|height;
+  call(c,0x01A4);
+  unsigned ok=cpu->hl==0xD800+2*size&&cpu->de==0x9800&&
+              cpu->bc==((width<<8)|height)&&(rd(c,0xFF4F)&1)==1;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<96;i++){
+    unsigned row=i/32,col=i%32;
+    unsigned expected=(row<height&&col<width)?
+     ((plane*size+row*width+col)*37+11)&255:0xA5;
+    ok&=rd(c,0x9800+i)==expected;
+   }
+  }
+  require(ok,"two planes, row stride, registers and untouched padding",shape);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

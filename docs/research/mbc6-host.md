@@ -378,3 +378,24 @@ Three original-entry state-4 fixtures stop by `RET` without external calls:
 The suite now has **1642 synthetic assertions**. State-5 execution is not probed
 here; no new flash-format, persistence, capacity or hardware claim follows.
 The total is **33 sections / 3001 byte-exact bytes**.
+
+
+### Two-plane tilemap copy and bounded data tables
+
+**PROBABLE static interpretation:** thunk `$01A4` jumps to `$0B15-$0B5E`.
+The helper saves VBK bit 0, sets plane 0, reads B bytes for each of C rows,
+advances the destination to a 32-byte row boundary, and repeats in plane 1
+with consecutive source bytes. It restores BC/DE and the saved plane bit;
+HL advances by twice B*C for the observed positive dimensions. Interrupt and
+STAT polling instructions are retained, without a hardware timing claim.
+
+The existing menu arguments bound `$426D-$4274` and `$4275-$427C` to eight
+bytes each (4×1×2), and `$427D-$42CC` and `$450F-$455E` to 80 bytes each
+(20×2×2). These four intervals are extracted as data, not instructions.
+Other references such as `$4224` require their own consumer analysis.
+
+Three forced-entry, LCD-off fixtures use 4×1, 20×2 and 3×3 synthetic dimensions,
+check both planes and sentinel padding, HL advancement, BC/DE preservation and
+restored VBK. No LCD-on timing, zero/wrapped dimensions or natural visual
+behavior is established. The suite has **1648 assertions**, and source totals
+are **39 sections / 3254 byte-exact bytes**.

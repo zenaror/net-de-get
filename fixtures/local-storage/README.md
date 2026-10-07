@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,642 assertions**.
+and stack assertions, the maintained fixture reports **1,648 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -46,3 +46,9 @@ Three bounded state-4 fixtures test `$D01C=$FF`, `$D01C=1`, and `$D01C=0`
 with the index sum matching `$D003`. They check return, the resulting state and
 saved fields. These paths have no external calls. Other state-4 paths and all
 of state 5 remain exact-byte checks only.
+
+The two-plane tilemap-copy helper at `$01A4/$0B15` is tested with LCD off for
+4×1, 20×2 and 3×3 dimensions. Checks cover both VRAM planes, consecutive source
+bytes, 32-byte destination row stride, untouched destination padding, BC/DE
+preservation, HL advancement and restoration of VBK bit 0. This does not test
+LCD-on timing, arbitrary dimensions or naturally rendered menu appearance.

@@ -32,3 +32,9 @@ bank	start	end	symbol
 0A	408A	421D	LocalMenuState0
 0A	4303	43BF	LocalMenuState4
 0A	43C0	450E	LocalMenuState5
+00	01A4	01A6	CopyTwoPlaneTilemap
+00	0B15	0B5E	CopyTwoPlaneTilemapBody
+0A	426D	4274	LocalMenuMap426D
+0A	4275	427C	LocalMenuMap4275
+0A	427D	42CC	LocalMenuMap427D
+0A	450F	455E	LocalMenuMap450F
