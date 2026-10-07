@@ -1,6 +1,6 @@
 # ROM identification
 
-Reference: `Net de Get - Minigame @ 100 (Japan).gbc` supplied by Rafael and kept outside this repository at:
+Reference: `Net de Get - Minigame @ 100 (Japan).gbc` supplied by the Operator and kept outside this repository at:
 
 `/media/rafael/Dados/Arquivos/Projetos/Gameboy Projects/MobileAdapterGB/mgba/Net de Get - Minigame @ 100 (Japan).gbc`
 

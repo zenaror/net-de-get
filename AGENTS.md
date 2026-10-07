@@ -1,13 +1,14 @@
 # Net de Get — instruções para agentes
 
-Este repositório reúne a análise MBC6 e o disassembly incremental do Net de Get. Por orientação de Rafael, enquanto não houver trabalho de suporte MBC6 no mGBA, avance o disassembly seguindo a organização do pret e do Mobile Trainer, sem tradução. A montagem binária completa já é idêntica à referência; a interpretação semântica do disassembly continua em andamento.
+Este repositório reúne a análise MBC6 e o disassembly incremental do Net de Get. Por orientação do Operador, enquanto não houver trabalho de suporte MBC6 no mGBA, avance o disassembly seguindo a organização do pret e do Mobile Trainer, sem tradução. A montagem binária completa já é idêntica à referência; a interpretação semântica do disassembly continua em andamento.
 
+- Na documentação destinada ao GitHub, use o papel "Operador" em vez de identificadores pessoais desnecessários. Preserve URLs, caminhos técnicos necessários e atribuições legais; não reescreva o histórico Git.
 - A ROM original é somente referência, fica fora do Git e nunca pode ser modificada. O hash está em `roms.sha256`.
 - Não grave a ROM original, saves reais, dados pessoais, credenciais ou respostas de servidor neste repositório.
 - Use `CONFIRMED`, `PROBABLE` e `HYPOTHESIS`, com evidência explícita. Uma interpretação estática sem trace natural não é `CONFIRMED`.
 - MBC6 usa janelas independentes de 8 KiB; não confunda seletores do mapper com bancos físicos de 16 KiB das ferramentas.
 - A organização do disassembly pode avançar além das rotinas MBC6. Implementação Mobile Adapter/REON e tradução permanecem fora do escopo. Preserve os bytes japoneses originais.
-- Commit e push somente quando Rafael pedir nesta conversa.
+- Commit e push somente quando o Operador pedir nesta conversa.
 - Ao terminar, atualize a OMM no escopo `mgba` e deixe handoff com fatos, limites e próximos passos.
 
 ## Base OMM e particularidades
@@ -17,7 +18,7 @@ Use as regras globais vigentes da OMM como base, em especial a anotação
 `27191077-0bb4-4450-b8b0-d8ef352e33b3` (delegação proporcional). Consulte memória
 local e depois `context` no escopo `mgba`, incluindo `global` quando necessário.
 Confira as fontes atuais: a OMM fornece contexto e ponteiros, não substitui as
-instruções de Rafael, o fonte ou os resultados de validação.
+instruções do Operador, o fonte ou os resultados de validação.
 
 O plano canônico é a seção "Plano e pendências" do README; não mantenha outro
 roadmap paralelo. As regras deste arquivo acrescentam somente as particularidades
@@ -36,13 +37,13 @@ alteram as regras globais nem contratos de outros projetos.
 
 ## Ciclo de trabalho
 
-- Encadeie frentes úteis de disassembly sem pedir a próxima etapa a Rafael. Meça as fronteiras, extraia um trecho coerente e repita a validação antes de publicar.
+- Encadeie frentes úteis de disassembly sem pedir a próxima etapa ao Operador. Meça as fronteiras, extraia um trecho coerente e repita a validação antes de publicar.
 - Depois de alterar fontes, rode `make verify-full REFERENCE_ROM="/caminho/externo/ROM.gbc"`: montagem, manifesto de seções/símbolos, testes do verificador e equivalência byte a byte. Nunca trate a imagem parcial com padding como uma ROM completa.
 - Mantenha `config/excerpts.tsv` com as fronteiras e símbolos de entrada esperados. Uma mudança deve preservar os endereços dos símbolos existentes.
 - Rode `make private-check REFERENCE_ROM="/caminho/externo/ROM.gbc"` para verificar mudanças em cópia privada e repita os gates no fonte final. Testes negativos devem detectar defeitos que a checagem pretende impedir.
 - Equivalência binária e execução natural são evidências diferentes: os testes sintéticos do verificador não promovem a interpretação de rotinas a `CONFIRMED`.
-- A orientação de continuidade e testes foi autorizada por Rafael nesta conversa, seguindo o método do Mobile Trainer consultado na OMM.
-- Não informe o chat mGBA enquanto ele não chamar, conforme orientação de Rafael. A atualização da OMM no escopo `mgba` continua valendo.
+- A orientação de continuidade e testes foi autorizada pelo Operador nesta conversa, seguindo o método do Mobile Trainer consultado na OMM.
+- Não informe o chat mGBA enquanto ele não chamar, conforme orientação do Operador. A atualização da OMM no escopo `mgba` continua valendo.
 
 ## Base montável
 

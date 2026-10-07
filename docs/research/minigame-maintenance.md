@@ -1,6 +1,6 @@
 # Minigame maintenance: evidence boundaries
 
-Investigation started 2026-10-06 after Rafael asked whether the original Net de
+Investigation started 2026-10-06 after the Operator asked whether the original Net de
 Get can delete, overwrite or format downloaded minigames. Reference ROM SHA256:
 `9fb1e6e4a637796b8624bd2de6c9abaa9e758546b620cb5dc8441b07c288bc63`.
 

@@ -45,7 +45,7 @@ A montagem contém **1048576 bytes em 451 seções**, todos comparados byte a by
 
 ## Ciclos com validação
 
-O trabalho segue o ciclo do Mobile Trainer: medir a próxima frente, extrair uma unidade coerente, conferir em cópia privada, repetir os checks no fonte final, publicar o checkpoint e atualizar a OMM. A continuidade não depende de Rafael escolher cada próximo trecho.
+O trabalho segue o ciclo do Mobile Trainer: medir a próxima frente, extrair uma unidade coerente, conferir em cópia privada, repetir os checks no fonte final, publicar o checkpoint e atualizar a OMM. A continuidade não depende de o Operador escolher cada próximo trecho.
 
 ```sh
 make verify REFERENCE_ROM="/caminho/externo/Net de Get - Minigame @ 100 (Japan).gbc"
@@ -61,7 +61,7 @@ A rotina de checksum `$38B0-$391B` preserva o atalho para o valor armazenado `$B
 
 ## Plano e pendências
 
-Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGBDS, idêntica byte a byte à referência original de 1 MiB. Esse critério foi atingido com a base completa de fontes, usando a referência externa somente para verificação. O trabalho semântico continua sobre os intervalos não interpretados, preservando os bytes japoneses e os níveis de evidência. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
+Objetivo binário autorizado pelo Operador: uma ROM montável a partir do fonte RGBDS, idêntica byte a byte à referência original de 1 MiB. Esse critério foi atingido com a base completa de fontes, usando a referência externa somente para verificação. O trabalho semântico continua sobre os intervalos não interpretados, preservando os bytes japoneses e os níveis de evidência. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
 
 | Fase | Estado | Critério de conclusão | Dependências |
 | --- | --- | --- | --- |
@@ -99,7 +99,7 @@ O critério de ROM idêntica é distinto da conclusão de todos os nomes e inter
 
 ### Decisões e bloqueios
 
-Não há decisão de Rafael ou bloqueio externo necessário para a próxima unidade. Hardware não validado é um limite da evidência, sem impedir o disassembly estático. Tradução e implementação REON/Mobile Adapter ficam fora do trabalho atual.
+Não há decisão do Operador ou bloqueio externo necessário para a próxima unidade. Hardware não validado é um limite da evidência, sem impedir o disassembly estático. Tradução e implementação REON/Mobile Adapter ficam fora do trabalho atual.
 
 Documentação do Maker é mantida em inglês no repositório separado; a correção foi publicada em `zenaror/net-de-get-maker` no commit `01bfb97`. Maker permanece fora de `_RELEASES`.
 

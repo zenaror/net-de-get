@@ -2,7 +2,7 @@
 
 ## Reference ROM
 
-The original `Net de Get - Minigame @ 100 (Japan).gbc` is a commercial dump supplied by Rafael. It is intentionally kept outside this Git repository. Its SHA-256 is recorded in `roms.sha256`. To recheck it, run `sha256sum` against the original file at the path recorded in `docs/ROM_INFO.md`; do not copy it into this repository.
+The original `Net de Get - Minigame @ 100 (Japan).gbc` is a commercial dump supplied by the Operator. It is intentionally kept outside this Git repository. Its SHA-256 is recorded in `roms.sha256`. To recheck it, run `sha256sum` against the original file at the path recorded in `docs/ROM_INFO.md`; do not copy it into this repository.
 
 ## Tools observed
 
