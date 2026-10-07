@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **5,478 assertions**.
+and stack assertions, the maintained fixture reports **5,522 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -189,3 +189,12 @@ restoration of a flash mapping flag, without programming/erase or saves.
 Out-of-table records can cause invalid-flash-selector diagnostics while the
 original prefix writes the selector before forcing type ROM; no universal
 index, stack depth or callback admissibility is claimed.
+
+
+A16 save/restore helper probes use selectors 0/1/$14/$7F and types 0/$08,
+checking stored pairs, DE+1, preserved BC/HL, A16/type-ROM mapping and the other
+window's shadow fields. Four wrapper prefixes stop before $4227/$424D/$42CB/
+$42EF; independently forced return tails restore their saved pairs. The first
+wrapper does not save AF; the other three preserve the supplied AF value across
+restoration. These add 44 assertions including helper/tail bounded returns.
+No target execution, natural boot, interrupt-state guarantee or hardware claim.

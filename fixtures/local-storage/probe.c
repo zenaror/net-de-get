@@ -911,6 +911,42 @@ int main(int argc,char **argv){
           rd(c,window?0xC115:0xC113)==previous&&rd(c,window?0xC116:0xC114)==8,
           "banked dispatcher forced restore tail",window*256+index);
  }
+ /* Window-A helpers: eight explicit selector/type pairs, depth-free fields. */
+ const unsigned helperSelectors[]={0,1,0x14,0x7F};
+ for(unsigned type=0;type<2;type++)for(unsigned index=0;index<4;index++){
+  unsigned selected=helperSelectors[index],savedType=type?8:0,slot=0xC650;
+  wr(c,0x27FF,selected);wr(c,0x2800,savedType);wr(c,0xFFAB,selected);wr(c,0xFFAC,savedType);
+  wr(c,0x37FF,0x15);wr(c,0x3800,0);wr(c,0xFFAD,0x15);wr(c,0xFFAE,0);
+  cpu->bc=0x1234;cpu->hl=0xD800;cpu->de=slot;call(c,0x1783);
+  require(rd(c,slot)==selected&&rd(c,slot+1)==savedType&&cpu->de==slot+1&&
+          cpu->bc==0x1234&&cpu->hl==0xD800&&rd(c,0xFFAB)==0x16&&rd(c,0xFFAC)==0&&
+          rd(c,0xC113)==0x16&&rd(c,0xC114)==0&&rd(c,0x4000)==0xAF&&rd(c,0xFFAD)==0x15,
+          "save A fields and map native16",type*4+index);
+  cpu->de=slot;call(c,0x179F);
+  require(cpu->de==slot+1&&cpu->bc==0x1234&&cpu->hl==0xD800&&
+          rd(c,0xFFAB)==selected&&rd(c,0xFFAC)==savedType&&rd(c,0xC113)==selected&&
+          rd(c,0xC114)==savedType&&rd(c,0xFFAD)==0x15&&rd(c,0xFFAE)==0,
+          "restore A fields without changing B",type*4+index);
+ }
+ /* Wrappers: stop before each target, then force its tail independently. */
+ const unsigned wrapperEntries[]={0x1663,0x1675,0x1689,0x169D};
+ const unsigned wrapperCallSites[]={0x166A,0x167C,0x1690,0x16A4};
+ const unsigned wrapperTails[]={0x166D,0x167F,0x1693,0x16A7};
+ for(unsigned index=0;index<4;index++){
+  unsigned slot=0xC641+2*index;
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);wr(c,0x27FF,0x14);wr(c,0x2800,8);
+  wr(c,0xFFAB,0x14);wr(c,0xFFAC,8);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->bc=0x1234;cpu->hl=0xD800;cpu->pc=wrapperEntries[index];
+  unsigned steps=0;while(cpu->pc!=wrapperCallSites[index]&&steps++<100)c->step(c);
+  require(cpu->pc==wrapperCallSites[index]&&cpu->sp==0xCFFE&&cpu->de==slot+1&&
+          cpu->bc==0x1234&&cpu->hl==0xD800&&rd(c,slot)==0x14&&rd(c,slot+1)==8&&
+          rd(c,0xFFAB)==0x16&&rd(c,0xFFAC)==0,
+          "A16 wrapper prefix before external target",index);
+  cpu->af=0x5AB0;call(c,wrapperTails[index]);
+  require(rd(c,0xFFAB)==0x14&&rd(c,0xFFAC)==8&&cpu->de==slot+1&&
+          cpu->bc==0x1234&&cpu->hl==0xD800&&(index==0?cpu->a==8:cpu->af==0x5AB0),
+          "A16 wrapper independent tail and AF policy",index);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

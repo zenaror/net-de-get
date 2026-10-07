@@ -134,13 +134,13 @@ ResidentJump027C::
 ResidentJump027F::
 	jp $2685
 ResidentJump0282::
-	jp $1663
+	jp CallBankA16_4227
 ResidentJump0285::
-	jp $1675
+	jp CallBankA16_424D
 ResidentJump0288::
-	jp $1689
+	jp CallBankA16_42CB
 ResidentJump028B::
-	jp $169D
+	jp CallBankA16_42EF
 ResidentJump028E::
 	jp $16B1
 ResidentJump0291::

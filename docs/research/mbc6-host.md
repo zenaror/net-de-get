@@ -765,3 +765,27 @@ residual ranges (1,031,962 bytes). 5478 CPU assertions, 24 checker tests, full
 byte comparison, private symbol/image checks and actual negative builds pass.
 All 629 symbols published at a1fb3c7 are preserved. Original reference remains
 external/unchanged, and its complete hash is unchanged by the reconstruction.
+
+
+### A16 wrappers and direct save/restore helpers
+
+**PROBABLE**, static consumers: resident thunks $0282/$0285/$0288/$028B enter
+$1663/$1675/$1689/$169D. `home/bank_a16_calls.asm` covers $1663-$16B0 plus
+$1783-$17B2 (126 bytes), retaining ResidualROM00_1663. SaveWindowAAndSelect16
+stores the current $FFAB/$FFAC pair through DE, advances DE once and writes
+native A selector $16/type ROM plus $C113/$C114 shadows. RestoreSavedWindowA
+reads that pair, advances DE and restores mapper/shadows. BC/HL are unchanged.
+Wrappers use slots $C641/$C643/$C645/$C647 and numeric targets $4227/$424D/
+$42CB/$42EF under A16. Three wrappers push AF around restoration; $1663 does
+not. All retain original DI/EI ordering, without claiming prior IME restoration.
+
+**SYNTHETIC**: eight explicit selector/type pairs (0/1/$14/$7F, ROM/flash flag)
+exercise both helpers. Four wrapper prefixes stop before the banked calls;
+separate forced tails check restored fields and the differing AF policy. This
+adds 44 assertions, total 5522. No original target or natural boot is executed,
+and no flash programming, saves, interrupt timing or hardware proof is added.
+
+Full source: 267 sections, 107 analyzed sections (16,740 bytes), 160 unknown
+residual ranges (1,031,836 bytes). All 721 symbols published at 19532c1 remain
+at their addresses in private validation. Full comparison, 24 checker tests,
+CPU probes and actual negative builds preserve the complete reference hash.
