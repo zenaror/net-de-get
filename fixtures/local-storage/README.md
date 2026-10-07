@@ -1026,3 +1026,43 @@ visible menu size or drawing/activation call at2945 is asserted.
 
 2961408 new assertions give total8142123 plus24 verifier tests. Residual
 28E3 alias stays at28E3; remaining2945..2BFD retains literal Japanese bytes.
+
+## Selection activation and drawing ($2945–$294D, $30BC–$3189)
+
+PROBABLE original draw flow with bounded synthetic text. DrawSelectionText
+preserves AF/BC/DE/HL, fills the region, computes an 8-bit entry skip from
+C212*C20E*C210, scans zero-terminated records, then renders with the existing
+blocking text helper. A record whose byte before zero is02 continues the
+skip scan. ActivateSelectionText setsC213=1 and calls the same drawing body;
+its final A is1 and incoming flags/BC/DE/HL survive.
+
+1512 empty-record calls cover rows1..3, columns1..3, pages0..2, limit bytes
+{0,1,2,3,5,9,16}, both priorVBKs, direct/activation entry and flags10/F0.
+Independent bounded model uses first limit test (page+1)*relativeRow, then
+entry index page*rows*columns+relativeRow*columns+column. Limit+1 and limit-1
+are byte wrapped. This model covers small nonzero dimensions; it is not an
+oracle for all dimension/overflow combinations. Normal completion restores
+C1BD=0; an early abort leaves the remaining row count. This is original
+asymmetric cleanup, not a repaired behavior. Check registers, text pointer,
+cursor/activation/counters, guarded corpus and both whole8192-byte VRAMplanes.
+The only writes for empty text are the exact two-plane fill rectangle.
+
+24 LCD-on calls add actual glyphs16/127/253, both coupled C1AF/priorVBK values
+0/1, direct/activation entry, and plain versus skipped02,00 continuation
+corpus. Capture actual16-byte font sources under selector2, then restore
+priorA0F. Check final fields/registers, mapper mirrors and whole bothVRAMplanes:
+font16 bytes at96B0 in plane1, tile6B at9841, attr23 and other fill/guard bytes.
+The original renderer leaves VBK1 after attribute writes before starting
+HDMA; font upload is therefore in plane1 in both tested C1AF cases. No font
+plane was forced by the fixture and no timing stage was bypassed.
+
+First probes caught two incorrect oracle assumptions: the first row test
+uses (page+1)*relativeRow, not (page*rows+2*relativeRow)/2; glyph upload stays
+in plane1, not the C1AF plane. Completed HDMA source4010/dest96C0/remaining0
+was observed before correcting the latter expectation. Original bytes were
+unchanged; both full planes remain compared.
+
+1536 complete calls add4608 assertions,total8146731 plus24 verifier tests.
+No arbitrary terminated corpus, zero dimensions, high page/overflow domain,
+unterminated scan safety, natural menu, Japanese interpretation or hardware
+execution/timing proof. Remaining selection input294E..2BFD stays literal.

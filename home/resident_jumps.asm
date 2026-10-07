@@ -40,7 +40,7 @@ ResidentJump01EF::
 ResidentJump01F2::
 	jp InitializeSelectionFieldsC20A
 ResidentJump01F5::
-	jp $2945
+	jp ActivateSelectionText
 ResidentJump01F8::
 	jp $294E
 ResidentJump01FB::

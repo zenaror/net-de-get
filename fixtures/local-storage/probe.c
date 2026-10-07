@@ -3483,6 +3483,58 @@ int main(int argc,char **argv){
  for(unsigned pointer=0;pointer<65536;pointer++)probeSelectionFields(c,pointer,0x37,4,43,3,(pointer&15)<<4,index++);
  for(unsigned b=0;b<256;b++)for(unsigned flags=0;flags<16;flags++)probeSelectionFields(c,0xBEEF,b,4,43,3,flags<<4,index++);
  }
+ { /* Original selection draw and activation, bounded empty-record corpus. */
+ const unsigned limits[]={0,1,2,3,5,9,16};unsigned index=0;
+ for(unsigned rows=1;rows<=3;rows++)for(unsigned columns=1;columns<=3;columns++)for(unsigned page=0;page<3;page++)
+ for(unsigned n=0;n<7;n++)for(unsigned prior=0;prior<2;prior++)for(unsigned activate=0;activate<2;activate++)for(unsigned f=0;f<2;f++){
+  unsigned limit=limits[n],visited=0,remaining=0,lastCol=0;bool aborted=false;
+  for(unsigned row=0;row<rows&&!aborted;row++)for(unsigned col=0;col<columns;col++){
+   unsigned first=(page+1)*row,entry=page*rows*columns+row*columns+col;
+   if(((limit+1)&255)<first||((limit-1)&255)<entry){remaining=rows-row;aborted=true;break;}
+   visited++;lastCol=2*col;
+  }
+  wr(c,0xFF40,0);wr(c,0xFF70,1);for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,prior);wr(c,0xC1A3,0x23);wr(c,0xC1A4,1);wr(c,0xC1A7,2);wr(c,0xC1A8,8);wr(c,0xC1A9,4);wr(c,0xC1AA,1);
+  wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1B8,0x5A);wr(c,0xC1B9,0);wr(c,0xC1BC,0xA5);wr(c,0xC1BD,0x3C);wr(c,0xC1AB,0xA5);wr(c,0xC1AC,0x5A);wr(c,0xC1C2,0x3C);
+  for(unsigned i=0;i<256;i++)wr(c,0xD800+i,0);wr(c,0xD7FF,0x33);wr(c,0xD900,0x5A);
+  wr(c,0xC20A,0);wr(c,0xC20B,0xD8);wr(c,0xC20D,0);wr(c,0xC20E,rows);wr(c,0xC20F,limit);wr(c,0xC210,columns);wr(c,0xC212,page);wr(c,0xC213,0xA5);
+  unsigned flags=f?0xF0:0x10;cpu->a=0x5A;cpu->f.packed=flags;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,activate?0x1F5:0x30BC);
+  unsigned end=0xD800+page*rows*columns+visited;
+  bool exact=cpu->a==(activate?1:0x5A)&&cpu->f.packed==flags&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&
+   rd(c,0xC213)==(activate?1:0xA5)&&rd(c,0xC1BD)==remaining&&rd(c,0xC1BC)==(visited?lastCol:0)&&rd(c,0xC1C2)==0x3C&&
+   rd(c,0xC1AB)==(visited?(end&255):0xA5)&&rd(c,0xC1AC)==(visited?end>>8:0x5A)&&rd(c,0xC1B8)==(visited?0:0x5A)&&
+   rd(c,0xD7FF)==0x33&&rd(c,0xD900)==0x5A&&(rd(c,0xFF4F)&1)==prior;
+  if(!exact)fprintf(stderr,"Selection draw rows=%u cols=%u page=%u limit=%u visits=%u remaining=%u actualCursor=%u,%u ptr=%02X%02X\n",rows,columns,page,limit,visited,remaining,rd(c,0xC1BC),rd(c,0xC1BD),rd(c,0xC1AC),rd(c,0xC1AB));
+  require(exact,"Original selection draw empty records limits abort state and AF BC DE HL",index);
+  for(unsigned plane=0;plane<2;plane++){wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++){
+   bool filled=i>=0x1821&&i<0x1921&&((i-0x1821)%32)<8;exact&=rd(c,0x8000+i)==(filled?(plane?0x23:0x70):0xA5);
+  }}
+  require(exact,"Original selection draw complete two-plane rectangle with empty text",index++);
+ }
+ }
+ { /* Actual glyph uploads and a skipped02-terminated continuation record. */
+ const unsigned glyphs[]={16,127,253};unsigned index=0;
+ for(unsigned gi=0;gi<3;gi++)for(unsigned skip=0;skip<2;skip++)for(unsigned plane=0;plane<2;plane++)for(unsigned activate=0;activate<2;activate++){
+  unsigned glyph=glyphs[gi],font[16];wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,2);wr(c,0x2800,0);
+  for(unsigned i=0;i<16;i++)font[i]=rd(c,0x3F00+glyph*16+i);
+  wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);wr(c,0xC113,0x0F);wr(c,0xC114,0);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC1AF,plane);wr(c,0xC1A3,0x23);wr(c,0xC1A4,1);wr(c,0xC1A7,2);wr(c,0xC1A8,8);wr(c,0xC1A9,4);wr(c,0xC1AA,1);
+  wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1B9,0);wr(c,0xC1BA,0);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);wr(c,0xC1C2,0);
+  const unsigned blob[]={2,0,0,glyph,0};if(skip){for(unsigned i=0;i<5;i++)wr(c,0xD800+i,blob[i]);}else{wr(c,0xD800,glyph);wr(c,0xD801,0);}wr(c,0xD7FF,0x33);
+  wr(c,0xC20A,0);wr(c,0xC20B,0xD8);wr(c,0xC20D,0);wr(c,0xC20E,1);wr(c,0xC20F,skip?2:1);wr(c,0xC210,1);wr(c,0xC212,skip);wr(c,0xC213,0xA5);
+  cpu->a=0x5A;cpu->f.packed=0xF0;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;wr(c,0xFF40,0x91);call(c,activate?0x1F5:0x30BC);
+  bool exact=cpu->a==(activate?1:0x5A)&&cpu->f.packed==0xF0&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&
+   rd(c,0xC1AB)==(skip?5:2)&&rd(c,0xC1AC)==0xD8&&rd(c,0xC1BC)==1&&rd(c,0xC1BD)==0&&rd(c,0xC1C2)==1&&rd(c,0xC1C3)==0x6B&&
+   rd(c,0xC213)==(activate?1:0xA5)&&rd(c,0xC113)==0x0F&&rd(c,0xC114)==0&&(rd(c,0xFF4F)&1)==plane&&rd(c,0xD7FF)==0x33;
+  require(exact,"Original selection draw actual glyph and skipped02 continuation completes",index);
+  wr(c,0xFF40,0);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){
+   bool filled=i>=0x1821&&i<0x1921&&((i-0x1821)%32)<8;unsigned expected=filled?(bank?0x23:0x70):0xA5;
+   if(i==0x1841)expected=bank?0x23:0x6B;if(bank==1&&i>=0x16B0&&i<0x16C0)expected=font[i-0x16B0];
+   unsigned actual=rd(c,0x8000+i);if(actual!=expected&&exact)fprintf(stderr,"Selection glyph VRAM bank=%u offset=%04X actual=%02X expected=%02X glyph=%u skip=%u\n",bank,i,actual,expected,glyph,skip);exact&=actual==expected;
+  }}require(exact,"Original selection draw whole VRAM glyph font upload original bytes",index++);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
