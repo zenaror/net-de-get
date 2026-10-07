@@ -53,7 +53,7 @@ ASSERT @ == $4D44
 
 SECTION "A12 resource control 4D44-4D47", ROMX[$4D44], BANK[$09]
 SelectA12Variant0ResourceTable::
-	ld hl, $6BBD
+	ld hl, A12Variant0PrimaryResourceTable
 	ret
 ASSERT @ == $4D48
 

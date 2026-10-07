@@ -1631,3 +1631,23 @@ No natural validity or corruption claim. Nine pointer/count/extent contracts plu
 159840 call assertions add159849,total35640807. Original source buffer and external
 ROM unchanged. No natural flow,count producer,indices beyond nine,nonempty OAM
 integration,Japanese meaning,IRQ/timing or hardware proof.
+
+
+## Original primary resources and paired read chains
+
+PROBABLE B61 layout: nine-pointer table6BBD-6BCE and contiguous objects6BCF-6EDF,
+803 bytes; count/extent match secondary resources. Primary reader writes count
+C5CD and threshold C5CB; ordinary read preserves counter C5CC. Reset zeroes
+counter/frame,then original secondary load preserves primary outputs and fields.
+36864 complete reset-to-secondary chains cover nine phases,all prior counter/frame
+bytes(frame permutation37*counter),16 flags.44032 complete ordinary-primary-to-
+secondary chains cover172 current ordinary records and all counter bytes,flags
+varied.13 current FF/FE records reserved for effect integration;real lookahead
+marker skips still execute.80896 chains,actual callees,no injected return.
+Independent original-byte models compare registers/flags,pointers,primary/secondary
+fields,guards,mapping/backups and immutable1606-byte span. Nine table/count/extent
+contracts plus404480 call assertions add404489,total36045296. Initial fixture
+secondary-table offset omitted window offset;first contract detected it;corrected
+fixture,unchanged original. Count-producer pairing is synthetic evidence,no
+natural phase selection,13-current-effect integration,nonempty OAM,Japanese
+meaning,IRQ/timing or hardware proof.

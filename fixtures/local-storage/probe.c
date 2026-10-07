@@ -437,6 +437,28 @@ static void probeOriginalA12Secondary(struct mCore *c,unsigned phase,unsigned fr
  require(cpu->af==af&&cpu->bc==(m.lo<<8|0x37)&&cpu->de==m.base&&cpu->hl==m.end&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5EB)==m.x&&rd(c,0xC5EC)==m.y&&rd(c,0xC5ED)==m.tx&&rd(c,0xC5EE)==m.ty&&rd(c,0xC5F1)==m.dx&&rd(c,0xC5F2)==m.dy&&rd(c,0xC5F6)==m.index,"A12 original secondary whole load or tick reader branches exact model records coordinates registers",index);
  require(rd(c,0xC5CD)==count&&rd(c,0xC5CB)==7&&rd(c,0xC5CC)==7&&rd(c,0xC5EA)==0x37&&rd(c,0xC5EF)==0x39&&rd(c,0xC5F0)==0x3C&&rd(c,0xC5F3)==0x5A&&rd(c,0xC5F4)==0xA5&&rd(c,0xC5F5)==0x37&&rd(c,0xC5F7)==0x39&&rd(c,0xC5D7)==0x3C&&rd(c,0xC5D8)==0x5A&&rd(c,0xFFAD)==0x61&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0&&!memcmp(((struct GB*)c->board)->memory.rom+0x61*8192+0xEE0,originalSecondaryResources,sizeof(originalSecondaryResources)),"A12 original secondary whole read guards mapping and immutable 803 source bytes",index);
 }
+static uint8_t originalPairedResources[1606];
+struct OriginalA12Primary {unsigned count,index,x,y,threshold,nextIndex,tx,ty,extra,dx,dy,lo,f,base,end;};
+static struct OriginalA12Primary originalA12PrimaryModel(struct mCore *c,unsigned phase,unsigned frame){
+ const unsigned pointers[]={0x6BCF,0x6C34,0x6D5D,0x6D9A,0x6DDB,0x6E18,0x6E49,0x6E7E,0x6EAF};const uint8_t *rom=((struct GB*)c->board)->memory.rom;unsigned ptr=pointers[phase],p=ptr+1+4*frame;struct OriginalA12Primary m={0};
+ #define PRIMARY_BYTE(a) rom[0x61*8192+(a)-0x6000]
+ m.count=PRIMARY_BYTE(ptr);m.index=PRIMARY_BYTE(p);if(m.index>=254){fprintf(stderr,"Primary ordinary-record model called on effect\n");exit(13);}
+ m.x=(PRIMARY_BYTE(p+1)-201)&255;m.y=(PRIMARY_BYTE(p+2)-208)&255;m.threshold=PRIMARY_BYTE(p+3);p+=4;
+ if(PRIMARY_BYTE(p)==255)p+=4;if(PRIMARY_BYTE(p)==254)p+=4;
+ m.nextIndex=PRIMARY_BYTE(p);m.tx=(PRIMARY_BYTE(p+1)-201)&255;m.ty=(PRIMARY_BYTE(p+2)-208)&255;m.extra=PRIMARY_BYTE(p+3);m.base=ptr+1;m.end=p+4;
+ m.dx=m.x>m.tx?m.x-m.tx:m.tx-m.x;m.dy=m.y>m.ty?m.y-m.ty:m.ty-m.y;m.lo=m.y<m.ty?m.y:m.ty;unsigned hi=m.y>m.ty?m.y:m.ty;m.f=0x40|(m.dy?0:0x80)|((hi&15)<(m.lo&15)?0x20:0);
+ #undef PRIMARY_BYTE
+ return m;
+}
+static void probeOriginalA12Pair(struct mCore *c,unsigned phase,unsigned frame,unsigned counter,unsigned flags,bool reset,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;struct OriginalA12Primary p=originalA12PrimaryModel(c,phase,frame);struct OriginalA12Secondary q=originalA12SecondaryModel(c,phase,frame);unsigned finalCounter=reset?0:counter;
+ prepareA12EffectMapping(c,0x61);wr(c,0xC5A8,0);wr(c,0xC5CF,phase);wr(c,0xC5CE,reset?(counter*37)&255:frame);wr(c,0xC5CC,counter);wr(c,0xC5CD,0x37);wr(c,0xC5CB,0x39);wr(c,0xC5CA,0x3C);wr(c,0xC5D6,0x5A);wr(c,0xC5DB,0x37);wr(c,0xC5DC,0x39);wr(c,0xC5DF,0x3C);wr(c,0xC5E0,0x5A);wr(c,0xC5EA,0x37);wr(c,0xC5EF,0x39);wr(c,0xC5F0,0x3C);wr(c,0xC5F3,0x5A);wr(c,0xC5F4,0xA5);wr(c,0xC5F5,0x37);wr(c,0xC5F7,0x39);
+ cpu->af=0x5A00|flags;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x6BBD;call(c,reset?0x4CFD:0x4D82);
+ require(cpu->af==(p.dy<<8|p.f)&&cpu->bc==(p.lo<<8|0x37)&&cpu->de==p.base&&cpu->hl==p.end&&rd(c,0xC5CD)==p.count&&rd(c,0xC5CB)==p.threshold&&rd(c,0xC5CC)==finalCounter&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5D0)==p.index&&rd(c,0xC5D1)==p.nextIndex&&rd(c,0xC5D7)==p.x&&rd(c,0xC5D8)==p.y&&rd(c,0xC5D9)==p.tx&&rd(c,0xC5DA)==p.ty&&rd(c,0xC5DD)==p.dx&&rd(c,0xC5DE)==p.dy&&rd(c,0xC5FD)==p.extra&&rd(c,0xFFAD)==0x61&&rd(c,0xFF9D)==5,"Original primary reset or ordinary reader count producer exact registers geometry lookahead",index);
+ call(c,0x50D8);
+ require(cpu->af==(q.dy<<8|q.f)&&cpu->bc==(q.lo<<8|0x37)&&cpu->de==q.base&&cpu->hl==q.end&&rd(c,0xC5CD)==p.count&&rd(c,0xC5CB)==p.threshold&&rd(c,0xC5CC)==finalCounter&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5D0)==p.index&&rd(c,0xC5D1)==p.nextIndex&&rd(c,0xC5D7)==p.x&&rd(c,0xC5D8)==p.y&&rd(c,0xC5D9)==p.tx&&rd(c,0xC5DA)==p.ty&&rd(c,0xC5DD)==p.dx&&rd(c,0xC5DE)==p.dy&&rd(c,0xC5FD)==p.extra&&rd(c,0xC5EB)==q.x&&rd(c,0xC5EC)==q.y&&rd(c,0xC5ED)==q.tx&&rd(c,0xC5EE)==q.ty&&rd(c,0xC5F1)==q.dx&&rd(c,0xC5F2)==q.dy&&rd(c,0xC5F6)==q.index,"Original primary to secondary full chain count threshold counter preserved independent coordinate sets",index);
+ require(rd(c,0xC5CA)==0x3C&&rd(c,0xC5D6)==0x5A&&rd(c,0xC5DB)==0x37&&rd(c,0xC5DC)==0x39&&rd(c,0xC5DF)==0x3C&&rd(c,0xC5E0)==0x5A&&rd(c,0xC5EA)==0x37&&rd(c,0xC5EF)==0x39&&rd(c,0xC5F0)==0x3C&&rd(c,0xC5F3)==0x5A&&rd(c,0xC5F4)==0xA5&&rd(c,0xC5F5)==0x37&&rd(c,0xC5F7)==0x39&&rd(c,0xFFAD)==0x61&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==0x61&&rd(c,0xFF9E)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0&&!memcmp(((struct GB*)c->board)->memory.rom+0x61*8192+0xBBD,originalPairedResources,sizeof(originalPairedResources)),"Original paired full chain guards mapping backups immutable1606 bytes",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4540,6 +4562,20 @@ int main(int argc,char **argv){
   }
  }
  printf("Original secondary resources: %u complete load/tick calls; %u modeled reads beyond measured object (adversarial counts), within ROM window\n",sample,originalSecondaryCrossings);
+ }
+ { /* Paired original resources; primary current FF/FE effects remain separate. */
+ const unsigned pointers[]={0x6BCF,0x6C34,0x6D5D,0x6D9A,0x6DDB,0x6E18,0x6E49,0x6E7E,0x6EAF},counts[]={24,73,14,15,14,11,12,11,11};const uint8_t *rom=((struct GB*)c->board)->memory.rom;
+ memcpy(originalPairedResources,rom+0x61*8192+0xBBD,sizeof(originalPairedResources));unsigned sample=0,ordinary=0,effects=0;
+ for(unsigned phase=0;phase<9;phase++){
+  unsigned table=0x61*8192+0xBBD+2*phase,p=rom[table]|rom[table+1]<<8,next=phase<8?pointers[phase+1]:0x6EE0;
+  require(p==pointers[phase]&&rom[0x61*8192+p-0x6000]==counts[phase]&&p+1+4*(counts[phase]+1)==next&&rom[0x61*8192+(rom[0x61*8192+0xEE0+2*phase]|rom[0x61*8192+0xEE1+2*phase]<<8)-0x6000]==counts[phase],"Original primary table exact pointers counts extents paired secondary counts measured",phase);
+  for(unsigned counter=0;counter<256;counter++)for(unsigned flags=0;flags<16;flags++)probeOriginalA12Pair(c,phase,0,counter,flags<<4,true,sample++);
+  for(unsigned frame=0;frame<counts[phase];frame++){
+   if(rom[0x61*8192+p+1+4*frame-0x6000]>=254){effects++;continue;}ordinary++;
+   for(unsigned counter=0;counter<256;counter++)probeOriginalA12Pair(c,phase,frame,counter,((counter^frame)&15)<<4,false,sample++);
+  }
+ }
+ printf("Original paired resources: %u reset/read-to-secondary chains; %u ordinary frames; %u current effect frames reserved\n",sample,ordinary,effects);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
