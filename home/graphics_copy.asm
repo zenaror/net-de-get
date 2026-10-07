@@ -1,3 +1,8 @@
+SECTION "VRAM copy thunk 0198", ROM0[$0198]
+CopyVRAMBytes::
+	jp CopyVRAMBytesBody
+ASSERT @ == $019B
+
 ; PROBABLE static copy roles; forced-entry probes do not validate hardware timing.
 ; Preserve no-op LD A,A and all STAT/DI/EI sequences from the reference.
 SECTION "VRAM copy thunks", ROM0[$019E]

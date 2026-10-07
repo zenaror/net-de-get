@@ -2448,6 +2448,39 @@ int main(int argc,char **argv){
   require(exact,"A0F complete setup original B5A header list and restored B window",m*24+l*8+kind*2+prior);
  }
  }
+ { /* A0F original graphics and tilemap routine; both complete VRAM planes. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ unsigned graphics[1600],maps[2][80],cells[2][2];
+ for(unsigned i=0;i<1600;i++)graphics[i]=rd(c,0x47E0+i);
+ for(unsigned mode=0;mode<2;mode++){
+  for(unsigned i=0;i<80;i++)maps[mode][i]=rd(c,(mode?0x4EB8:0x4E68)+i);
+  cells[mode][0]=rd(c,mode?0x4F0A:0x4F08);cells[mode][1]=rd(c,mode?0x4F0B:0x4F09);
+ }
+ for(unsigned lcd=0;lcd<2;lcd++)for(unsigned mode=0;mode<256;mode++)for(unsigned initial=0;initial<2;initial++){
+  if(lcd&&mode!=0&&mode!=1&&mode!=128&&mode!=255)continue;
+  wr(c,0xFF40,0);for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);
+  }
+  wr(c,0xFF4F,initial);wr(c,0xC765,mode);wr(c,0xC21C,0x0F);wr(c,0xC21D,0);
+  if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,0x415C,2000000);
+  bool exact=(rd(c,0xFF4F)&1)==0&&rd(c,0xC765)==mode&&cpu->a==120;
+  wr(c,0xFF40,0);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned address=0x8000;address<0xA000;address++){
+    unsigned value=0xA5;
+    if(plane==initial&&address>=0x8800&&address<0x8E40)value=graphics[address-0x8800];
+    if(address>=0x9800&&address<0x9840&&((address-0x9800)%32)<20){
+     unsigned offset=(address-0x9800)/32*20+(address-0x9800)%32;value=maps[mode!=0][plane*40+offset];
+    }
+    if(address>=0x983C&&address<0x98B4)value=cells[mode!=0][plane];
+    exact&=rd(c,address)==value;
+   }
+  }
+  require(exact,"A0F complete graphics copy header maps and120 repeated cells both VRAM planes",lcd*512+mode*2+initial);
+ }
+ wr(c,0xFF40,0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

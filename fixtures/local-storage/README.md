@@ -581,3 +581,18 @@ mode/count fields and actual restored-window bytes are checked.848 assertions
 are added. Lists are bounded synthetic WRAM and the header is original ROM;
 no natural menu, installed callback, IRQ or audio stream runs. No universal
 list bound/unterminated behavior is claimed. Semantics remain PROBABLE.
+
+
+### A0F complete graphics and tilemap initialization
+
+512 LCD-off calls cover every C765 byte and initial VBK0/1; eight LCD-on
+calls cover modes0/1/80/FF and both initial planes. Each call has a finite
+2000000-step bound. All8192 bytes of both VRAM planes are checked: original
+1600 graphics bytes go to8800..8E3F in the incoming plane, selected20x2
+map/attributes go to9800 with stride32, and the same two-byte cell repeats
+120 times at983C..98B3. Every other byte remainsA5. Final VBK0, preserved
+mode and A120 are checked. The original raw cells are88/00 orE0/07.
+1040 assertions are added. These are SYNTHETIC forced calls using original
+ROM resources, not natural screen, palette, OAM DMA or physical timing
+proof. Resource boundaries come from measured consumers; gaps and wider
+objects remain uninterpreted. Semantics stay PROBABLE.

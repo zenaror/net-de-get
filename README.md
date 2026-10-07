@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 441 seções**, todos comparados byte a byte com a referência externa. Os 240 trechos analisados somam 36360 bytes; os demais 1012216 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 451 seções**, todos comparados byte a byte com a referência externa. Os 247 trechos analisados somam 38232 bytes; os demais 1010344 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 441 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 451 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -506,3 +506,12 @@ A chamada `$44AE` foi inicialmente tratada como recurso pendente; medir seu corp
 512 prefixos conhecidos (todos os 256 valores de `$C765`, VBK 0/1 e WRAM inicial 3/7) param antes da contagem, conferindo 19 campos, guards, ponteiro, callbacks, stubs, VBK 0, WRAM efetivo 1 e IME ativo. Quatro limpezas completas preservam os operandos antigos dos stubs vazios. Outros 68 calls verificam comprimentos 0–16 com bytes 1/`$FD/$FE/$FF`, e 96 inicializações completas combinam quatro valores de modo, três comprimentos, quatro classes de byte e dois pares anteriores de B. Conferem contagens, campos de modo, os 12 campos reais de cabeçalho, HL `$600C` e oito bytes efetivamente remapeados após restaurar B. São 848 novos asserts, somando 1.905.513; o privado preserva os 1.294 símbolos publicados em `c2c5cd6`. Montagem integral e negativos reais passam.
 
 A inicialização completa é verificada em entrada forçada com lista sintética delimitada e cabeçalho real. Não houve IRQ natural, execução dos callbacks instalados, stream de áudio ou interpretação completa dos recursos `$4E20/$52EC`. IME ativo é efeito de EI, sem preservação do estado anterior. Uso natural da lista, menu e temporização continuam pendentes.
+
+
+### Graphics e tilemap originais A `$0F`
+
+`engine/startup/bank_a0f_graphics.asm` extrai `$415C-$41C4` (105 bytes), preservando `ResidualROM07_615C` como alias. O thunk `$0198` para cópia de VRAM também é extraído (3 bytes). `data/bank_a0f_display_graphics.asm` extrai 1.764 bytes de recursos medidos: graphics `$47E0-$4E1F` (1.600 bytes), mapas alternativos `$4E68-$4EB7/$4EB8-$4F07` (80 bytes cada) e células de dois bytes `$4F08-$4F0B`. São 1.872 bytes adicionais. Os símbolos residuais anteriores permanecem; gaps em torno dos recursos, incluindo `$4E20-$4E67`, continuam sem interpretação.
+
+A confiança é `PROBABLE`. A rotina copia os graphics para `$8800-$8E3F` pelo plano de VRAM inicialmente selecionado, sem selecionar VBK antes da cópia. `$C765` zero usa o mapa `$4E68` e célula `$4F08`; os demais valores usam `$4EB8/$4F0A`. Seleciona VBK 0, copia 20×2 células por plano para `$9800`, com stride 32 e fonte sequencial dos dois planos. Depois repete 120 vezes uma cópia 1×1 da mesma célula de dois bytes, em destinos consecutivos `$983C-$98B3`. As células originais são tile/atributo `$88/$00` ou `$E0/$07`. VBK termina em 0, independentemente do plano que recebeu os graphics. Não houve tradução ou atribuição de significado visual aos bytes japoneses.
+
+A fixture executa 512 calls com LCD desligado (todos os 256 valores de modo, VBK inicial 0/1) e oito com LCD ativo (modos 0/1/`$80/$FF`, ambos os VBKs), cada um com limite finito de 2.000.000 passos. Confere todos os 8.192 bytes dos dois planos: graphics no plano inicial, as 40 células e atributos do mapa selecionado, as 120 células repetidas e todos os bytes restantes intactos. Também confere VBK final 0, modo preservado e contador final A=120. São 1.040 novos asserts, somando 1.906.553; o privado preserva os 1.308 símbolos publicados em `2ed84f1`. Montagem integral e negativos reais passam. São chamadas forçadas com resources de ROM real; não confirmam tela natural, paletas, OAM DMA, IRQ ou temporização física.
