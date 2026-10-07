@@ -19,7 +19,7 @@ FormatA16WordTilesBody::
 	ld l, e
 	ld h, d
 	ld c, $64
-	call $2057
+	call DivideWordByByte
 	ld a, l
 	ld d, h
 	pop hl
@@ -64,7 +64,7 @@ FormatA16ByteTilesBody::
 A16Field_0729::
 	push hl
 	ld c, $0A
-	call $2046
+	call DivideByteByByte
 	ld de, $2020
 	add hl, de
 	ld a, l

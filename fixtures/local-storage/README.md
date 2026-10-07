@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **52,949 assertions**.
+and stack assertions, the maintained fixture reports **971,353 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -434,3 +434,18 @@ checked. Original encoding retains10/20 markers,4E47 for values above99 and
 word quotient low-byte wrap before leading-marker adjustment. The independent
 model does not substitute ordinary decimal text. The unit adds1836 assertions;
 no presentation call, natural field meaning or full unknown-index flow is run.
+
+### Original fixed-width arithmetic via resident thunks
+
+All65536 byte pairs are checked for low product, wide product and division,
+including divisor0. Every DE value is checked with BCFFFF for low word product;
+324 representative word pairs cover other BC values. Every word dividend is
+checked for divisors0/100/255, plus126 boundary cases with1/2/10/127/128/129/254.
+Products and preserved/clobbered registers are checked after complete calls.
+Byte division uses mathematical quotient/remainder for nonzero divisor and
+literal H=input/LFF for0. Word division uses an independent16-round model with
+an8-bit intermediate remainder and low quotient byte, retaining overflow.
+256/255 returns H0/L0; word divisor0 returns H=input low byte/LFF. This does
+not replace the original algorithm with ordinary wide division. The unit adds
+918404 assertions; complete synthetic domains do not establish natural caller
+admissibility or arbitrary-divisor correctness beyond the tested contracts.

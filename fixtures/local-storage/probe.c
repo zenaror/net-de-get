@@ -60,6 +60,17 @@ static unsigned a16ExpectedField(unsigned value,int word,unsigned *out){
  }
  out[4]=0;return 5;
 }
+/* Literal 16-round restoring division with an 8-bit remainder register.
+   This deliberately retains overflow; it is not host integer division. */
+static unsigned modelWordDivision(unsigned value,unsigned divisor){
+ unsigned work=value,remainder=0;
+ for(unsigned i=0;i<16;i++){
+  unsigned carry=work>>15;work=(work<<1)&65535;
+  remainder=((remainder<<1)|carry)&255;
+  if(remainder>=divisor){remainder=(remainder-divisor)&255;work|=1;}
+ }
+ return (remainder<<8)|(work&255);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -1932,6 +1943,45 @@ int main(int argc,char **argv){
   for(unsigned i=0;i<length;i++)if(rd(c,0xC655+i)!=expected[i])exact=false;
   require(exact&&rd(c,0xCFFC)==0xDC&&rd(c,0xCFFD)==0x4B,
           "A16 eight table entries reach presentation with formatted tiles",slot);
+ }
+ }
+ { /* Complete byte domains and word arithmetic contracts. */
+ for(unsigned left=0;left<256;left++)for(unsigned right=0;right<256;right++){
+  cpu->a=left;cpu->bc=0xA500|right;cpu->de=0xBEEF;cpu->hl=0xD234;call(c,0x22B);
+  require(cpu->a==((left*right)&255)&&cpu->bc==right&&cpu->de==0xBEEF&&cpu->hl==0xD234,
+          "resident byte product low result and preserved DE/HL/C",left*256+right);
+  cpu->a=left;cpu->bc=0xA500|right;cpu->de=0xBEEF;call(c,0x22E);
+  require(cpu->hl==left*right&&cpu->a==left&&cpu->bc==right&&cpu->de==left,
+          "resident byte product wide result and rotated C restore",left*256+right);
+  cpu->a=left;cpu->bc=0xA500|right;cpu->de=0xBEEF;call(c,0x234);
+  unsigned quotient=right?left/right:255,remainder=right?left%right:left;
+  require(cpu->hl==((remainder<<8)|quotient)&&cpu->bc==right&&cpu->de==0xBEEF,
+          "resident byte division full domain including zero divisor",left*256+right);
+ }
+ for(unsigned value=0;value<65536;value++){
+  cpu->de=value;cpu->bc=0xFFFF;call(c,0x231);
+  require(cpu->hl==((value*65535u)&65535)&&cpu->de==0&&cpu->bc==0xFFFF&&cpu->a==0,
+          "resident word product low result full DE domain",value);
+ }
+ const unsigned fullDivisors[]={0,100,255};
+ for(unsigned n=0;n<3;n++)for(unsigned value=0;value<65536;value++){
+  unsigned divisor=fullDivisors[n],expected=modelWordDivision(value,divisor);
+  cpu->hl=value;cpu->bc=0xA500|divisor;cpu->de=0xBEEF;call(c,0x237);
+  require(cpu->hl==expected&&cpu->bc==divisor&&cpu->d==0xBE&&cpu->e==(expected>>8),
+          "resident word division literal8bit remainder full value domain",divisor*65536+value);
+ }
+ const unsigned values[]={0,1,9,10,99,100,101,255,256,999,1000,9999,10000,25599,25600,25601,65534,65535};
+ for(unsigned left=0;left<18;left++)for(unsigned right=0;right<18;right++){
+  unsigned de=values[left],bc=values[right];cpu->de=de;cpu->bc=bc;call(c,0x231);
+  require(cpu->hl==((de*bc)&65535)&&cpu->de==0&&cpu->bc==bc&&cpu->a==0,
+          "resident word product representative BC/DE pairs",left*18+right);
+ }
+ const unsigned divisors[]={1,2,10,127,128,129,254};
+ for(unsigned d=0;d<7;d++)for(unsigned n=0;n<18;n++){
+  unsigned divisor=divisors[d],value=values[n],expected=modelWordDivision(value,divisor);
+  cpu->hl=value;cpu->bc=0xA500|divisor;cpu->de=0xBEEF;call(c,0x237);
+  require(cpu->hl==expected&&cpu->bc==divisor&&cpu->d==0xBE&&cpu->e==(expected>>8),
+          "resident word division other divisor boundaries",divisor*65536+value);
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",

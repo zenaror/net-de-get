@@ -76,15 +76,15 @@ ResidentJump0225::
 ResidentJump0228::
 	jp CompareHLAndDE
 ResidentJump022B::
-	jp $2012
+	jp MultiplyAByCLowByte
 ResidentJump022E::
-	jp $2023
+	jp MultiplyAByCToHL
 ResidentJump0231::
-	jp $2035
+	jp MultiplyDEByBCLowWord
 ResidentJump0234::
-	jp $2046
+	jp DivideByteByByte
 ResidentJump0237::
-	jp $2057
+	jp DivideWordByByte
 ResidentJump023A::
 	jp $206A
 ResidentJump023D::

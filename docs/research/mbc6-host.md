@@ -1263,3 +1263,29 @@ terminators, tile bytes and stack are checked.1836 new assertions give52949;
 private retains1173 published e38df3f symbols. No01E9 presentation call, natural
 field semantics or arbitrary-index execution is established. Division helpers
 2046/2057 remain numeric dependencies; full binary/negative gates pass.
+
+## Resident fixed-width arithmetic consumed by A16
+
+**PROBABLE**, static thunks/callers and complete forced CPU calls.
+home/fixed_width_arithmetic.asm extracts2012..2069,88 bytes: byte low/wide
+products, word low product, byte division and word-by-byte division. Resident
+022B/022E/0231/0234/0237 and numeric formatters now name the entries.
+ResidualROM00_2012 remains at2012;206A..21D6 stays uninterpreted.
+
+Low byte product preserves DE/HL and returns A=(inputA*C)&255, BC=C;
+wide byte product returns HL=inputA*C, DE=inputA, A unchanged and BC=C.
+Eight C rotations restore C. Word product returns HL=(DE*BC)&65535,
+DE/A zero and BC retained. Byte division returns H remainder/L quotient;
+divisor0 returns H input/LFF. Word division retains only an8-bit intermediate
+remainder across16 rounds, then returns H remainder and low quotient byte L.
+For large divisors it can discard a ninth remainder bit:256/255 returns H0/L0,
+not mathematical quotient1/remainder1. Word divisor0 gives H=input low/LFF.
+This is original behavior, not a corrected/generalized division routine.
+
+The fixture tests all65536 byte pairs in three operations, all wordDE values
+with BCFFFF,324 representative word product pairs, all word dividends for
+C0/100/255, and126 other-divisor boundary cases. Literal word-round modeling
+retains overflow.918404 new assertions give971353; private retains1200 published
+57113d1 symbols. Full source/byte comparison and actual negative gates pass.
+No natural trace or universal operand admissibility follows from synthetic
+complete domains; high quotient truncation and remainder overflow stay explicit.

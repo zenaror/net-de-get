@@ -55,7 +55,6 @@ bank	start	end	symbol
 00	17B3	17B6	SYS0RecordName
 00	17B7	1FFF	ResidualROM00_17B7
 00	2000	2011	SubtractDEFromHL
-00	2012	21D6	ResidualROM00_2012
 00	21D7	2241	LoadA1EPointersFromBankB
 00	2242	22A6	CallBankA1EAndRestoreMapping
 00	22A7	23E3	RequestA1ELowerStreams
@@ -397,3 +396,9 @@ bank	start	end	symbol
 00	06DF	0721	ResidualROM00_06DF
 00	0747	0798	ResidualROM00_0747
 0B	4C87	4EC9	ResidualROM0B_4C87
+00	2012	2022	MultiplyAByCLowByte
+00	2023	2034	MultiplyAByCToHL
+00	2035	2045	MultiplyDEByBCLowWord
+00	2046	2056	DivideByteByByte
+00	2057	2069	DivideWordByByte
+00	206A	21D6	ResidualROM00_206A

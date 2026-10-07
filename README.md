@@ -2,7 +2,7 @@
 
 Este repositório reúne o disassembly incremental de **Net de Get: Minigame @ 100** e a análise MBC6 usada no suporte do mGBA. A organização segue [pret/pokecrystal](https://github.com/pret/pokecrystal) e o projeto local Mobile Trainer, sem tradução.
 
-A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1014006 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
+A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 idênticos à referência. `make` usa somente os fontes e o hash registrado; a ROM original externa não é necessária para montar. O disassembly semântico permanece em andamento: 1013918 bytes ainda estão marcados como não interpretados, sem atribuir função ou tipo a eles. Nenhuma ROM binária é versionada. Os trechos analisados mantêm limites de evidência explícitos. A reconstrução das rotinas originais de todos os domínios integra o objetivo binário; novas funcionalidades Mobile Adapter/REON permanecem fora do escopo.
 
 - Identificação e checksums: [`docs/ROM_INFO.md`](docs/ROM_INFO.md)
 - Evidências do MBC6 no host: [`docs/research/mbc6-host.md`](docs/research/mbc6-host.md)
@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 398 seções**, todos comparados byte a byte com a referência externa. Os 204 trechos analisados somam 34570 bytes; os demais 1014006 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 403 seções**, todos comparados byte a byte com a referência externa. Os 209 trechos analisados somam 34658 bytes; os demais 1013918 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 398 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 403 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -410,3 +410,11 @@ A confiança é `PROBABLE`. Com `$C5A9` não zero, o callback define `$C63A=7`, 
 A confiança é `PROBABLE`. Seis handlers leem bytes de `$C73D/$C73E/$C73F/$C84B/$C84C/$C84D`; dois leem words de `$C747/$C745`. Escrevem os bytes numéricos originais em `$C655`, terminam com zero e chamam `$01E9`. O formato de byte gera dois bytes: para 0–99, tens zero usa `$10`, demais dígitos usam `$20 + dígito`; acima de 99, mantém `$4E,$47`. O formato de word divide por 100, usa somente o byte baixo do quociente e formata quociente/resto; depois substitui marcadores iniciais e internos conforme a lógica literal. Zero resulta em quatro `$10`; 25.600 tem o mesmo resultado, pelo wrap do quociente. Não houve tradução nem normalização desse comportamento.
 
 Os 1.836 novos asserts conferem 256 despachos parados antes do JP, 1.536 prefixos de byte (todos os valores nos seis handlers), 36 prefixos de word (18 valores por handler) e oito entradas pela tabela. Os casos param antes da apresentação `$01E9`, verificam bytes, terminador, guards e retorno empilhado; não executam destinos desconhecidos de índices fora do prefixo. A fixture soma 52.949 asserts; o privado preserva os 1.173 símbolos de `e38df3f`. ROM inteira e negativos reais passam. A apresentação natural e o significado dos campos permanecem sem confirmação.
+
+### Helpers aritméticos de largura fixa
+
+`home/fixed_width_arithmetic.asm` extrai `$2012-$2069` (88 bytes): produto de bytes com resultado baixo, produto de bytes em HL, produto de words com resultado baixo e duas divisões. Os cinco thunks `$022B-$0237` e os formatadores numéricos usam os novos símbolos; `ResidualROM00_2012` permanece. O restante `$206A-$21D6` continua não interpretado.
+
+A confiança é `PROBABLE`. Os produtos de byte retornam A baixo ou HL completo e devolvem C após oito rotações; o produto de words retorna `(DE*BC)&$FFFF`, deixa DE/A zero e mantém BC. A divisão de byte retorna H=resto/L=quociente; divisor zero retorna H=dividendo/L=`$FF`. A divisão de word executa 16 rodadas com resto intermediário de oito bits e devolve H=resto/L=byte baixo do quociente. Esse algoritmo não equivale a uma divisão ampliada para todos os divisores: 256 ÷ 255 retorna H/L zero, por overflow do resto; divisor zero retorna H=byte baixo do dividendo/L=`$FF`. A formatação por divisor 100 mantém seu quociente truncado original.
+
+A fixture verifica todos os 65.536 pares de bytes nas três operações correspondentes, todos os 65.536 valores de DE com BC `$FFFF`, 324 pares representativos de words, todos os dividendos de word para divisores 0/100/255 e 126 casos de fronteira para divisores 1/2/10/127/128/129/254. O modelo de word reproduz as 16 rodadas e o overflow; não usa divisão de host como substituto. São 918.404 novos asserts, elevando o total a 971.353. O privado preservou os 1.200 símbolos publicados em `57113d1`; ROM inteira e negativos reais passam. Os domínios completos citados são sintéticos; não demonstram admissibilidade ou uso natural de todos esses operandos pelo jogo.
