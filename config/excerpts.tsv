@@ -96,7 +96,13 @@ bank	start	end	symbol
 07	7466	7FFF	ResidualROM07_7466
 08	4000	5FFF	ResidualROM08_4000
 08	6000	7FFF	ResidualROM08_6000
-09	4000	5FFF	ResidualROM09_4000
+09	4000	4030	A12SelectionEntry
+09	4031	4120	InitializeA12Selection
+09	4121	4139	CleanupA12Selection
+09	413A	414F	DispatchA12SelectionState
+09	4150	4155	A12SelectionStateTargets
+09	4156	4156	A12SelectionNoop
+09	4157	5FFF	ResidualROM09_4157
 09	6000	7FFF	ResidualROM09_6000
 0A	4000	4029	LocalMinigameMenuEntry
 0A	402A	406B	LocalMinigameMenuLoop

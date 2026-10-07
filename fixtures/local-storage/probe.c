@@ -3625,6 +3625,80 @@ int main(int argc,char **argv){
    "Selection raw modes byte-wrapped index no range guard stop before JP HL",mode);
  }
  }
+ { /* Original A12 caller initializes mode2 before the first external SYS0 call. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned seed=0;seed<256;seed++)for(unsigned bank=0;bank<8;bank++)for(unsigned flags=0;flags<16;flags++){
+  for(unsigned address=0xC5A2;address<=0xC5E3;address++)wr(c,address,(seed+address)&255);
+  wr(c,0xC217,0x33);wr(c,0xC218,0xA5);wr(c,0xC219,0x5A);wr(c,0xFF70,bank);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=seed<<8|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4000;
+  unsigned steps=0;while(cpu->pc!=0x404C&&steps++<1000)c->step(c);
+  unsigned index=seed*128+bank*16+flags;
+  require(cpu->pc==0x404C&&cpu->sp==0xCFFC&&rd(c,0xCFFC)==3&&rd(c,0xCFFD)==0x40,"A12 original entry calls initializer before SYS0 load prefix",index);
+  bool exact=rd(c,0xC5A2)==((seed+0xC5A2)&255)&&rd(c,0xC5E3)==((seed+0xC5E3)&255);
+  for(unsigned address=0xC5A3;address<=0xC5E2;address++)exact&=rd(c,address)==(address==0xC5C3?255:0);
+  require(exact&&rd(c,0xC217)==0x33&&rd(c,0xC218)==2&&rd(c,0xC219)==0x5A&&(rd(c,0xFF70)&7)==2,"A12 exact64-byte clear guards mode2 and WRAM selector",index);
+  require(cpu->af==0x0280&&cpu->bc==0&&cpu->de==0x5678&&cpu->hl==0xC5E3,"A12 initialization prefix complete registers",index);
+ }
+ }
+ { /* A12 raw state dispatcher prefixes; no invalid indirect targets executed. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned state=0;state<256;state++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A3,state);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x413A;
+  unsigned offset=(state*2)&255,target=rd(c,0x4150+offset)|(rd(c,0x4151+offset)<<8),steps=0,index=state*16+flags;
+  while(cpu->pc!=0x414E&&steps++<100)c->step(c);
+  require(cpu->pc==0x414E&&cpu->sp==0xCFFC&&rd(c,0xCFFC)==0x4F&&rd(c,0xCFFD)==0x41&&rd(c,0xCFFE)==0&&rd(c,0xCFFF)==0xC1,"A12 original dispatcher pushes414F return before JP HL",index);
+  require(cpu->hl==target&&cpu->de==target&&cpu->bc==0xBEEF&&cpu->a==offset&&cpu->f.packed==(offset?0:0x80)&&rd(c,0xC5A3)==state,"A12 all raw states wrapped table target registers stop before indirect jump",index);
+  if(!offset){for(unsigned i=0;i<3;i++)c->step(c);require(cpu->pc==0xC100&&cpu->sp==0xD000,"A12 state0 and128 actual no-op and two return chain",index);}
+ }
+ }
+ { /* Actual HALT and flag wait tails; synthetic producer, never natural IRQ. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned state=0;state<256;state++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A3,state);wr(c,0xC5A9,0xA5);wr(c,0xFF8A,0);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x401B;unsigned index=state*16+flags;
+  require(wakeSyntheticHalt(c,false),"A12 original HALT receives scheduled wake without setting frame flag",index);
+  unsigned steps=0;while(cpu->pc!=0x401D&&steps++<10)c->step(c);
+  require(cpu->pc==0x401D&&rd(c,0xFF8A)==0,"A12 HALT wake alone does not produce frame flag",index);
+  for(unsigned i=0;i<12;i++)c->step(c);
+  if(!(cpu->pc==0x401D&&cpu->af==0x00A0&&cpu->sp==0xCFFE))fprintf(stderr,"A12 wait PC=%04X AF=%04X SP=%04X phase=%u flag=%02X halted=%u\n",cpu->pc,cpu->af,cpu->sp,cpu->executionState,rd(c,0xFF8A),cpu->halted);
+  require(cpu->pc==0x401D&&cpu->af==0x00A0&&cpu->sp==0xCFFE,"A12 original zero flag wait remains polling for four complete iterations",index);
+  wr(c,0xFF8A,0x80);steps=0;unsigned target=state?0x4003:0x402D;
+  while(cpu->pc!=target&&steps++<30)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xCFFE&&cpu->a==state&&cpu->f.packed==(state?0x20:0xA0)&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xFF8A)==0&&rd(c,0xC5A3)==state&&rd(c,0xC5A9)==0xA5,
+   "A12 frame flag consumed and all state bytes branch to loop or cleanup prefix",index);
+ }
+ }
+ { /* Full A12 exit/cleanup using disposable in-memory existing SYS0 record. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0xFF70,2);
+ for(unsigned seed=0;seed<256;seed++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);wr(c,0xFFAF,0);wr(c,0xFFB0,1);
+  for(unsigned i=0;i<0x800;i++)wr(c,0xA000+i,0);
+  wr(c,0xA002,0);wr(c,0xA003,0xA4);
+  for(unsigned i=0;i<4;i++){wr(c,0xA004+i,rd(c,0x17B3+i));wr(c,0xA402+i,rd(c,0x17B3+i));}
+  wr(c,0xA406,50);wr(c,0xA43B,0x5A);
+  for(unsigned i=0;i<50;i++){wr(c,0xC700+i,(seed+i*13)&255);wr(c,0xA409+i,0xA5);}
+  wr(c,0x27FF,0x12);wr(c,0x2800,0);wr(c,0xFFAB,0x12);wr(c,0xFFAC,0);wr(c,0xC113,0x12);wr(c,0xC114,0);
+  wr(c,0x37FF,5);wr(c,0x3800,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0xC115,5);wr(c,0xC116,0);
+  unsigned aBytes[8],bBytes[8];for(unsigned i=0;i<8;i++){aBytes[i]=rd(c,0x4000+i);bBytes[i]=rd(c,0x6000+i);}
+  for(unsigned i=0;i<6;i++)wr(c,0xC67F+i,(seed+i)&255);
+  wr(c,0xC67E,0x33);wr(c,0xC685,0x5A);wr(c,0xFF8E,0xAA);wr(c,0xFF8F,0xBB);wr(c,0xFF92,0xCC);wr(c,0xFF93,0xDD);wr(c,0xFF45,0x3F);
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x402D);unsigned index=seed*16+flags;
+  bool exact=cpu->af==0x00A0&&cpu->de==0&&cpu->hl==0xC682&&g->memory.ime&&rd(c,0xFFFF)==0&&rd(c,0xFF45)==0&&!(rd(c,0xFF41)&0x40)&&rd(c,0xA409)==255;
+  exact&=rd(c,0xC67F)==0xD9&&rd(c,0xC682)==0xD9&&rd(c,0xC67E)==0x33&&rd(c,0xC685)==0x5A;
+  for(unsigned i=1;i<3;i++)exact&=rd(c,0xC67F+i)==((seed+i)&255)&&rd(c,0xC682+i)==((seed+3+i)&255);
+  exact&=rd(c,0xFF8E)==0&&rd(c,0xFF8F)==0&&rd(c,0xFF92)==0&&rd(c,0xFF93)==0&&rd(c,0xC113)==0x12&&rd(c,0xC114)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0;
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==aBytes[i]&&rd(c,0x6000+i)==bBytes[i];
+  require(exact,"A12 complete original exit stores SYS0 disables SRAM clears callbacks retains stub operands and mapping",index);
+  wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);unsigned sum=0;
+  for(unsigned i=2;i<59;i++)sum+=rd(c,0xA400+i);
+  exact=(rd(c,0xA400)|(rd(c,0xA401)<<8))==(sum&65535)&&rd(c,0xA43B)==0x5A;
+  for(unsigned i=0;i<50;i++)exact&=rd(c,0xA409+i)==((seed+i*13)&255)&&rd(c,0xC700+i)==((seed+i*13)&255);
+  require(exact,"A12 cleanup original50-byte SYS0 payload checksum and guard no disk save",index);
+ }
+ wr(c,0x0000,0);g->memory.ime=false;
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

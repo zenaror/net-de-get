@@ -1128,3 +1128,37 @@ git -C /tmp/netdeget-mgba-source-431041ac6 checkout --detach 431041ac6
 
 A changed tracked include tree is rejected before compiling/executing the
 probe. This is an ABI provenance gate, not a verdict on the newer mGBA build.
+
+
+## A12 selection caller, dispatcher, frame wait and SYS0 cleanup
+
+PROBABLE, original flow plus forced-entry CPU evidence. Physical09 lower half
+is MBC6 A12. Source4000-4156 separates entry, initialization, cleanup,
+dispatcher, three-word table and no-op RET; original ResidualROM09_4000 stays.
+The entry actually calls initialization;32768 prefixes cover256 fill patterns,
+8 initial SVBK values and16 flags, stopping before404C SYS0 load. They compare
+all64 cleared C5A3-C5E2 bytes (C5C3 subsequently FF), guards, C218=2,
+WRAM2, pushed4003 return and AF/BC/DE/HL. Later initialization resources and
+callback installation are static flow only, not a complete initialization trace.
+
+4096 dispatcher prefixes cover every state/flag pair, stopping before414E
+JP HL. Independent target reads use4150+((state*2)&255); stack contains414F
+and original C100 return. States0/128 execute the real4156 no-op and both
+RET instructions in32 cases; other raw targets are never executed here.
+
+4096 frame-wait tails execute real HALT with a scheduled fixture wake that
+does not setFF8A. Four complete zero-flag polling iterations remain waiting;
+explicit fixture FF8A=80 then releases the original loop. State0 reaches402D
+cleanup prefix; every other state reaches4003. Registers/stack and guards are
+checked. No natural IRQ producer or ISR execution is inferred from this event.
+
+4096 full exit/cleanup calls execute402D->4121, actual SYS0 storage wrapper,
+50-byte store/checksum/close and callback/stub clearing. A disposable in-memory
+existing SYS0 record covers256 payload patterns times16 flags. Exact payload,
+checksum, adjacent guard, both restored mapper windows, SRAM disable, zero
+callback pointers and RETI opcodes are checked; empty-stub operands retain their
+prior values. No disk save is loaded/written, no flash programming occurs.
+The first wait/cleanup AF oracle omitted H set by AND A; corrected without
+changing ROM code.135200 additional assertions; total9192779, plus24 verifier tests. Complete
+initialization, handlers4157/421D and callback4239 are still untested as a whole;
+natural menu/audio/IRQ, Japanese interpretation and hardware remain unproved.
