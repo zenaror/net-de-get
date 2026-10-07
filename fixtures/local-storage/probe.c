@@ -77,6 +77,19 @@ static unsigned colorScaled(unsigned value,unsigned mode){
  if(mode<2)return value>>(2-mode);
  return mode-2>=16?0:(value<<(mode-2))&65535;
 }
+static unsigned a0fRemappedColumn(unsigned column,unsigned row){
+ if(row<4)return column;
+ if(column==0||column==7)return 11;
+ if(column==2||column==10)return 6;
+ if(column==5||column==12)return 1;
+ return column;
+}
+static void modelA0FDirections(unsigned held,unsigned *column,unsigned *row,unsigned *variant){
+ if(held&0x10){*column=(*column+1)&255;if(*column>=15)*column=0;*column=a0fRemappedColumn(*column,*row);}
+ if(held&0x20){*column=(*column-1)&255;if(*column==255)*column=14;*column=a0fRemappedColumn(*column,*row);}
+ if(held&0x80){unsigned next=(*row+1)&255;if(next>=4)*column=*column<5?1:*column<10?6:11;*row=next>=5?0:next;*variant=*row<4?0:1;}
+ if(held&0x40){*row=(*row-1)&255;if(*row==255){*row=4;*column=*column<5?1:*column<10?6:11;}*variant=*row<4?0:1;}
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -2618,6 +2631,63 @@ int main(int argc,char **argv){
    require(uploaded,"Mode4 original LCDoff palette upload exact BG OBJ bytes and registers",source*16+add*8+tick-1);
   }
  }
+ }
+ { /* Original A0F input gate and directions; empty synthetic upper stream. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);wr(c,0xFFAB,0x0F);wr(c,0xFFAC,0);
+ wr(c,0xFFAD,0x15);wr(c,0xFFAE,0);wr(c,0x37FF,0x15);wr(c,0x3800,0);
+ wr(c,0xC663,0x14);wr(c,0xC664,0);wr(c,0xCF92,0);wr(c,0xCF93,0xD3);
+ for(unsigned i=0;i<8;i++){wr(c,0xD300+2*i,0x10);wr(c,0xD301+2*i,0xD6);}wr(c,0xD610,0);
+ wr(c,0xFF97,0);wr(c,0xFF98,0);
+ for(unsigned busy=0;busy<256;busy++)for(unsigned state=0;state<256;state++){
+  wr(c,0xC1B8,busy);wr(c,0xC772,state);wr(c,0xC220,0xA5);wr(c,0xC766,37);wr(c,0xC767,2);
+  wr(c,0xC768,0xA5);wr(c,0xC769,0x5A);wr(c,0xC76B,1);wr(c,0xC1C4,16);wr(c,0xC20A,0x3C);
+  call(c,0x41C5);bool active=!busy&&state!=0&&state!=99;
+  require(rd(c,0xC1B8)==busy&&rd(c,0xC772)==state&&rd(c,0xC220)==0xA5&&rd(c,0xC766)==37&&rd(c,0xC767)==2&&
+   rd(c,0xC768)==(active?0x49:0xA5)&&rd(c,0xC769)==(active?0x70:0x5A)&&rd(c,0xC76B)==1&&rd(c,0xC1C4)==16&&rd(c,0xC20A)==0x3C,
+   "A0F input gate full busy/state bytes no buttons queue full",busy*256+state);
+ }
+ for(unsigned counter=0;counter<256;counter++){
+  wr(c,0xC1B8,0);wr(c,0xC772,99);wr(c,0xC220,counter);wr(c,0xC768,0xA5);call(c,0x41C5);
+  require(rd(c,0xC772)==(counter?99:0)&&rd(c,0xC220)==counter&&rd(c,0xC768)==0xA5,
+   "A0F state99 clears only after add transition counter zero",counter);
+ }
+ const unsigned boundary[]={0,1,2,3,4,5,7,14,255};
+ for(unsigned axis=0;axis<2;axis++)for(unsigned mask=0;mask<16;mask++)for(unsigned value=0;value<256;value++)for(unsigned b=0;b<9;b++){
+  unsigned column=axis?boundary[b]:value,row=axis?value:boundary[b],variant=0xA5,held=mask<<4;
+  wr(c,0xC766,column);wr(c,0xC767,row);wr(c,0xC76B,variant);wr(c,0xC772,1);wr(c,0xC1B8,0);wr(c,0xC1C4,16);
+  wr(c,0xC768,0xA5);wr(c,0xC769,0x5A);wr(c,0xFF98,held);wr(c,0xFF97,0);wr(c,0xCF82,0x5A);
+  modelA0FDirections(held,&column,&row,&variant);call(c,0x41C5);
+  unsigned adjusted=column;if(adjusted>=5)adjusted=(adjusted+1)&255;if(adjusted>=11)adjusted=(adjusted+1)&255;
+  unsigned x=((((adjusted<<3)|(adjusted>>5))&255)+16)&255,y=((((row<<4)|(row>>4))&255)+80)&255;
+  require(rd(c,0xC766)==column&&rd(c,0xC767)==row&&rd(c,0xC76B)==variant&&rd(c,0xC768)==x&&rd(c,0xC769)==y&&
+   rd(c,0xC772)==1&&rd(c,0xC1C4)==16&&rd(c,0xC20A)==0x3C&&rd(c,0xFF98)==held&&rd(c,0xCF82)==(mask?0:0x5A)&&
+   rd(c,0xC113)==0x0F&&rd(c,0xC114)==0,"A0F all direction masks byte axes boundary rows cols original empty stream",axis*36864+mask*2304+value*9+b);
+ }
+ const unsigned actions[9][2]={{0,0},{3,14},{4,0},{4,1},{4,5},{4,6},{4,7},{4,11},{255,255}};
+ for(unsigned pressed=0;pressed<256;pressed++)for(unsigned sample=0;sample<9;sample++)for(unsigned list=0;list<3;list++){
+  unsigned row=actions[sample][0],column=actions[sample][1],target=0xC100,state=1,choice=0xA5;
+  if(pressed&2)target=0x451F;
+  else if(pressed&1){
+   if(row<4)target=0x43F0;
+   else if(column==1)target=0x455D;
+   else if(column>=6){choice=(column&8)>>3;if(!choice||list==2){target=0x47AA;state=99;}}
+  }else if(pressed&8){column=11;row=4;}
+  else if(pressed&4)target=0x455D;
+  wr(c,0xC766,actions[sample][1]);wr(c,0xC767,actions[sample][0]);wr(c,0xC76B,0xA5);
+  wr(c,0xC764,0xA5);wr(c,0xC772,1);wr(c,0xCF86,0xA5);wr(c,0xCF87,0x5A);
+  wr(c,0xC74E,list?0x10:0);wr(c,0xC74F,list==2?1:0);wr(c,0xC750,0);
+  wr(c,0xFF98,0);wr(c,0xFF97,pressed);wr(c,0xFFFF,0);wr(c,0xFF0F,0);
+  struct GB *g=c->board;g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;
+  wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x41F1;
+  unsigned steps=0;while(cpu->pc!=0xC100&&cpu->pc!=0x451F&&cpu->pc!=0x43F0&&cpu->pc!=0x455D&&cpu->pc!=0x47AA&&steps++<100000)c->step(c);
+  unsigned index=pressed*27+sample*3+list;
+  require(cpu->pc==target&&cpu->sp==(target==0xC100?0xD000:0xCFFC),"A0F buttons bounded prefix reaches original callee or returns",index);
+  require(rd(c,0xC766)==column&&rd(c,0xC767)==row&&rd(c,0xC764)==choice&&rd(c,0xC772)==state&&
+   rd(c,0xC76B)==((!(pressed&3)&&(pressed&8))?1:0xA5)&&rd(c,0xFF97)==pressed&&
+   rd(c,0xCF86)==(target==0x47AA?2:0xA5)&&rd(c,0xCF87)==(target==0x47AA?1:0x5A),
+   "A0F button precedence bounded list skip10 and countdown prefix fields",index);
+ }
+ wr(c,0xFF97,0);wr(c,0xFF98,0);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

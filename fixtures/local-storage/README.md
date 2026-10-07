@@ -649,3 +649,21 @@ accumulators/deltas/packed colors at every step.2116 calls add4232 asserts. Each
 and preserved AF/BC/HL.
 This is SYNTHETIC execution, not natural menu/VBlank/LCD-on upload or
 hardware proof. The4E20..4E9F overlap with tilemap remains intact.
+
+
+## A0F input dispatch and bounded action prefixes
+
+41C5 gating covers every65536 busy/state pair and all256 add-counter bytes
+in state63. Active input is blocked by C1B8; state63 clears only withC220=0.
+73728 complete direction calls cover all16 masks, each byte axis and nine
+boundary values on the other axis. Original upper-stream requests use a
+synthetic pointer table and empty channel record; no code is substituted
+and no natural sound is claimed. Full queue guards and position fields
+are checked. The literal right/left/down/up order and asymmetric row snap
+are modeled, including byte wrap outside normal input bounds.
+6912 bounded button prefixes cover all256 bytes, nine positions and three
+terminated lists. They stop before451F/43F0/455D/47AA or return normally.
+Destination/SP, precedence, column choice, state, variant and countdown
+are checked; these stops do not prove the callee return or natural menu.
+139520 complete calls and6912 prefixes add292864 assertions. Semantics
+remain PROBABLE; no safety of unterminated lists is asserted.

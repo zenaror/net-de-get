@@ -89,7 +89,6 @@ bank	start	end	symbol
 06	6000	7FFF	ResidualROM06_6000
 07	4000	5FFF	ResidualROM07_4000
 07	6000	609B	ResidualROM07_6000
-07	61C5	6305	ResidualROM07_61C5
 07	63BF	64AD	ResidualROM07_63BF
 07	64D7	67DF	ResidualROM07_64D7
 07	6E20	6E67	ResidualROM07_6E20
@@ -459,3 +458,5 @@ bank	start	end	symbol
 00	088D	08F1	ScaleColorDeltaWords
 00	08F2	08FA	ColorTransitionCountPrefix
 00	0180	018B	ResidualROM00_0180
+07	61C5	61F0	DispatchA0FInput
+07	61F1	6305	HandleA0FInput
