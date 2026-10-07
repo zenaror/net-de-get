@@ -366,3 +366,69 @@ The original ROM is unchanged. No warning suppression or mapper correction
 was made in this investigation. Hardware interpretation, potential broader
 consequences and warning policy remain unvalidated; passing gameplay and
 storage comparisons do not establish that all invalid accesses are harmless.
+
+### Bounded read/fetch consequence check
+
+The observer was extended to delegate and count guest data-load and CPU-fetch
+callbacks as well as mapper stores. On the same clean library, acknowledged
+occupied snapshot and nine-pair entry macro, it reported:
+
+- `BADREADCOUNT=0`: no guest B-window data load while raw selector80 was requested;
+- `BADFETCHCOUNT=0`: no B-window instruction/operand fetch during that interval;
+- `GOODREADB70=8214`: positive control, guest B-window reads while selector70
+  was requested, confirming the data observer was active.
+
+Evidence: `/tmp/netdeget-boundary-80-ftd9g108/trace.log`; the extended source is
+`fixtures/maintenance/boundary.c`. All seven bank80 warnings remain logged.
+This only establishes that the transient restored mapping was unused for
+B-window data/fetch in the observed list-entry route. It is not a general
+harmlessness or hardware claim.
+
+Separately, the mGBA core audit identified a pointer/state inconsistency in its
+existing oversized-ROM wrap path: offset0 was selected while recorded bank0
+was incremented to1, so later ROM/flash switching could select different bytes.
+The owner is testing a narrow MBC6 exception to that increment, with independent
+A/B direct-zero, wrapped-zero and chip-switch regression checks. The static
+diff was reviewed here; regression and final checkpoint are owned by mGBA.
+No original ROM change or unconditional bit7 mask is proposed.
+
+## Final core and Maker integration checkpoint
+
+The mGBA owner published final core `431041ac6e264b119476d47ecf9ab96f03f11d54`,
+including the narrow MBC6 bank-zero pointer/state correction. The actual Linux
+release library reports version `0.11-feature/full_server-9343-431041ac6` and
+SHA256 `9d1c7aa87d5f82f13b78a19c85778b48ff3258f1c387291299e5045d150ca936`.
+The owner's aggregate `/tmp/mgba-final-runtime-report.json` records 30 CTest
+targets, 21 latch observations, 56 offline checks and four legacy scenarios,
+along with final natural acquisition and fresh-core execution of all three
+new Maker examples. Original minigames that cannot be recovered are not a
+required pending task. REON prices remain historical metadata, with no billing.
+
+Maker main now includes exit release, full-block legacy extraction, checksum
+recalculation after ID assignment, explicit `--game-id` packaging, mode5 framing
+bounds, fresh-checkout output-directory creation and updated full-ABI offline
+validation: `f968f1cdc1948d50999ca073298090d0520bd8fd`.
+Six payload unit checks and three staged-payload tests passed; independent review
+repeated those checks without objections. The legacy MySQL uploader targets its
+old schema and was not executed; current publication uses the REON importer.
+
+**CONFIRMED (final shipped Linux library):** all three natural download payloads
+were independently compared here with the sealed examples, byte-exact across
+8192 bytes, retaining BOX2 `10 01 FF 00`:
+
+- G001 C PAD: `/tmp/mgba-netdeget-local-c87iafz3`; fresh core
+  `/tmp/mgba-clean-61f28-gameplay-zefkbz34`.
+- G002 ASM PAD: `/tmp/mgba-netdeget-local-m7rjn5ti`; fresh core
+  `/tmp/mgba-clean-61f28-gameplay-g08xdd5b`.
+- G003 REACTION: `/tmp/mgba-netdeget-local-pmb9jz1n`; fresh core
+  `/tmp/mgba-maker-reaction-7cslycib`.
+
+PAD controls, REACTION states/reset, partial-button-release exit, normal host
+return and full-flash persistence passed. Run logs identify the committed final
+runtime without dirty. This closes the new Maker HTTP-delivery/integration
+pending item; prior candidate runs remain historical evidence, not final-runtime
+provenance. No hardware or arbitrary-program completeness claim follows.
+
+A source/examples release bundle for Maker main was handed to the mGBA owner
+for `_RELEASES` staging. It contains no host ROM, saves, credentials or server
+responses. Platform release builds/staging remain coordinated in that chat.

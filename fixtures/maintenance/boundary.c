@@ -1,6 +1,6 @@
-/* Pass-through CPU store observer: records mapper writes and Index80 scratch
- * bookkeeping, then delegates every store unchanged. No guest injection.
- * Compile with all feature defines of the linked library (internal ABI). */
+/* Pass-through observer for mapper stores, guest data loads and CPU fetches.
+ * Counts accesses while raw B selector80 is requested; B70 is a positive control.
+ * Every access delegates unchanged. Compile with the linked library ABI flags. */
 #include <mgba/flags.h>
 #include <mgba/core/core.h>
 #include <mgba/core/config.h>
@@ -23,7 +23,19 @@ static void snapshot(struct mCore*c,const char*dir,int stage) {
 
 static struct mCore* watched;
 static void (*originalStore)(struct SM83Core*,uint16_t,int8_t);
-static unsigned lastA,lastB;
+static unsigned lastA,lastB, badReads, goodReads, badFetches;
+static uint8_t (*originalLoad)(struct SM83Core*,uint16_t);
+static uint8_t (*originalFetch)(struct SM83Core*,uint16_t);
+static uint8_t observedFetch(struct SM83Core*cpu,uint16_t address){
+ uint8_t v=originalFetch(cpu,address);
+ if(address>=0x6000&&address<0x8000&&lastB==0x80)badFetches++;
+ return v;
+}
+static uint8_t observedLoad(struct SM83Core*cpu,uint16_t address){
+ uint8_t value=originalLoad(cpu,address); if(address>=0x6000&&address<0x8000&&lastB==0x70)goodReads++;
+ if(address>=0x6000&&address<0x8000&&lastB==0x80){badReads++;printf("BADREAD pc=%04X addr=%04X value=%02X\n",cpu->pc,address,value);}
+ return value;
+}
 static void mapperStore(struct SM83Core*cpu,uint16_t address,int8_t value){
  struct GB*g=watched->board;unsigned v=(unsigned char)value;
  unsigned target=address>>10;
@@ -36,6 +48,6 @@ static void mapperStore(struct SM83Core*cpu,uint16_t address,int8_t value){
  originalStore(cpu,address,value);
 }
 
-int main(int argc,char**argv){if(argc<4)return 2;struct mCore*c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;mCoreInitConfig(c,"natural-pad-test");if(!mCoreLoadFile(c,argv[1]))return 4;c->dirs.save=VDirOpen(argv[2]);strcpy(c->dirs.baseName,"padtest");if(!mCoreAutoloadSave(c))return 5;mColor*video=calloc(256*256,sizeof(mColor));c->setVideoBuffer(c,video,256);c->reset(c); watched=c; originalStore=((struct GB*)c->board)->cpu->memory.store8; ((struct GB*)c->board)->cpu->memory.store8=mapperStore;
+int main(int argc,char**argv){if(argc<4)return 2;struct mCore*c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;mCoreInitConfig(c,"natural-pad-test");if(!mCoreLoadFile(c,argv[1]))return 4;c->dirs.save=VDirOpen(argv[2]);strcpy(c->dirs.baseName,"padtest");if(!mCoreAutoloadSave(c))return 5;mColor*video=calloc(256*256,sizeof(mColor));c->setVideoBuffer(c,video,256);c->reset(c); watched=c; originalStore=((struct GB*)c->board)->cpu->memory.store8; ((struct GB*)c->board)->cpu->memory.store8=mapperStore; originalLoad=((struct GB*)c->board)->cpu->memory.load8; ((struct GB*)c->board)->cpu->memory.load8=observedLoad; originalFetch=((struct GB*)c->board)->cpu->memory.cpuLoad8; ((struct GB*)c->board)->cpu->memory.cpuLoad8=observedFetch;
  for(int i=3;i<argc;i++){unsigned key,frames;if(sscanf(argv[i],"%u:%u",&key,&frames)!=2)return 6;c->setKeys(c,key);for(unsigned j=0;j<frames;j++)c->runFrame(c);snapshot(c,argv[2],i-3);}
- c->setKeys(c,0);c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);free(video);return 0;}
+ printf("BADREADCOUNT=%u GOODREADB70=%u BADFETCHCOUNT=%u\n",badReads,goodReads,badFetches);c->setKeys(c,0);c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);free(video);return 0;}
