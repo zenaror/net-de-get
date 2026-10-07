@@ -627,3 +627,25 @@ not prove natural palettes, visible colors or timing. Semantics remain
 PROBABLE. Original64-color preparation at07E7/0805 is statically separate:
 its128-byte read starting4E20 overlaps the extracted tilemap at4E68..4E9F.
 The overlap is retained, with no claim of an independent resource object.
+
+
+## Color transition preparation, scaling and ticks
+
+07E7 initializes192 accumulator words toF800 and C21F;0805 initializes
+from64 original packed colors and C220. Both derive deltas and call088D.
+Parameter2 retains words and returns32;0/1 shift right2/1;other byte values
+shift left parameter-2 with16-bit wrap. Return counts are read from actual
+ROM addresses, including code beyond the nine-byte count prefix for high
+parameters. Such reads are tested, not declared natural valid parameters.
+256 scaler cases and1024 complete preparations cover every parameter and
+both original A0F resources4E20/52EC. Finite1000000-step caps are used.
+0830 gives C220 addition priority, otherwise C21F subtraction; active
+paths decrement only their counter, update192 words with carry/borrow
+and wrap, pack64 colors and set C221=1. Bothzero leaves buffers/flag intact.
+768 complete ticks cover all counter bytes and conflicts. Four original
+resource chains run mode4 preparation and all eight ticks, checking all
+accumulators/deltas/packed colors at every step.2116 calls add4232 asserts. Each of the32 chain ticks also calls the original
+018C upload with LCDoff and checks all64 BG and64 OBJ bytes, clearedflag
+and preserved AF/BC/HL.
+This is SYNTHETIC execution, not natural menu/VBlank/LCD-on upload or
+hardware proof. The4E20..4E9F overlap with tilemap remains intact.

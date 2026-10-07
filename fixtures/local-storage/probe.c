@@ -72,6 +72,11 @@ static unsigned modelWordDivision(unsigned value,unsigned divisor){
  }
  return (remainder<<8)|(work&255);
 }
+static unsigned colorScaled(unsigned value,unsigned mode){
+ if(mode==2)return value;
+ if(mode<2)return value>>(2-mode);
+ return mode-2>=16?0:(value<<(mode-2))&65535;
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -2537,6 +2542,81 @@ int main(int argc,char **argv){
    exact&=rd(c,0xC601+2*i)==((rotated&3)|(((blue>>1)|(blue<<7))&124));
   }
   require(exact,"Pack64 color components raw highbyte rotations and fixed count",seed);
+ }
+ }
+ { /* Original color scaler/preparers/tick; no IRQ or visible-palette claim. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ unsigned counts[256],resources[2][64];
+ for(unsigned mode=0;mode<256;mode++)counts[mode]=mode==2?32:rd(c,mode<2?0x8F8+2-mode:0x8F2+mode-2);
+ for(unsigned source=0;source<2;source++)for(unsigned i=0;i<64;i++){
+  unsigned address=(source?0x52EC:0x4E20)+2*i;resources[source][i]=rd(c,address)|(rd(c,address+1)<<8);
+ }
+ for(unsigned mode=0;mode<256;mode++){
+  wr(c,0xC421,0xA5);wr(c,0xC5A3,0x5A);wr(c,0xC5A2,0x3C);
+  for(unsigned i=0;i<192;i++){unsigned value=(i*7919+mode*257)&65535;wr(c,0xC422+2*i,value);wr(c,0xC423+2*i,value>>8);}
+  cpu->a=mode;callWithLimit(c,0x88D,1000000);
+  bool exact=cpu->a==counts[mode]&&rd(c,0xC421)==0xA5&&rd(c,0xC5A3)==0x5A&&rd(c,0xC5A2)==(mode==2?0x3C:mode<2?2-mode:mode-2);
+  for(unsigned i=0;i<192;i++){unsigned value=colorScaled((i*7919+mode*257)&65535,mode);exact&=rd(c,0xC422+2*i)==(value&255)&&rd(c,0xC423+2*i)==(value>>8);}
+  require(exact,"Original color scaler all parameter bytes actual ROM count reads",mode);
+ }
+ for(unsigned source=0;source<2;source++)for(unsigned add=0;add<2;add++)for(unsigned mode=0;mode<256;mode++){
+  wr(c,0xC2A1,0xA5);wr(c,0xC5A3,0x5A);wr(c,0xC21F,0x78);wr(c,0xC220,0x78);wr(c,0xC221,0xA5);
+  cpu->hl=source?0x52EC:0x4E20;cpu->a=mode;callWithLimit(c,add?0x17A:0x177,1000000);
+  bool exact=rd(c,add?0xC220:0xC21F)==counts[mode]&&rd(c,add?0xC21F:0xC220)==0x78&&rd(c,0xC221)==0xA5&&rd(c,0xC2A1)==0xA5&&rd(c,0xC5A3)==0x5A;
+  for(unsigned i=0;i<192;i++){
+   unsigned component=(resources[source][i/3]>>(5*(i%3)))&31;
+   unsigned base=add?component*2048:0xF800,delta=colorScaled((31-component)*64,mode);
+   exact&=rd(c,0xC2A2+2*i)==(base&255)&&rd(c,0xC2A3+2*i)==(base>>8)&&rd(c,0xC422+2*i)==(delta&255)&&rd(c,0xC423+2*i)==(delta>>8);
+  }
+  require(exact,"Original transition preparation two overlapping ROM resources all mode bytes",source*512+add*256+mode);
+ }
+ for(unsigned kind=0;kind<3;kind++)for(unsigned count=0;count<256;count++){
+  unsigned sub=kind==0?count:kind==2?0x78:0,add=kind==1?count:kind==2?count:0;
+  wr(c,0xC21F,sub);wr(c,0xC220,add);wr(c,0xC221,0xA5);wr(c,0xC5A2,0x5A);
+  unsigned expected[192];bool active=add||sub;
+  for(unsigned i=0;i<192;i++){
+   unsigned value=(i*7919+count*257)&65535,delta=(i*4051+count*17)&65535;
+   expected[i]=active?(add?value+delta:value-delta)&65535:value;
+   wr(c,0xC2A2+2*i,value);wr(c,0xC2A3+2*i,value>>8);wr(c,0xC422+2*i,delta);wr(c,0xC423+2*i,delta>>8);
+  }
+  for(unsigned i=0;i<128;i++)wr(c,0xC222+i,0xA5);call(c,0x17D);
+  bool exact=rd(c,0xC21F)==(add?sub:sub?sub-1:0)&&rd(c,0xC220)==(add?add-1:0)&&rd(c,0xC221)==(active?1:0xA5)&&rd(c,0xC5A2)==0x5A;
+  for(unsigned i=0;i<192;i++){
+   unsigned delta=(i*4051+count*17)&65535;
+   exact&=rd(c,0xC2A2+2*i)==(expected[i]&255)&&rd(c,0xC2A3+2*i)==(expected[i]>>8)&&rd(c,0xC422+2*i)==(delta&255)&&rd(c,0xC423+2*i)==(delta>>8);
+  }
+  for(unsigned i=0;i<64;i++){
+   unsigned packed=((expected[3*i]>>11)&31)|(((expected[3*i+1]>>11)&31)<<5)|(((expected[3*i+2]>>11)&31)<<10);
+   exact&=rd(c,0xC222+2*i)==(active?packed&255:0xA5)&&rd(c,0xC223+2*i)==(active?packed>>8:0xA5);
+  }
+  require(exact,"Color tick add priority counter decrement 192word wrap and packed output",kind*256+count);
+ }
+ for(unsigned source=0;source<2;source++)for(unsigned add=0;add<2;add++){
+  wr(c,0xC21F,0);wr(c,0xC220,0);cpu->hl=source?0x52EC:0x4E20;cpu->a=4;call(c,add?0x17A:0x177);
+  require(rd(c,add?0xC220:0xC21F)==8&&rd(c,add?0xC21F:0xC220)==0,"Color transition mode4 starts eight ticks",source*2+add);
+  for(unsigned tick=1;tick<=8;tick++){
+   wr(c,0xC221,0);call(c,0x17D);bool exact=rd(c,add?0xC220:0xC21F)==8-tick&&rd(c,0xC221)==1;
+   unsigned expected[192];
+   for(unsigned i=0;i<192;i++){
+    unsigned component=(resources[source][i/3]>>(5*(i%3)))&31,delta=(31-component)*256;
+    expected[i]=(add?component*2048+tick*delta:0xF800-tick*delta)&65535;
+    exact&=rd(c,0xC2A2+2*i)==(expected[i]&255)&&rd(c,0xC2A3+2*i)==(expected[i]>>8)&&rd(c,0xC422+2*i)==(delta&255)&&rd(c,0xC423+2*i)==(delta>>8);
+   }
+   for(unsigned i=0;i<64;i++){
+    unsigned packed=((expected[3*i]>>11)&31)|(((expected[3*i+1]>>11)&31)<<5)|(((expected[3*i+2]>>11)&31)<<10);
+    exact&=rd(c,0xC222+2*i)==(packed&255)&&rd(c,0xC223+2*i)==(packed>>8);
+   }
+   require(exact,"Original mode4 preparation eight ticks exact accumulators packed colors",source*16+add*8+tick-1);
+   unsigned savedA=cpu->a,savedF=cpu->f.packed,savedBC=cpu->bc,savedHL=cpu->hl;
+   call(c,0x18C);bool uploaded=rd(c,0xC221)==0&&cpu->a==savedA&&cpu->f.packed==savedF&&cpu->bc==savedBC&&cpu->hl==savedHL;
+   for(unsigned i=0;i<64;i++){
+    unsigned packed=((expected[3*i]>>11)&31)|(((expected[3*i+1]>>11)&31)<<5)|(((expected[3*i+2]>>11)&31)<<10);
+    unsigned index=(2*i)&63;wr(c,i<32?0xFF68:0xFF6A,index);
+    uploaded&=rd(c,i<32?0xFF69:0xFF6B)==(packed&255);
+    wr(c,i<32?0xFF68:0xFF6A,index+1);uploaded&=rd(c,i<32?0xFF69:0xFF6B)==(packed>>8);
+   }
+   require(uploaded,"Mode4 original LCDoff palette upload exact BG OBJ bytes and registers",source*16+add*8+tick-1);
+  }
  }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",

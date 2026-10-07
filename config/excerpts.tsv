@@ -4,7 +4,7 @@ bank	start	end	symbol
 00	0104	014F	CartridgeHeader
 00	0150	015B	StoreRuntimeCallback0
 00	0171	0176	UploadBackgroundPaletteEntry
-00	0177	018B	ResidualROM00_0177
+00	0177	017F	StartColorSubtractTransition
 00	018C	018E	UploadPendingCGBPalettes
 00	018F	0197	ResidualROM00_018F
 00	019B	019D	ResidualROM00_019B
@@ -22,7 +22,6 @@ bank	start	end	symbol
 00	0661	0698	StoreRuntimeCallback0Body
 00	0699	06A5	RestoreInterruptRegisters
 00	0799	07E6	UploadBackgroundPaletteEntryBody
-00	07E7	08FA	ResidualROM00_07E7
 00	0995	09EA	UploadPendingCGBPalettesBody
 00	09EB	09F8	InstallOAMDMARoutine
 00	09F9	0A02	OAMDMATemplate
@@ -454,3 +453,9 @@ bank	start	end	symbol
 00	08FB	0924	ExpandPackedColorComponents
 00	0925	096E	ExpandInvertedColorDeltas
 00	096F	0994	Pack64ColorComponents
+00	07E7	0804	PrepareColorSubtractTransition
+00	0805	082F	PrepareColorAddTransition
+00	0830	088C	AdvanceColorTransition
+00	088D	08F1	ScaleColorDeltaWords
+00	08F2	08FA	ColorTransitionCountPrefix
+00	0180	018B	ResidualROM00_0180
