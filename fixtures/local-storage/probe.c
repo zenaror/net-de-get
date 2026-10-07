@@ -1071,6 +1071,65 @@ int main(int argc,char **argv){
           rd(c,0xCF08)==(reset?0:0xA5)&&rd(c,0xCF48)==0x5A,
           "A1E integrated global tick expiry and wrap",periodIndex*16+ci*4+pi);
  }
+ /* Slot0 opcode dispatch: stop before destination bodies or at sentinel. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);
+ for(unsigned opcode=0;opcode<256;opcode++){
+  wr(c,0xCF00,0);wr(c,0xCF01,0xD8);wr(c,0xD800,opcode);
+  unsigned target=opcode<0x80?0xC100:opcode<0x90?0x4569:opcode<0xA0?0x44EB:
+   opcode==0xB0?0x4479:opcode==0xB1?0x444D:opcode==0xC0?0x44C6:opcode==0xE0?0x4481:
+   opcode==0xFD?0x4425:opcode==0xFE?0x4435:opcode==255?0x4A07:0xC100;
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);
+  cpu->de=0xBEEF;cpu->pc=0x43E7;unsigned steps=0;
+  while(cpu->pc!=target&&steps++<200)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(target==0xC100?0xD000:0xCFFE)&&cpu->bc==0xD801&&
+          cpu->a==opcode&&cpu->de==0xBEEF&&rd(c,0xCF00)==0&&rd(c,0xCF01)==0xD8,
+          "A1E slot0 all opcode dispatches",opcode);
+ }
+ const unsigned clampValues[]={0,1,14,15,16,127,128,255};
+ for(unsigned active=0;active<2;active++)for(unsigned vi=0;vi<8;vi++)for(unsigned pi=0;pi<8;pi++){
+  unsigned value=clampValues[vi],phase=clampValues[pi];wr(c,0xCF86,active);wr(c,0xCF8A,phase);
+  cpu->a=value;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;call(c,0x43CB);
+  unsigned expected=active?(value<phase?0:value-phase):value;
+  require(cpu->a==expected&&cpu->bc==0x1234&&cpu->de==0xBEEF&&cpu->hl==0xD800&&rd(c,0xCF8B)==value,
+          "A1E phase clamp and register preservation",active*64+vi*8+pi);
+ }
+ const unsigned shortCounts[]={1,2,127},extendedPrefixes[]={0x80,0x81,0x82,255},extendedLow[]={0,127,128,255};
+ for(unsigned index=0;index<19;index++){
+  unsigned first=index<3?shortCounts[index]:extendedPrefixes[(index-3)/4];
+  unsigned low=index<3?0:extendedLow[(index-3)%4];
+  wr(c,0xCF00,0);wr(c,0xCF01,0xD8);wr(c,0xCF05,0x77);
+  wr(c,0xD800,0xB0);wr(c,0xD801,7);wr(c,0xD802,first);wr(c,0xD803,low);
+  call(c,0x43E7);
+  require(rd(c,0xCF0D)==7&&rd(c,0xCF00)==(index<3?3:4)&&rd(c,0xCF01)==0xD8&&
+          rd(c,0xCF04)==(index<3?first:(low|((first&1)<<7)))&&
+          rd(c,0xCF05)==(index<3?0x77:((first&0x7F)>>1)),
+          "A1E B0 short and extended countdown encoding",index);
+ }
+ const unsigned loopCounts[]={0,1,2,255};
+ for(unsigned i=0;i<4;i++){
+  wr(c,0xCF00,0);wr(c,0xCF01,0xD8);wr(c,0xD800,0xFD);wr(c,0xD801,loopCounts[i]);wr(c,0xD802,5);
+  call(c,0x43E7);
+  require(rd(c,0xCF0C)==loopCounts[i]&&rd(c,0xCF0A)==2&&rd(c,0xCF0B)==0xD8&&rd(c,0xCF04)==5,
+          "A1E FD stores count and loop pointer",i);
+  wr(c,0xCF00,0);wr(c,0xCF01,0xD8);wr(c,0xCF0C,loopCounts[i]);wr(c,0xCF0A,0x10);wr(c,0xCF0B,0xD8);
+  wr(c,0xD800,0xFE);wr(c,0xD801,5);wr(c,0xD810,9);call(c,0x43E7);
+  unsigned one=loopCounts[i]==1,stored=loopCounts[i]>1?loopCounts[i]-1:loopCounts[i];
+  require(rd(c,0xCF0C)==stored&&rd(c,0xCF00)==(one?2:0x11)&&rd(c,0xCF04)==(one?5:9),
+          "A1E FE count and pointer branches",i);
+ }
+ const unsigned b1Values[]={0,0x3F,0x40,0x41,255};
+ for(unsigned i=0;i<5;i++){
+  unsigned value=b1Values[i];wr(c,0xCF00,0);wr(c,0xCF01,0xD8);wr(c,0xCF88,0xA5);
+  wr(c,0xD800,0xB1);wr(c,0xD801,value);wr(c,0xD802,1);call(c,0x43E7);
+  require(rd(c,0xCF88)==(value<0x40?0xB4:value==0x40?0xB5:0xA5)&&rd(c,0xCF28)==(value==0x40?0:255),
+          "A1E B1 threshold bit edits",i);
+ }
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xCF00,0);wr(c,0xCF01,0xD8);wr(c,0xCF04,1);
+ wr(c,0xD800,0xB0);wr(c,0xD801,7);wr(c,0xD802,5);call(c,0x4000);
+ require(rd(c,0xCF0D)==7&&rd(c,0xCF04)==5&&rd(c,0xCF00)==3&&rd(c,0xCF01)==0xD8,
+         "A1E integrated tick invokes slot0 B0 handler",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

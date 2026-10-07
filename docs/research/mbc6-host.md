@@ -869,3 +869,21 @@ natural/audio-output/timing/hardware claim.130 added assertions,total5927.
 Full/private/negative gates and24 checker tests preserve all770 c690a56 symbols
 and the whole reference hash.279 sections:114 analyzed/17448 bytes,165 unknown
 ranges/1031128 bytes; no original/reference write or real save.
+
+
+### A1E slot0 command interpreter and phase clamp
+
+**PROBABLE**, tick consumer $42C8 and helper consumer $44F6: extract A1E
+$43CB-$45A0 (470 bytes), preserving ResidualROM0F_43CB. Slot0's stream pointer
+comes from CF00/CF01. The dispatcher compares byte ranges/explicit opcodes;
+unknown paths and return behavior stay original. Phase helper saves inputCF8B
+and, if CF86 is nonzero, returns max(input-CF8A,0), preserving BC/DE/HL.
+Numeric target4A07 and table4A0E remain unclassified; no stream bound assumed.
+
+**SYNTHETIC**: 256 opcode stops,128 clamp cases,19 B0 durations,4 FD/4 FE,
+5 B1 cases and1 integrated tick->B0 add578 asserts,total6505. Short durations
+retain CF05; extended fields use the original shifts/OR. FE count1 follows
+current BC without storing zero; zero follows saved BC. These do not establish
+all opcode bodies, valid arbitrary streams, natural playback or audio correctness.
+Full/private/negative gates preserve778 4a90144 symbols and complete hash.
+280 sections:115 analyzed/17918 bytes,165 unknown/1030658 bytes;24 checker tests.
