@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **26,609 assertions**.
+and stack assertions, the maintained fixture reports **26,624 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -330,3 +330,11 @@ preserve AF/BC/DE/HL. The combined synthetic record reaches lower/upper B0
 handlers via resident calls. Original DI/EI remains: prior IME preservation and
 natural IRQ timing are not asserted. No natural launch, arbitrary record safety
 or audio correctness; WRAM records/streams remain synthetic.
+
+
+Actual-ROM B21/B5B/B5C header cases add15 assertions. Each checks the original
+index1 record's count4, loads12 header bytes through resident thunk0246, then
+requests lower index1 through024C and verifies all four relative stream pointers
+and first-byte-plus-one counters. Records are original ROM bytes; entries are
+forced and this does not execute stream commands, a natural menu or playback.
+Native B5C maps physical bank2E's lower half into B6000-7FFF.

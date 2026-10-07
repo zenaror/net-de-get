@@ -1070,3 +1070,21 @@ WRAM records. No natural launch, IRQ timing, universal pointer/record safety or
 audio correctness. Full/private/negative gates preserve1019 publishedd02dcb7
 symbols and whole hash,24checker tests.291 sections:126 analyzed/21887 bytes,
 163 unknown/1026689 bytes.
+
+
+### Main-state B21/B5B/B5C headers and original lower record1
+
+**PROBABLE**, published main-state loader/request consumers: each B6000 header
+has six little-endian pointer words (12 bytes). Extract each record1 (10 bytes):
+B21/B5C662E and B5B65D4, count4 plus preserved byte and four big-endian relative
+displacements. No reserved-byte meaning or complete stream/table extent inferred.
+B21 physical10 upper and B5B physical2D upper use6000 addresses; B5C physical2E
+lower uses4000/462E while mapped B addresses remain6000/662E. Keep aliases.
+
+**SYNTHETIC forced entries with actual ROM data**: 15 new assertions,total26624,
+check record1/count4, load each header through0246 and request81 through024C,
+checking original stream pointers/countdowns. No stream commands, natural menu
+launch or audio evidence. The full hash gate rejected an initial wrong physical
+placement of even selector5C; corrected before publication. Full/private/negative
+gates preserve1024 published8ed52c9 symbols and whole hash,24checker tests.
+298 sections:132 analyzed/21953 bytes,166 unknown/1026623 bytes.

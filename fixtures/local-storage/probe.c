@@ -1635,6 +1635,26 @@ int main(int argc,char **argv){
  require(rd(c,0xCF86)==2&&rd(c,0xCF87)==1&&rd(c,0xC665)==0&&rd(c,0xC666)==0&&rd(c,0xC667)==0&&rd(c,0xC66B)==0,
          "resident global countdown request fields",0);
  }
+ { /* Published main-state B sources, actual ROM records with forced entry. */
+ const unsigned banks[]={0x21,0x5B,0x5C},records[]={0x662E,0x65D4,0x662E};
+ const unsigned fields[]={0xCF92,0xCF93,0xCF90,0xCF91,0xCF94,0xCF95,0xCF96,0xCF97,0xCF98,0xCF99,0xCF9A,0xCF9B};
+ for(unsigned index=0;index<3;index++){
+  unsigned bank=banks[index];wr(c,0x37FF,bank);wr(c,0x3800,0);
+  unsigned header[12],streams[4],durations[4];for(unsigned i=0;i<12;i++)header[i]=rd(c,0x6000+i);
+  unsigned table=header[2]|(header[3]<<8),record=rd(c,table+2)|(rd(c,table+3)<<8);
+  require(record==records[index]&&rd(c,record)==4,"actual B lower index1 four-stream record",bank);
+  for(unsigned slot=0;slot<4;slot++){unsigned delta=(rd(c,record+2+slot*2)<<8)|rd(c,record+3+slot*2);streams[slot]=(record+delta)&65535;durations[slot]=rd(c,streams[slot]);}
+  wr(c,0xFFAB,4);wr(c,0xFFAC,0);wr(c,0xFFAD,8);wr(c,0xFFAE,0);
+  wr(c,0x27FF,4);wr(c,0x2800,0);wr(c,0x37FF,8);wr(c,0x3800,0);
+  for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);wr(c,0xC672,0);
+  cpu->hl=0x6000;cpu->de=bank;call(c,0x246);bool exact=true;
+  for(unsigned i=0;i<12;i++)if(rd(c,fields[i])!=header[i])exact=false;
+  require(exact&&rd(c,0xC663)==bank&&rd(c,0xC664)==0,"actual B header through resident thunk",bank);
+  cpu->a=0x81;call(c,0x24C);exact=true;
+  for(unsigned slot=0;slot<4;slot++){unsigned pointer=rd(c,0xCF00+slot*16)|(rd(c,0xCF01+slot*16)<<8);if(pointer!=streams[slot]+1||rd(c,0xCF04+slot*16)!=((durations[slot]+1)&255))exact=false;}
+  require(exact&&rd(c,0xCF80)==0&&rd(c,0xC113)==4&&rd(c,0xC115)==8,"actual B lower stream offsets through resident request",bank);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
