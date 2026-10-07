@@ -40,7 +40,7 @@ bank	start	end	symbol
 00	108E	114E	RebuildLocalStorageDirectory
 00	114F	1185	GetStorageDirectoryEntry
 00	1186	118E	ResidualROM00_1186
-00	11AA	12BE	ResidualROM00_11AA
+00	12B9	12BE	ResidualROM00_12B9
 00	12BF	12CD	MBC6_MapWindowB
 00	12CE	12E8	ResidualROM00_12CE
 00	12E9	12F7	MBC6_MapWindowA
@@ -422,3 +422,4 @@ bank	start	end	symbol
 00	2FE0	2FF0	GetQueuedTilemapOffset
 00	2FF1	3030	QueuedTilemapRowOffsets
 00	2D53	2DC2	FillQueuedTextRectangle
+00	11AA	12B8	BuildQueuedDisplayShadow

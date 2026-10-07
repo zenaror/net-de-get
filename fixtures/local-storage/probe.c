@@ -2248,6 +2248,59 @@ int main(int argc,char **argv){
  }
  wr(c,0xFF40,0);
  }
+ { /* Shadow producer only; no OAM DMA or natural menu launch. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);
+ for(unsigned window=0;window<2;window++)for(unsigned count=0;count<=16;count++)for(unsigned pattern=0;pattern<16;pattern++){
+  wr(c,0x27FF,4);wr(c,0x2800,0);wr(c,0x37FF,5);wr(c,0x3800,0);
+  wr(c,0xFFAB,4);wr(c,0xFFAC,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);
+  unsigned savedA[8],savedB[8];for(unsigned i=0;i<8;i++){savedA[i]=rd(c,0x4000+i);savedB[i]=rd(c,0x6000+i);}
+  wr(c,0xC21C,window?0x15:0x14);wr(c,0xC21D,0);wr(c,0xC1C5,0);wr(c,0xC1C6,window?0x60:0x40);
+  wr(c,0xC1C4,count);wr(c,0xC1B7,pattern*17);wr(c,0xC0A0,0xA5);
+  for(unsigned i=0;i<160;i++)wr(c,0xC000+i,0xCC);
+  for(unsigned slot=0;slot<count;slot++){
+   wr(c,0xC1CA+slot*4,(pattern*17+slot)&255);wr(c,0xC1CB+slot*4,(255-pattern*17-slot)&255);
+   wr(c,0xC1CC+slot*4,255);wr(c,0xC1CD+slot*4,(slot*19+pattern)&255);
+  }
+  call(c,0x261);
+  bool exact=rd(c,0xC1C4)==0&&rd(c,0xC0A0)==0xA5;
+  for(unsigned i=0;i<160;i++){
+   unsigned slot=i/4,value=0;
+   if(slot<count){const unsigned record[]={((255-pattern*17-slot)&255),((pattern*17+slot)&255),((slot*19+pattern)&255),pattern*17};value=record[i%4];}
+   exact&=rd(c,0xC000+i)==value;
+  }
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x4000+i)==savedA[i]&&rd(c,0x6000+i)==savedB[i];
+  require(exact,"shadow direct records0..16 exact order clear guards A/B restore",window*272+count*16+pattern);
+ }
+ for(unsigned pieces=0;pieces<256;pieces++)for(unsigned pattern=0;pattern<2;pattern++){
+  wr(c,0xC1C4,1);wr(c,0xC1C5,0);wr(c,0xC1C6,0xD8);wr(c,0xC21C,0x15);wr(c,0xC21D,0);
+  wr(c,0xFFAD,5);wr(c,0xFFAE,0);wr(c,0x37FF,5);wr(c,0x3800,0);
+  unsigned restored[8];for(unsigned i=0;i<8;i++)restored[i]=rd(c,0x6000+i);
+  wr(c,0xD804,0);wr(c,0xD805,0xD9);wr(c,0xD906,0);wr(c,0xD907,0xDA);
+  wr(c,0xDA00,pieces);wr(c,0xC1CA,pattern?255:0);wr(c,0xC1CB,pattern?128:1);
+  wr(c,0xC1CC,2);wr(c,0xC1CD,3);wr(c,0xC0A0,0xA5);
+  for(unsigned slot=0;slot<pieces;slot++){
+   wr(c,0xDA01+slot*4,(slot*7)&255);wr(c,0xDA02+slot*4,(255-slot*9)&255);
+   wr(c,0xDA03+slot*4,slot);wr(c,0xDA04+slot*4,(slot*3)&255);
+  }
+  call(c,0x261);
+  unsigned emitted=pieces<40?pieces:40;
+  bool exact=rd(c,0xC1C4)==0&&rd(c,0xC1C7)==40-emitted&&rd(c,0xC0A0)==0xA5;
+  for(unsigned i=0;i<160;i++){
+   unsigned slot=i/4,value=0;
+   if(slot<emitted){const unsigned record[]={((pattern?128:1)+slot*7)&255,((pattern?255:0)+255-slot*9)&255,slot,(slot*3)&255};value=record[i%4];}
+   exact&=rd(c,0xC000+i)==value;
+  }
+  for(unsigned i=0;i<8;i++)exact&=rd(c,0x6000+i)==restored[i];
+  require(exact,"shadow expanded object all count bytes capacity40 raw offset wrap",pieces*2+pattern);
+ }
+ /* Artificial expanded40 then direct: inspect the branch before stack pops. */
+ wr(c,0xC1C4,2);wr(c,0xDA00,40);wr(c,0xC1CE,1);wr(c,0xC1CF,2);wr(c,0xC1D0,255);wr(c,0xC1D1,0x7E);
+ wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+ cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;cpu->pc=0x11AA;
+ unsigned steps=0;while(cpu->pc!=0x122A&&steps++<100000)c->step(c);
+ require(cpu->pc==0x122A&&rd(c,0xC1C7)==0&&cpu->sp==0xCFF8&&rd(c,0xC0A0)==0xA5,
+  "shadow artificial capacity40 then direct stops before unmatched AF pop path",0);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

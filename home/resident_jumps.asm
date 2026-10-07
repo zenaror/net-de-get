@@ -112,7 +112,7 @@ ResidentJump025B::
 ResidentJump025E::
 	jp AppendFourByteDisplayRecord
 ResidentJump0261::
-	jp $11AA
+	jp BuildQueuedDisplayShadow
 ResidentJump0264::
 	jp DispatchBankedCallback
 ResidentJump0267::

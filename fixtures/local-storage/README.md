@@ -518,3 +518,20 @@ restoredVBK, fields and caller transitions is checked.184 assertions are
 added. The tests preserve decrement wrap and exact stride rather than
 normalizing zero dimensions. These are SYNTHETIC forced inputs, not natural
 screen geometry, IRQ or physical timing evidence; semantics remain PROBABLE.
+
+
+### Display queue to160-byte shadow
+
+544 direct-record cases cover counts0..16,16 patterns and A/B table-address
+branches.512 expanded-object cases cover every count byte and two position
+patterns; both pointer levels and objects reside in synthetic WRAM. Output
+is checked byte-for-byte, including zero tail, guard, field order, raw offset
+wrap,40-entry truncation and actual restored mapper-window bytes. Calls use
+resident0261; an initial wrong thunk was rejected by the byte checks.
+One artificial expanded40-then-directFF prefix stops at122A with capacity0
+andSPCFF8 before any mismatched pops: the no-space branch skips the popAF
+performed on the successful direct path. The probe does not execute the
+corrupted return or claim natural reachability. Large expanded objects alone
+complete normally with40 emitted entries.2113 assertions are added. These
+SYNTHETIC cases establish shadow bytes only, not actual OAM DMA, sprites,
+real object-table bounds or natural menu behavior; semantics stay PROBABLE.

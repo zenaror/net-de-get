@@ -41,7 +41,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem contém **1048576 bytes em 423 seções**, todos comparados byte a byte com a referência externa. Os 227 trechos analisados somam 35682 bytes; os demais 1012894 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
+A montagem contém **1048576 bytes em 424 seções**, todos comparados byte a byte com a referência externa. Os 228 trechos analisados somam 35953 bytes; os demais 1012623 bytes estão explicitamente não interpretados. O comparador exige as fronteiras e símbolos de todas as seções, além da igualdade da imagem inteira. Cobertura binária de 100% não significa interpretação semântica de 100%.
 
 ## Ciclos com validação
 
@@ -69,7 +69,7 @@ Objetivo binário autorizado por Rafael: uma ROM montável a partir do fonte RGB
 | Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
 | Menus e representação dos dados | Em andamento | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
 | Expansão para outros domínios | Em andamento | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
-| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 423 seções, incluindo intervalos explicitamente não interpretados |
+| Reconstrução binária completa | Concluída | montagem independente da referência; cobertura explícita dos 1048576 bytes; `make verify-full` passando e SHA-256 igual a `roms.sha256` | 424 seções, incluindo intervalos explicitamente não interpretados |
 
 ### Trabalho a fazer
 
@@ -462,3 +462,16 @@ O helper salva VBK, seleciona o plano 0, escolhe tile `$70` quando `$C1AA=1` ou 
 Dimensões byte zero não representam retângulo vazio: largura zero decrementa por 256 colunas; contagem de linhas zero decrementa por 256 linhas, inclusive alturas 0/128. Os probes executam somente combinações cujo destino inteiro fica em VRAM. O caso de 32×256 excedeu o limite padrão de 100.000 passos da fixture; os casos maiores passaram com limite específico de 2.000.000 passos. Esse limite finito é separado do padrão mantido para os outros calls, sem afirmar admissibilidade natural dessas dimensões.
 
 Os 184 novos asserts cobrem 56 chamadas completas com LCD desligado (larguras 1/4/32/0, alturas 1/2/0/128 dentro do limite de VRAM, dois tiles e VBK 0/1) e 36 chamadas diretas, pelo controle 4 ou pelo estado 2, com LCD desligado/ativo. As últimas usam origem (3,2), tamanho 4×4, três valores de `$C1AA` e os dois VBKs. Conferem todos os 8.192 bytes de ambos os planos, regiões sobrepostas da largura zero, guards, campos, HL/BC finais nos casos diretos e transições dos chamadores. A fixture soma 1.247.171 asserts; o privado preserva os 1.257 símbolos publicados em `a27c33d`. Imagem integral e negativos reais passam. São entradas forçadas; significado de tela, geometria natural, IRQ e timing físico continuam sem confirmação. O consumidor da fila `$11AA` permanece pendente.
+
+
+### Consumidor da fila e construção do shadow de display
+
+`home/queued_display_shadow.asm` extrai `$11AA-$12B8` (271 bytes), preservando `ResidualROM00_11AA` como alias. O thunk `$0261` agora usa `BuildQueuedDisplayShadow`; o wrapper separado `$12B9-$12BE` permanece não interpretado. A confiança é `PROBABLE`, sem lançamento natural ou transferência OAM neste probe.
+
+O consumidor zera os 160 bytes de `$C000-$C09F`. Contagem zero retorna; com fila ativa zera `$C1C4`, seleciona A quando o byte alto `$C1C6` do ponteiro de tabela é menor que `$60`, ou B nos demais casos, usando `$C21C/$C21D`. Define capacidade 40 em `$C1C7` e consome registros em `$C1CA`. Registro com terceiro byte `$FF` escreve D,E,quarto-byte,`$C1B7` no shadow. Os demais registros usam dois níveis de ponteiros: terceiro byte dobrado na tabela `$C1C5/$C1C6`, depois quarto byte dobrado na tabela apontada. O objeto contém contagem e registros de quatro bytes; soma offsets aos dois primeiros bytes da solicitação com wrap e preserva tile/atributo. A expansão não grava além das 40 entradas; restaura o par de mapper A ou B salvo em HRAM e executa EI, sem restaurar IME anterior.
+
+A fixture executa 544 casos diretos (contagens 0–16, 16 padrões e ambos os caminhos A/B) e 512 objetos expandidos (todos os 256 bytes de contagem e dois padrões), conferindo todos os 160 bytes, guarda posterior, ordem dos campos, wrap e bytes efetivamente remapeados após restauração. As duas tabelas e os objetos expandidos são WRAM sintética; não provam validade dos objetos originais. O primeiro ensaio rejeitou um thunk incorreto na fixture, corrigido para `$0261` antes da validação final.
+
+Um prefixo artificial expande 40 entradas e depois solicita um registro direto `$FF`. Ele para em `$122A` com capacidade zero e SP `$CFF8`, antes dos pops: o branch do caminho direto pula o `pop af` que existe no caminho com espaço, mantendo o AF empilhado. Isso documenta uma discrepância de pilha nesse estado forçado, sem executar o retorno corrompido ou afirmar que o menu natural o produz. A expansão comum com objetos maiores que 40 é verificada separadamente até retorno completo. Não houve correção dos bytes originais.
+
+Os 2.113 novos asserts elevam a fixture a 1.249.284; o privado preserva os 1.262 símbolos publicados em `a9cfe26`. Montagem integral e negativos reais passam. Continuam pendentes objetos/tabelas reais, consumidores naturais da fila e DMA do shadow; equivalência binária e esses casos sintéticos não confirmam sprites visíveis nem o estado artificial como falha natural.
