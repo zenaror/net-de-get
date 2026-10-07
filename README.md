@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **945 bytes em 13 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **1099 bytes em 15 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -53,6 +53,39 @@ Esse alvo executa montagem, `sym-check`, `test` e `compare`. `make private-check
 
 As novas rotinas cobrem ROM0 `$254E-$25CA` (dispatcher, 125 bytes) e `$3E00-$3ED7` (reconstrução da lista e cópia de template, 216 bytes). Seus nomes descritivos permanecem `PROBABLE`. O dispatcher restaura o seletor A salvo e impõe tipo ROM; a varredura pula o setor reservado `$70`, percorre seletores até `$80` e chama o checksum `$38B0`, agora extraído em `home/minigame_checksum.asm`. O ponteiro inicial HL da lista vem do chamador; nenhuma capacidade universal do destino foi demonstrada.
 
-Próximas frentes: extrair o template usado por `$3EAE` com sua fronteira estática e seguir os chamadores do menu. Nenhum título japonês é traduzido.
+O intervalo do template usado por `$3EAE` está extraído em `data/local_list_template.asm`: 112 bytes, delimitados pela leitura estática. Isso não demonstra a extensão completa do objeto ou a semântica de cada campo. Nenhum texto japonês é traduzido.
 
 A rotina de checksum `$38B0-$391B` preserva o atalho para o valor armazenado `$B33B`. Seu contador de páginas é calculado em 8 bits com `SWAP` e `RLCA`; não foi substituído por uma multiplicação ampliada. A equivalência dos bytes não demonstra que qualquer quantidade de blocos seja tratada como uma soma completa de payload. A interpretação permanece `PROBABLE`.
+
+## Plano e pendências
+
+Objetivo: ampliar progressivamente o fonte RGBDS legível, preservando os bytes da ROM original, com critérios de evidência explícitos. Este README é o plano canônico; as notas de pesquisa contêm a análise e a OMM aponta para o estado verificado.
+
+| Fase | Estado | Critério de conclusão | Dependências |
+| --- | --- | --- | --- |
+| Estrutura e validação parcial | Implementada | montagem, manifesto, símbolos, testes negativos, comparação e cópia privada passando | RGBDS, Python, referência externa |
+| Lista e despacho local | Em andamento | extrair chamadores e dependências com fronteiras justificadas e bytes equivalentes | helpers, tabela, template e checksum já extraídos |
+| Menus e representação dos dados | Próxima | ligar consumidores aos intervalos; nomes semânticos só com evidência suficiente | mapa das rotinas e seleção de janela |
+| Expansão para outros domínios | Posterior | escolher unidades por consumidores conhecidos e eliminar lacunas progressivamente | avanço das fases anteriores |
+
+### Trabalho a fazer
+
+1. Resolver o helper ROM0 `$01B6`, chamado pelo prefixo do menu já extraído, e estabelecer o ponteiro HL recebido pela rotina da lista.
+2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
+3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
+4. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
+
+### Perguntas sem evidência suficiente
+
+- Papel da última entrada `$FF` na tabela de seletores embutidos.
+- Estrutura completa do template e capacidade do destino da lista para todos os chamadores.
+- Semântica dos casos excepcionais do contador de páginas de checksum e do marcador `$B33B`.
+- Caminhos de execução ainda sem trace natural; equivalência dos bytes não os confirma.
+
+### Decisões e bloqueios
+
+Não há decisão de Rafael ou bloqueio externo necessário para a próxima unidade. Hardware não validado é um limite da evidência, sem impedir o disassembly estático. Tradução e implementação REON/Mobile Adapter ficam fora do trabalho atual.
+
+Documentação do Maker é mantida em inglês no repositório separado; a correção foi publicada em `zenaror/net-de-get-maker` no commit `01bfb97`. Maker permanece fora de `_RELEASES`.
+
+O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. Ele testa held Select e chama a reconstrução da lista. O trecho termina antes de `$402A`, onde a execução continua; não representa uma função completa. O efeito de `$01B6` sobre HL ainda precisa ser reconstruído.

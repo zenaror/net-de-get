@@ -27,3 +27,6 @@ DEF wLocalScanSector EQU $C5C4
 DEF wLocalScanDestinationLow EQU $C5C9
 DEF wLocalScanDestinationHigh EQU $C5CA
 DEF wLocalScanReservedSector EQU $C5CB
+
+DEF rSVBK EQU $FF70
+DEF hHeldButtons EQU $FF96

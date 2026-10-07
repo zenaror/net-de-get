@@ -117,7 +117,7 @@ CopyLocalListTemplate::
 	ei
 	ld a, $0A
 	ld [rMBC6RAMEnable], a
-	ld de, $71D4
+	ld de, LocalListTemplate
 	ld b, $70
 .copy:
 	ld a, [de]

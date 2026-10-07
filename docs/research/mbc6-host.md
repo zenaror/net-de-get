@@ -225,3 +225,22 @@ private candidate identical to the working-tree image, and all 45 address symbol
 from published `4dc64ca` unchanged. Artifacts: `/tmp/netdeget-private-cycle-mxhfid_h`
 and `/tmp/netdeget-excerpt-equivalence-2xa_anya`. `make private-check` now maintains
 this reproducible source-copy and published-symbol preservation check.
+
+
+### Template and menu-entry follow-up
+
+`CopyLocalListTemplate` maps native B selector `$15` and copies `$70` bytes from
+CPU `$71D4`; `data/local_list_template.asm` preserves precisely that statically
+read interval. File `$2B1D4-$2B243` is RGBDS physical bank `$0A:$71D4-$7243`.
+The **PROBABLE** template name does not establish the complete object extent or
+individual fields. Raw bytes and original encoding are preserved without translation.
+
+`engine/menus/local_entry.asm` extracts only A selector `$14:$4000-$4029`, ending
+before the continuing instruction at `$402A`. It polls through `$0279`, tests
+held Select, and calls `$3E00` after `$01B6` with BC=`$02A3`, DE=`$3ED8`.
+The resulting HL and its destination allocation remain unresolved. Existing
+natural held-Select observations are not expanded into proof of every branch.
+
+Final maintained intervals total **15 sections / 1099 bytes**. The canonical
+plan and unknowns are in README; AGENTS references the global OMM project rules
+and lists only this project's adaptations, including partial-byte equivalence.

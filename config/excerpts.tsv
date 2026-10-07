@@ -12,3 +12,5 @@ bank	start	end	symbol
 0B	6A93	6AC3	CatalogRecordPointer
 00	3E00	3ED7	RebuildLocalMinigameList
 00	38B0	391B	CheckLocalMinigameChecksum
+0A	71D4	7243	LocalListTemplate
+0A	4000	4029	LocalMinigameMenuEntry
