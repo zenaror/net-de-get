@@ -38,3 +38,10 @@ bank	start	end	symbol
 0A	4275	427C	LocalMenuMap4275
 0A	427D	42CC	LocalMenuMap427D
 0A	450F	455E	LocalMenuMap450F
+00	019E	01A3	CopyBankedVRAMBytes
+00	01A7	01A9	CopyBankedTwoPlaneTilemap
+00	0A50	0A67	CopyVRAMBytesBody
+00	0A68	0AE3	CopyBankedVRAMBytesBody
+00	0AE4	0B14	CopyTilemapPlaneBody
+00	0B5F	0C5B	CopyBankedTwoPlaneTilemapBody
+0A	5208	5A07	LocalMenuFullTilemap

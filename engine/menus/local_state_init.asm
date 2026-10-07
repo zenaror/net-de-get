@@ -13,7 +13,7 @@ LocalMenuState0::
 	ld hl, $5C0A
 	ld de, $9000
 	ld bc, $0010
-	call $019E
+	call CopyBankedVRAMBytes
 	xor a
 	ldh [$FF4F], a
 	ld a, $15
@@ -23,7 +23,7 @@ LocalMenuState0::
 	ld hl, $6002
 	ld de, $8000
 	ld bc, $1800
-	call $019E
+	call CopyBankedVRAMBytes
 	ld a, $14
 	ld [$C21C], a
 	ld a, $00
@@ -31,7 +31,7 @@ LocalMenuState0::
 	ld hl, $5CE2
 	ld de, $8100
 	ld bc, $00A0
-	call $019E
+	call CopyBankedVRAMBytes
 	ld a, $15
 	ld [$C21C], a
 	ld a, $00
@@ -39,8 +39,8 @@ LocalMenuState0::
 	ld hl, $71B4
 	ld de, $8000
 	ld bc, $0020
-	call $019E
-	ld hl, $5208
+	call CopyBankedVRAMBytes
+	ld hl, LocalMenuFullTilemap
 	ld de, $9800
 	ld bc, $2020
 	call CopyTwoPlaneTilemap

@@ -208,6 +208,77 @@ int main(int argc,char **argv){
   }
   require(ok,"two planes, row stride, registers and untouched padding",shape);
  }
+ /* Linear copy: bounded nonzero sizes with LCD off, no timing assertion. */
+ const unsigned lengths[]={1,17,32};
+ for(unsigned n=0;n<3;n++){
+  unsigned size=lengths[n];wr(c,0xFF4F,0);
+  for(unsigned i=0;i<64;i++){
+   wr(c,0xD800+i,(i*37+11)&255);wr(c,0x8000+i,0xA5);
+  }
+  cpu->hl=0xD800;cpu->de=0x8000;cpu->bc=size;call(c,0x0A50);
+  unsigned ok=cpu->hl==0xD800+size&&cpu->de==0x8000+size&&cpu->bc==0;
+  for(unsigned i=0;i<64;i++)ok&=rd(c,0x8000+i)==(i<size?((i*37+11)&255):0xA5);
+  require(ok,"linear byte copy registers, data and padding",size);
+ }
+ /* Single-plane rectangles: DE advances one 32-byte stride per row. */
+ for(unsigned shape=0;shape<3;shape++){
+  unsigned width=widths[shape],height=heights[shape],size=width*height;
+  for(unsigned i=0;i<size;i++)wr(c,0xD800+i,(i*37+11)&255);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<96;i++)wr(c,0x9800+i,0xA5);
+  }
+  wr(c,0xFF4F,1);cpu->hl=0xD800;cpu->de=0x9800;cpu->bc=(width<<8)|height;
+  call(c,0x01A1);
+  unsigned ok=cpu->hl==0xD800+size&&cpu->de==0x9800+height*32&&
+              cpu->bc==0&&(rd(c,0xFF4F)&1)==1;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<96;i++){
+    unsigned row=i/32,col=i%32;
+    unsigned expected=(plane==1&&row<height&&col<width)?
+     ((row*width+col)*37+11)&255:0xA5;
+    ok&=rd(c,0x9800+i)==expected;
+   }
+  }
+  require(ok,"single plane rectangle and preserved other plane",shape);
+ }
+ /* Banked linear and two-plane copies, ROM type only, both 8KiB windows. */
+ for(unsigned kind=0;kind<2;kind++)for(unsigned window=0;window<2;window++)
+ for(unsigned shape=0;shape<3;shape++){
+  unsigned source=window?0x6000:0x4000,select=window?0x15:0x14;
+  unsigned width=widths[shape],height=heights[shape];
+  unsigned size=kind?width*height:lengths[shape],total=kind?2*size:size;
+  unsigned expected[192];
+  wr(c,window?0x37FF:0x27FF,select);wr(c,window?0x3800:0x2800,0);
+  for(unsigned i=0;i<total;i++)expected[i]=rd(c,source+i);
+  wr(c,0x27FF,4);wr(c,0x2800,0);wr(c,0x37FF,5);wr(c,0x3800,0);
+  wr(c,0xFFAB,4);wr(c,0xFFAC,0);wr(c,0xFFAD,5);wr(c,0xFFAE,0);
+  wr(c,0xC113,4);wr(c,0xC114,0);wr(c,0xC115,5);wr(c,0xC116,0);
+  unsigned oldA=rd(c,0x4000),oldB=rd(c,0x6000);
+  wr(c,0xC21C,select);wr(c,0xC21D,0);
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);for(unsigned i=0;i<96;i++)wr(c,(kind?0x9800:0x8000)+i,0xA5);
+  }
+  wr(c,0xFF4F,kind?1:0);cpu->hl=source;cpu->de=kind?0x9800:0x8000;
+  cpu->bc=kind?((width<<8)|height):size;call(c,kind?0x01A7:0x019E);
+  unsigned ok=cpu->hl==source+total&&cpu->de==(kind?0x9800:0x8000+size)&&
+              cpu->bc==(kind?((width<<8)|height):0)&&
+              (rd(c,0xFF4F)&1)==(kind?1:0)&&
+              rd(c,0xFFAB)==4&&rd(c,0xFFAC)==0&&rd(c,0xFFAD)==5&&rd(c,0xFFAE)==0&&
+              rd(c,0xC113)==4&&rd(c,0xC114)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0&&
+              rd(c,0x4000)==oldA&&rd(c,0x6000)==oldB;
+  for(unsigned plane=0;plane<2;plane++){
+   wr(c,0xFF4F,plane);
+   for(unsigned i=0;i<96;i++){
+    unsigned row=i/32,col=i%32,value=0xA5;
+    if(kind&&row<height&&col<width)value=expected[plane*size+row*width+col];
+    if(!kind&&plane==0&&i<size)value=expected[i];
+    ok&=rd(c,(kind?0x9800:0x8000)+i)==value;
+   }
+  }
+  require(ok,"banked copy data, padding, registers and both mapper windows",
+          kind*100+window*10+shape);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

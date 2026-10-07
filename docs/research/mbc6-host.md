@@ -399,3 +399,26 @@ check both planes and sentinel padding, HL advancement, BC/DE preservation and
 restored VBK. No LCD-on timing, zero/wrapped dimensions or natural visual
 behavior is established. The suite has **1648 assertions**, and source totals
 are **39 sections / 3254 byte-exact bytes**.
+
+
+### Banked graphics wrappers and full-menu map
+
+**PROBABLE static interpretation:** `$019E` calls `$0A68-$0AE3`, which selects
+window A when H < `$60`, otherwise B, from selector/type at `$C21C/$C21D`.
+It saves the corresponding HRAM selector/type, calls linear copy `$0A50-$0A67`
+and restores mapper registers and mirrors. `$01A7` reaches `$0B5F-$0C5B`,
+which wraps the two-plane row copy with the same A/B choice and restoration.
+No-op `LD A,A` instructions and STAT/DI/EI sequences are preserved.
+
+`$01A1/$0AE4-$0B14` copies a single plane, consumes B/C to zero and advances
+DE by 32 bytes per completed row. The two-plane helper instead restores BC/DE.
+Three positive dimensions and three positive linear sizes are forced in a
+disposable core with LCD off; six cases per banked wrapper cover A/B, ROM type,
+data, padding and mapper restoration. The suite has **1684 assertions**.
+These checks do not establish flash-source behavior, zero counters, crossing
+8 KiB windows, arbitrary pointers or natural LCD timing.
+
+State 0 passes BC=`$2020` to `$01A4` with HL=`$5208`, bounding two consecutive
+32×32 planes at A `$14:$5208-$5A07`. The **2048 bytes** are stored as data,
+not decoded instructions, in `data/local_menu_full_tilemap.asm`. No full-menu
+rendering trace is asserted. Source totals: **46 sections / 5761 bytes**.

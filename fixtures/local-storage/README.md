@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,648 assertions**.
+and stack assertions, the maintained fixture reports **1,684 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -52,3 +52,11 @@ The two-plane tilemap-copy helper at `$01A4/$0B15` is tested with LCD off for
 bytes, 32-byte destination row stride, untouched destination padding, BC/DE
 preservation, HL advancement and restoration of VBK bit 0. This does not test
 LCD-on timing, arbitrary dimensions or naturally rendered menu appearance.
+
+Additional LCD-off checks exercise linear sizes 1/17/32, single-plane rectangles
+4×1/20×2/3×3, and banked linear/two-plane copies through both native 8 KiB
+windows using ROM type. They check copied data, untouched padding, register
+outcomes, both selector/type mirrors and restored mapper contents. Single-plane
+copy consumes B/C and advances DE by a 32-byte stride per row; the two-plane
+wrapper preserves BC/DE. No zero counters, window crossing, flash source types
+or LCD-on timing is covered.
