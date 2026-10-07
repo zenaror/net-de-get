@@ -411,6 +411,32 @@ static void probeA12SecondaryMovement(struct mCore *c,unsigned x,unsigned y,unsi
  cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x526A,200000);
  require(cpu->af==(a<<8|f)&&cpu->bc==(b<<8|(same?0:divisor))&&cpu->de==0x1234&&cpu->hl==(same?0x5678:sy.q<<8|sy.r)&&rd(c,0xC5EB)==nx&&rd(c,0xC5EC)==ny&&rd(c,0xC5ED)==tx&&rd(c,0xC5EE)==ty&&rd(c,0xC5EF)==(same?0x37:sx.q)&&rd(c,0xC5F0)==(same?0x39:sy.q)&&rd(c,0xC5F3)==(same?0x3C:sx.r)&&rd(c,0xC5F4)==(same?0x5A:sy.r)&&rd(c,0xC5CB)==divisor&&rd(c,0xC5CC)==counter&&rd(c,0xC5F1)==dx&&rd(c,0xC5F2)==dy&&rd(c,0xC5EA)==0x37&&rd(c,0xC5F5)==0x39,"A12 secondary whole movement independent unsigned directions byte overflow equality and complete register fields",index);
 }
+static uint8_t originalSecondaryResources[803];
+static unsigned originalSecondaryCrossings;
+struct OriginalA12Secondary {unsigned x,y,tx,ty,index,dx,dy,lo,f,base,end;};
+static struct OriginalA12Secondary originalA12SecondaryModel(struct mCore *c,unsigned phase,unsigned frame){
+ const uint8_t *rom=((struct GB*)c->board)->memory.rom;const unsigned pointers[]={0x6EF2,0x6F57,0x7080,0x70BD,0x70FE,0x713B,0x716C,0x71A1,0x71D2};
+ unsigned base=pointers[phase],p=base+1+4*frame,objectEnd=base+1+4*(rom[0x61*8192+base-0x6000]+1);struct OriginalA12Secondary m={0};
+ #define SECONDARY_BYTE(a) rom[0x61*8192+(a)-0x6000]
+ if(SECONDARY_BYTE(p)==255)p+=4;if(SECONDARY_BYTE(p)==254)p+=4;
+ m.index=SECONDARY_BYTE(p);m.x=(SECONDARY_BYTE(p+1)-201)&255;m.y=(SECONDARY_BYTE(p+2)-208)&255;p+=4;
+ if(SECONDARY_BYTE(p)==255)p+=4;if(SECONDARY_BYTE(p)==254)p+=4;
+ m.tx=(SECONDARY_BYTE(p+1)-201)&255;m.ty=(SECONDARY_BYTE(p+2)-208)&255;m.end=p+3;m.base=base+1;
+ if(m.end>=0x8000||base<0x6000){fprintf(stderr,"Original secondary model leaves measured ROM window\n");exit(12);}
+ originalSecondaryCrossings+=m.end>objectEnd;
+ m.dx=m.x>m.tx?m.x-m.tx:m.tx-m.x;m.dy=m.y>m.ty?m.y-m.ty:m.ty-m.y;m.lo=m.y<m.ty?m.y:m.ty;unsigned hi=m.y>m.ty?m.y:m.ty;
+ m.f=0x40|(m.dy?0:0x80)|((hi&15)<(m.lo&15)?0x20:0);
+ #undef SECONDARY_BYTE
+ return m;
+}
+static void probeOriginalA12Secondary(struct mCore *c,unsigned phase,unsigned frame,unsigned count,unsigned flags,bool tick,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;bool wrap=((frame+1)&255)==count;unsigned readFrame=tick?(wrap?0:(frame+1)&255):frame;struct OriginalA12Secondary m=originalA12SecondaryModel(c,phase,readFrame);
+ prepareA12EffectMapping(c,0x61);wr(c,0xC5CF,phase);wr(c,0xC5CE,frame);wr(c,0xC5CD,count);wr(c,0xC5CB,7);wr(c,0xC5CC,7);wr(c,0xC5EA,0x37);wr(c,0xC5EF,0x39);wr(c,0xC5F0,0x3C);wr(c,0xC5F3,0x5A);wr(c,0xC5F4,0xA5);wr(c,0xC5F5,0x37);wr(c,0xC5F7,0x39);wr(c,0xC5D7,0x3C);wr(c,0xC5D8,0x5A);
+ cpu->af=0x5A00|flags;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,tick?0x50DF:0x50D8);
+ unsigned af=tick?(frame<<8|0x40|(frame?0:0x80)|((frame&15)==15?0x20:0)):(m.dy<<8|m.f);
+ require(cpu->af==af&&cpu->bc==(m.lo<<8|0x37)&&cpu->de==m.base&&cpu->hl==m.end&&rd(c,0xC5CE)==frame&&rd(c,0xC5CF)==phase&&rd(c,0xC5EB)==m.x&&rd(c,0xC5EC)==m.y&&rd(c,0xC5ED)==m.tx&&rd(c,0xC5EE)==m.ty&&rd(c,0xC5F1)==m.dx&&rd(c,0xC5F2)==m.dy&&rd(c,0xC5F6)==m.index,"A12 original secondary whole load or tick reader branches exact model records coordinates registers",index);
+ require(rd(c,0xC5CD)==count&&rd(c,0xC5CB)==7&&rd(c,0xC5CC)==7&&rd(c,0xC5EA)==0x37&&rd(c,0xC5EF)==0x39&&rd(c,0xC5F0)==0x3C&&rd(c,0xC5F3)==0x5A&&rd(c,0xC5F4)==0xA5&&rd(c,0xC5F5)==0x37&&rd(c,0xC5F7)==0x39&&rd(c,0xC5D7)==0x3C&&rd(c,0xC5D8)==0x5A&&rd(c,0xFFAD)==0x61&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xC115)==5&&rd(c,0xC116)==0&&!memcmp(((struct GB*)c->board)->memory.rom+0x61*8192+0xEE0,originalSecondaryResources,sizeof(originalSecondaryResources)),"A12 original secondary whole read guards mapping and immutable 803 source bytes",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4500,6 +4526,20 @@ int main(int argc,char **argv){
   prepareA12EffectMapping(c,0x63);wr(c,0xC5D7,x);wr(c,0xC5D8,y);wr(c,0xC5D9,tx);wr(c,0xC5DA,ty);wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5EB,x);wr(c,0xC5EC,y);wr(c,0xC5ED,tx);wr(c,0xC5EE,ty);wr(c,0xC5F1,dx);wr(c,0xC5F2,dy);wr(c,0xC5CB,7);wr(c,0xC5CC,counter);wr(c,0xC73A,accel);wr(c,0xC1C7,0);wr(c,0xC5F5,0x37);wr(c,0xC5CE,0x39);wr(c,0xC5CF,0x3C);cpu->af=0x5A00|(accel&15)<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x4A36,400000);
   require(cpu->af==(accel<<8|f)&&cpu->bc==7&&cpu->de==0x1234&&cpu->hl==0xC5CC&&rd(c,0xC5D7)==nx&&rd(c,0xC5D8)==ny&&rd(c,0xC5D5)==nx&&rd(c,0xC5D6)==ny&&rd(c,0xC5EB)==nx&&rd(c,0xC5EC)==ny&&rd(c,0xC5E9)==nx&&rd(c,0xC5EA)==ny&&rd(c,0xC5CC)==next&&rd(c,0xC5CB)==7&&rd(c,0xC73A)==accel&&rd(c,0xC5F5)==0&&rd(c,0xC1C7)==0&&rd(c,0xC5CE)==0x39&&rd(c,0xC5CF)==0x3C&&rd(c,0xC21C)==0x61&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==0x61&&rd(c,0xC115)==5&&rd(c,0xFF9D)==0x61,"A12 variant0 full secondary and primary movement copies two zero-availability emitters counter",counter*256+accel);
  }
+ }
+ { /* Original nine secondary resources; inconsistent count is explicitly adversarial. */
+ const unsigned pointers[]={0x6EF2,0x6F57,0x7080,0x70BD,0x70FE,0x713B,0x716C,0x71A1,0x71D2},counts[]={24,73,14,15,14,11,12,11,11};const uint8_t *rom=((struct GB*)c->board)->memory.rom;
+ memcpy(originalSecondaryResources,rom+0x61*8192+0xEE0,sizeof(originalSecondaryResources));
+ unsigned sample=0;
+ for(unsigned phase=0;phase<9;phase++){
+  unsigned table=0x61*8192+0xEE0+2*phase,ptr=rom[table]|rom[table+1]<<8,next=phase<8?pointers[phase+1]:0x7203;
+  require(ptr==pointers[phase]&&rom[0x61*8192+ptr-0x6000]==counts[phase]&&ptr+1+4*(counts[phase]+1)==next,"Original secondary nine pointer count and exact object boundary contracts",phase);
+  for(unsigned frame=0;frame<counts[phase];frame++){
+   for(unsigned flags=0;flags<16;flags++){probeOriginalA12Secondary(c,phase,frame,counts[phase],flags<<4,false,sample++);probeOriginalA12Secondary(c,phase,frame,counts[phase],flags<<4,true,sample++);}
+   for(unsigned count=0;count<256;count++)probeOriginalA12Secondary(c,phase,frame,count,((frame^count)&15)<<4,true,sample++);
+  }
+ }
+ printf("Original secondary resources: %u complete load/tick calls; %u modeled reads beyond measured object (adversarial counts), within ROM window\n",sample,originalSecondaryCrossings);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

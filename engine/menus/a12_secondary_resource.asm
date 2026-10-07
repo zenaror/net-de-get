@@ -3,7 +3,7 @@
 SECTION "A12 secondary resource 50D8-50DE", ROMX[$50D8], BANK[$09]
 ResidualROM09_50D8::
 LoadA12SecondaryResource::
-	ld hl, $6EE0
+	ld hl, A12Variant0SecondaryResourceTable
 	call ReadA12SecondaryResource
 	ret
 ASSERT @ == $50DF
@@ -25,14 +25,14 @@ TickA12SecondaryResource::
 	push af
 	xor a, a
 	ld [$C5CE], a
-	ld hl, $6EE0
+	ld hl, A12Variant0SecondaryResourceTable
 	call ReadA12SecondaryResource
 	pop af
 	ld [$C5CE], a
 	ret
 A12Secondary_5106::
 	ld [$C5CE], a
-	ld hl, $6EE0
+	ld hl, A12Variant0SecondaryResourceTable
 	call ReadA12SecondaryResource
 	ld a, [$C5CE]
 	dec a

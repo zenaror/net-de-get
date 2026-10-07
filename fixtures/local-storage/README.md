@@ -1613,3 +1613,21 @@ paths,copies,both zero-availability emitters and counter increments,all accelera
 bytes,counters0..3/divisor7;no injected return. Adds3205248 asserts,total35480958.
 No complete original-resource read tick/load chain,nonempty integrated emission,
 natural index/marker validity,Japanese meaning,IRQ/timing or hardware proof.
+
+
+## Original variant0 secondary resource integration
+
+PROBABLE layout: nine pointers6EE0-6EF1 and contiguous objects6EF2-7202 in B61,
+physical RGBDS30. Counts24/73/14/15/14/11/12/11/11; each object has a leading byte
+and count+1 four-byte records. Reader discards count; no producer contract inferred.
+Independent model reads original ROM bytes with measured pointers/counts, then
+models sequential FF/FE skips, wrapped offsets,unsigned distances and tick tails.
+2960 complete load and2960 complete tick calls cover each measured frame/16 flags
+with measured count;47360 ticks cover every count byte for each measured frame.
+All registers/flags,frame restoration,guards,mapping and immutable803-byte source
+span checked. No injected returns.53280 calls;2295 reads beyond measured object
+for adversarial counts,within ROM window;none with measured count crosses object.
+No natural validity or corruption claim. Nine pointer/count/extent contracts plus
+159840 call assertions add159849,total35640807. Original source buffer and external
+ROM unchanged. No natural flow,count producer,indices beyond nine,nonempty OAM
+integration,Japanese meaning,IRQ/timing or hardware proof.
