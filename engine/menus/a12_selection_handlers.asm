@@ -43,7 +43,7 @@ A12Handler_418F::
 	call $459F
 	call UpdateA12InputMode
 	call ResidentJump0261
-	call $4A36
+	call TickA12Variant0ResourceWrapper
 	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $41A2
@@ -69,7 +69,7 @@ A12Handler_41BF::
 	call $459F
 	call UpdateA12InputMode
 	call ResidentJump0261
-	call $4A66
+	call TickA12Variant1ResourceWrapper
 	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $41D2
@@ -95,7 +95,7 @@ A12Handler_41EF::
 	call $459F
 	call UpdateA12InputMode
 	call ResidentJump0261
-	call $4A8A
+	call TickA12Variant2ResourceWrapper
 	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $4202
@@ -110,7 +110,7 @@ A12SelectionVariant3::
 	ld hl, $C5E5
 	inc [hl]
 	call ResidentJump0261
-	call $4AAE
+	call TickA12Variant3ResourceWrapper
 	call DispatchA12ResourceCommand
 	ret
 ASSERT @ == $421D

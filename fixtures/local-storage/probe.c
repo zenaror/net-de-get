@@ -364,6 +364,21 @@ static void probeA12InputAction(struct mCore *c,unsigned v,unsigned action,unsig
   wr(c,0xFF70,7);for(unsigned i=0;i<320;i++)exact&=rd(c,0xD000+i)==((i*13+v*17+action)&255);exact&=rd(c,0xD140)==0x37;wr(c,0xFF70,2);require(exact,"A12 complete action composition both full VRAM planes unchanged synthetic source guard",index);
  }
 }
+static void probeA12OAMEmission(struct mCore *c,unsigned family,unsigned available,unsigned count,unsigned index,unsigned x,unsigned y,unsigned flags,unsigned caseIndex){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;prepareA12EffectMapping(c,0x63);
+ unsigned expected[1024];for(unsigned i=0;i<1024;i++)wr(c,0xC000+i,0xA5);wr(c,0xC21C,0x63);wr(c,0xC21D,0);wr(c,0xC115,5);wr(c,0xC116,0);wr(c,0xC113,0x12);wr(c,0xC114,0);
+ for(unsigned i=0;i<128;i++){wr(c,0xD000+2*i,0);wr(c,0xD001+2*i,0xD2);}wr(c,0xD200,count);
+ unsigned records=count?count:256;for(unsigned i=0;i<records;i++){wr(c,0xD201+4*i,(i*17+index)&255);wr(c,0xD202+4*i,(i*29+count)&255);wr(c,0xD203+4*i,(i*37+available)&255);wr(c,0xD204+4*i,(i*43+family)&255);}
+ wr(c,0xC1C7,available);wr(c,0xC5F5,available);wr(c,family?0xC5F6:0xC5D0,index);wr(c,family?0xC5E9:0xC5D5,x);wr(c,family?0xC5EA:0xC5D6,y);
+ for(unsigned i=0;i<1024;i++)expected[i]=rd(c,0xC000+i);
+ unsigned dest=0xC000+4*((40-available)&255),base=dest&0xFF00,e=dest&255,lastAttr=0,lastX=0,carry=0;
+ if(available)for(unsigned i=0;i<records;i++){unsigned ox=(i*29+count)&255,oy=(i*17+index)&255,tile=(i*37+available)&255,attr=(i*43+family)&255;unsigned vals[]={ (y+oy+16)&255,(x+ox+8)&255,tile,attr};for(unsigned j=0;j<4;j++){expected[base-0xC000+e]=vals[j];e=(e+1)&255;}lastAttr=attr;lastX=ox;carry=(((x+ox)&255)+8)>255;}
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0xD000;call(c,family?0x5188:0x4DFE);
+ bool exact=true;for(unsigned i=0;i<1024;i++)exact&=rd(c,0xC000+i)==expected[i];
+ exact&=cpu->af==(available?(lastAttr<<8|0xC0|(carry?0x10:0)):0x0080)&&cpu->bc==(available?lastX:0xBEEF)&&cpu->de==(available?(base|e):0x1234)&&cpu->hl==(available?0xD201+4*records:0xD000)&&rd(c,0xC5F5)==(family?available:available?(available-records)&255:0)&&rd(c,0xFFAD)==0x63&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==5&&rd(c,0xFF9E)==0&&rd(c,0xC115)==expected[0x115]&&rd(c,0xC116)==expected[0x116]&&rd(c,family?0xC5F6:0xC5D0)==index&&rd(c,family?0xC5E9:0xC5D5)==x&&rd(c,family?0xC5EA:0xC5D6)==y;
+ for(unsigned i=0;i<records;i++)exact&=rd(c,0xD201+4*i)==((i*17+index)&255)&&rd(c,0xD202+4*i)==((i*29+count)&255)&&rd(c,0xD203+4*i)==((i*37+available)&255)&&rd(c,0xD204+4*i)==((i*43+family)&255);
+ require(exact,"A12 OAM original emitters counts index coordinate wrapping whole C000-C3FF mapper mirror and source",caseIndex);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4338,6 +4353,29 @@ int main(int argc,char **argv){
  for(unsigned v=0;v<3;v++)for(unsigned action=0;action<6;action++)for(unsigned value=0;value<256;value++)probeA12InputAction(c,v,action,value,(value&15)<<4,0,0,false,false,v*1536+action*256+value);
  const unsigned values[]={0,1,2,3,5,6,7,255};
  for(unsigned v=0;v<3;v++)for(unsigned action=0;action<6;action++)for(unsigned val=0;val<8;val++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeA12InputAction(c,v,action,values[val],val<<4,plane,lcd,true,true,4608+v*192+action*32+val*4+plane*2+lcd);
+ }
+ { /* Complete position copies and emissions; wrapper prefixes/suffixes explicit. */
+ struct GB *g=c->board;prepareA12EffectMapping(c,0x63);
+ for(unsigned family=0;family<2;family++)for(unsigned x=0;x<256;x++)for(unsigned y=0;y<256;y++){
+  wr(c,family?0xC5EB:0xC5D7,x);wr(c,family?0xC5EC:0xC5D8,y);wr(c,family?0xC5E9:0xC5D5,0x3C);wr(c,family?0xC5EA:0xC5D6,0x39);cpu->af=0x5A00|((x^y)&15)<<4;cpu->bc=0xBE37;cpu->de=0x1234;cpu->hl=0x5678;call(c,family?0x51E5:0x4E65);
+  require(cpu->af==(y<<8|0x40|(y?0:0x80))&&cpu->bc==0x37&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,family?0xC5E9:0xC5D5)==x&&rd(c,family?0xC5EA:0xC5D6)==y&&rd(c,family?0xC5EB:0xC5D7)==x&&rd(c,family?0xC5EC:0xC5D8)==y,"A12 complete both position copies every coordinate pair varied flags registers guards",family*65536+x*256+y);
+ }
+ const unsigned entries[]={0x4A36,0x4A66,0x4A8A,0x4AAE},sels[]={0x61,0x63,0x65,0x66},returns[]={0x4A43,0x4A73,0x4A97,0x4ABB},suffix[]={0x4A58,0x4A7C,0x4AA0,0x4AC4};
+ for(unsigned v=0;v<4;v++)for(unsigned old=0;old<256;old++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC21C,0x37);wr(c,0xC21D,old);wr(c,0xC5CC,0x39);wr(c,0xC73A,0x3C);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=entries[v];unsigned target=v?0x4D54:0x50DF,steps=0;while(cpu->pc!=target&&steps++<100)c->step(c);
+  require(cpu->pc==target&&cpu->sp==0xCFFC&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==returns[v]&&cpu->af==flags<<4&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC21C)==sels[v]&&rd(c,0xC21D)==0&&rd(c,0xC5CC)==0x39&&rd(c,0xC73A)==0x3C,"A12 wrapper complete entry all prior request high bytes flags actual first callee only",v*4096+old*16+flags);
+ }
+ for(unsigned v=0;v<3;v++)for(unsigned counter=0;counter<256;counter++)for(unsigned accel=0;accel<256;accel++){
+  unsigned next=(counter+(accel?4:1))&255,f=accel?((next?0:0x80)|(((next-1)&15)==15?0x20:0)):0xA0,flags=((counter^accel)&15)<<4;
+  wr(c,0xC5CC,counter);wr(c,0xC73A,accel);wr(c,0xC5CB,0x37);wr(c,0xC5CD,0x39);cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,suffix[v]);
+  require(cpu->af==(accel<<8|f)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0xC5CC&&rd(c,0xC5CC)==next&&rd(c,0xC73A)==accel&&rd(c,0xC5CB)==0x37&&rd(c,0xC5CD)==0x39,"A12 forced wrapper suffix all counter acceleration bytes wrap exact fields flags registers",v*65536+counter*256+accel);
+ }
+ for(unsigned counter=0;counter<256;counter++)for(unsigned flags=0;flags<16;flags++){
+  unsigned next=(counter+1)&255,f=(flags<<4&0x10)|(next?0:0x80)|((counter&15)==15?0x20:0);wr(c,0xC5CC,counter);wr(c,0xC73A,0x37);cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,suffix[3]);require(cpu->af==(0x5A00|f)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0xC5CC&&rd(c,0xC5CC)==next&&rd(c,0xC73A)==0x37,"A12 variant3 forced suffix every counter flag preserves carry ignores acceleration",counter*16+flags);
+ }
+ const unsigned avail[]={0,1,40,255},counts[]={0,1,3,255};
+ for(unsigned family=0;family<2;family++)for(unsigned count=0;count<256;count++)for(unsigned a=0;a<4;a++)probeA12OAMEmission(c,family,avail[a],count,(count*37+a*13)&255,(count*19+a)&255,(count*29+family)&255,(count&15)<<4,family*1024+count*4+a);
+ for(unsigned family=0;family<2;family++)for(unsigned available=0;available<256;available++)for(unsigned count=0;count<4;count++)probeA12OAMEmission(c,family,available,counts[count],(available*37)&255,available,255-available,(available&15)<<4,2048+family*1024+available*4+count);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

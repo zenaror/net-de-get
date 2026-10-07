@@ -1544,3 +1544,28 @@ WRAM7 window image; both8192-byte planes and immutable source/guard are checked.
 Audio/window inputs synthetic. Adds21312 assertions,total28828926. No natural
 input/menu trace, Japanese meaning, arbitrary-index validity, IRQ/timing/hardware
 proof. Original resource data remains unextracted; bodies alone are refined.
+
+
+## Resource wrappers, position copies and OAM emitters
+
+PROBABLE contracts.16384 wrapper entry prefixes cover all prior C21D bytes/flags,
+stopping at actual50DF/4D54 calls. Request61/63/65/66 writes are not mapper writes.
+196608 forced first-three suffixes cover all counter/acceleration pairs with
+varied flags;4096 fourth suffixes cover each counter/flag. First three increment
+counter by1 or4, fourth by1; suffixes omit earlier callees explicitly.
+131072 complete position-copy calls cover all XY pairs for4E65/51E5, varied flags.
+
+4096 complete4DFE/5188 calls cover all count bytes at availability0/1/40/255,
+and all availability bytes at count0/1/3/255, with varied indices/coordinates.
+Tables/records synthetic. Availability0 returns. Primary copiesC1C7 toC5F5 and
+decrements per record; secondary usesC5F5 without decrement. Doubled table index
+wraps in byte. DestinationC000+4*((40-availability)&255) uses low-byte-only E
+increments; zero count loops256 times. Coordinate additions wrap. Compare all
+C000-C3FF bytes, complete registers/flags/pointers/mapping/mirrors and source.
+Adversarial destination ranges may overwrite other WRAM fields, includingC115/
+C116; these overwrites are checked by the memory model, not claimed natural.
+Mapper/HRAM backup writes precede the loop; they do not themselves update WRAM
+selector mirrors. Initial dirty-memory setup is followed by explicit requested/
+mirror fields. The original remained unchanged after fixture/oracle corrections.
+Adds688128 asserts,total29517054. No complete wrapper/tick execution, natural
+OAM/capacity trace, Japanese meaning, IRQ/timing or hardware proof.
