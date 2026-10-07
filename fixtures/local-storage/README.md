@@ -1569,3 +1569,24 @@ selector mirrors. Initial dirty-memory setup is followed by explicit requested/
 mirror fields. The original remained unchanged after fixture/oracle corrections.
 Adds688128 asserts,total29517054. No complete wrapper/tick execution, natural
 OAM/capacity trace, Japanese meaning, IRQ/timing or hardware proof.
+
+
+## A12 movement, division and step recurrence
+
+PROBABLE contracts at4EEA/4F4F/4F6A.1048576 complete division calls cover all
+byte dividend/divisor pairs and16 flags. Quotient H/remainder L; divisor0 gives
+255/dividend. BC/DE preserved.131072 complete step calls cover every distance/
+divisor pair with counter1 and every counter/divisor pair with varied distances.
+Independent division/modulo recurrence wraps the distance+remainder sum in byte;
+counter0 loops256 times. Final registers/flags, outputs and guards checked.
+196608 complete movement calls cover all coordinate/target pairs in X-only,
+Y-only and mixed families. Equal coordinates return early; other paths use
+actual step/division callees. Direction follows unsigned comparison; addition/
+subtraction wraps without target clamp. All fields/registers/flags checked.
+3072 complete variant1/2/3 wrapper calls cover counters0..3 with divisor7 and all
+acceleration bytes. Actual tick movement path, position copy and emitter with
+availability0 run before final increment. Mapping/backups/guards checked.
+No injected callee returns. Adds2758656 assertions,total32275710. This covers
+only the movement branch and zero availability, not every wrapper path or
+variant0, integrated resource emission, natural timing/input, Japanese meaning,
+IRQ or hardware. Original bytes unchanged; no real save loaded.

@@ -1,4 +1,4 @@
-; PROBABLE resource-frame reset/dispatch/tick; mapped reader is separate; movement remains numeric.
+; PROBABLE resource-frame reset/dispatch/tick; mapped reader is separate; movement has a separate source; natural integration remains unproven.
 ; Prefix tests stop at actual reader or movement entry; no natural timing claim.
 SECTION "A12 resource control 4CFD-4D0A", ROMX[$4CFD], BANK[$09]
 ResidualROM09_4CFD::
@@ -81,7 +81,7 @@ TickA12ResourceFrame::
 	ld b, a
 	ld a, [$C5CC]
 	sub a, b
-	jp c, $4EEA
+	jp c, MoveA12ResourceCoordinates
 	xor a, a
 	ld [$C5CC], a
 	ld a, [$C5CD]

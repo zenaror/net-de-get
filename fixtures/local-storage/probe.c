@@ -379,6 +379,24 @@ static void probeA12OAMEmission(struct mCore *c,unsigned family,unsigned availab
  for(unsigned i=0;i<records;i++)exact&=rd(c,0xD201+4*i)==((i*17+index)&255)&&rd(c,0xD202+4*i)==((i*29+count)&255)&&rd(c,0xD203+4*i)==((i*37+available)&255)&&rd(c,0xD204+4*i)==((i*43+family)&255);
  require(exact,"A12 OAM original emitters counts index coordinate wrapping whole C000-C3FF mapper mirror and source",caseIndex);
 }
+struct A12StepModel {unsigned q,r;};
+static struct A12StepModel a12StepModel(unsigned distance,unsigned divisor,unsigned counter){
+ struct A12StepModel m={0,0};for(unsigned i=0;i<(counter?counter:256);i++){unsigned value=(distance+m.r)&255;m.q=divisor?value/divisor:255;m.r=divisor?value%divisor:value;}return m;
+}
+static void probeA12StepCalculation(struct mCore *c,unsigned dx,unsigned dy,unsigned divisor,unsigned counter,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;struct A12StepModel x=a12StepModel(dx,divisor,counter),y=a12StepModel(dy,divisor,counter);
+ wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5CB,divisor);wr(c,0xC5CC,counter);for(unsigned i=0;i<6;i++)wr(c,0xC5DB+i,0x5A);wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5DA,0x37);wr(c,0xC5E1,0x39);
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x4F6A,200000);
+ require(cpu->af==(y.r<<8|0xC0|((y.q&1)?0:0x10))&&cpu->bc==divisor&&cpu->de==0x1234&&cpu->hl==(y.q<<8|y.r)&&rd(c,0xC5DB)==x.q&&rd(c,0xC5DC)==y.q&&rd(c,0xC5DF)==x.r&&rd(c,0xC5E0)==y.r&&rd(c,0xC5DD)==dx&&rd(c,0xC5DE)==dy&&rd(c,0xC5CB)==divisor&&rd(c,0xC5CC)==counter&&rd(c,0xC5DA)==0x37&&rd(c,0xC5E1)==0x39,"A12 whole step recurrence independent wrapped quotient remainder all output register guard fields",index);
+}
+static void probeA12Movement(struct mCore *c,unsigned x,unsigned y,unsigned tx,unsigned ty,unsigned divisor,unsigned counter,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;unsigned dx=x>tx?x-tx:tx-x,dy=y>ty?y-ty:ty-y;bool same=x==tx&&y==ty;struct A12StepModel sx=a12StepModel(dx,divisor,counter),sy=a12StepModel(dy,divisor,counter);
+ unsigned nx=x==tx?x:(x<tx?x+sx.q:x-sx.q)&255,ny=y==ty?y:(y<ty?y+sy.q:y-sy.q)&255,a,f,b;
+ if(same){a=0;f=0x80;b=y;}else if(y==ty){a=ty;f=0xC0;b=y;}else if(y<ty){a=ny;f=(ny?0:0x80)|((y&15)+(sy.q&15)>15?0x20:0)|(y+sy.q>255?0x10:0);b=sy.q;}else{a=ny;f=0x40|(ny?0:0x80)|((y&15)<(sy.q&15)?0x20:0)|(y<sy.q?0x10:0);b=sy.q;}
+ wr(c,0xC5D7,x);wr(c,0xC5D8,y);wr(c,0xC5D9,tx);wr(c,0xC5DA,ty);wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5CB,divisor);wr(c,0xC5CC,counter);wr(c,0xC5DB,0x37);wr(c,0xC5DC,0x39);wr(c,0xC5DF,0x3C);wr(c,0xC5E0,0x5A);wr(c,0xC5D6,0x37);wr(c,0xC5E1,0x39);
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,0x4EEA,200000);
+ require(cpu->af==(a<<8|f)&&cpu->bc==(b<<8|(same?0:divisor))&&cpu->de==0x1234&&cpu->hl==(same?0x5678:sy.q<<8|sy.r)&&rd(c,0xC5D7)==nx&&rd(c,0xC5D8)==ny&&rd(c,0xC5D9)==tx&&rd(c,0xC5DA)==ty&&rd(c,0xC5DB)==(same?0x37:sx.q)&&rd(c,0xC5DC)==(same?0x39:sy.q)&&rd(c,0xC5DF)==(same?0x3C:sx.r)&&rd(c,0xC5E0)==(same?0x5A:sy.r)&&rd(c,0xC5CB)==divisor&&rd(c,0xC5CC)==counter&&rd(c,0xC5DD)==dx&&rd(c,0xC5DE)==dy&&rd(c,0xC5D6)==0x37&&rd(c,0xC5E1)==0x39,"A12 whole movement independent unsigned directions byte overflow equality and complete register fields",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4376,6 +4394,26 @@ int main(int argc,char **argv){
  const unsigned avail[]={0,1,40,255},counts[]={0,1,3,255};
  for(unsigned family=0;family<2;family++)for(unsigned count=0;count<256;count++)for(unsigned a=0;a<4;a++)probeA12OAMEmission(c,family,avail[a],count,(count*37+a*13)&255,(count*19+a)&255,(count*29+family)&255,(count&15)<<4,family*1024+count*4+a);
  for(unsigned family=0;family<2;family++)for(unsigned available=0;available<256;available++)for(unsigned count=0;count<4;count++)probeA12OAMEmission(c,family,available,counts[count],(available*37)&255,available,255-available,(available&15)<<4,2048+family*1024+available*4+count);
+ }
+ { /* Complete division, recurrence and movement; no natural interpolation claim. */
+ prepareA12EffectMapping(c,0x63);
+ for(unsigned a=0;a<256;a++)for(unsigned divisor=0;divisor<256;divisor++)for(unsigned flags=0;flags<16;flags++){
+  unsigned q=divisor?a/divisor:255,r=divisor?a%divisor:a,f=a<divisor?0x40|((a&15)<(divisor&15)?0x20:0)|0x10:0xC0|((q&1)?0:0x10);
+  cpu->af=a<<8|flags<<4;cpu->bc=0xBE00|divisor;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x4F4F);
+  require(cpu->af==(r<<8|f)&&cpu->bc==(0xBE00|divisor)&&cpu->de==0x1234&&cpu->hl==(q<<8|r),"A12 complete division all dividend divisor flag bytes zero divisor and early return",a*4096+divisor*16+flags);
+ }
+ for(unsigned distance=0;distance<256;distance++)for(unsigned divisor=0;divisor<256;divisor++)probeA12StepCalculation(c,distance,255-distance,divisor,1,((distance^divisor)&15)<<4,distance*256+divisor);
+ for(unsigned counter=0;counter<256;counter++)for(unsigned divisor=0;divisor<256;divisor++)probeA12StepCalculation(c,(counter*37+divisor)&255,(counter*19+divisor*13)&255,divisor,counter,((counter^divisor)&15)<<4,65536+counter*256+divisor);
+ for(unsigned family=0;family<3;family++)for(unsigned current=0;current<256;current++)for(unsigned target=0;target<256;target++){
+  unsigned x=family==1?73:current,tx=family==1?73:target,y=family==0?73:family==1?current:target,ty=family==0?73:family==1?target:current,counter=family==2?1+((current^target)&3):1,divisor=(current+target)&255;
+  probeA12Movement(c,x,y,tx,ty,divisor,counter,((current^target)&15)<<4,family*65536+current*256+target);
+ }
+ /* Real common tick movement branch and complete variants1/2/3 with no OAM slots. */
+ for(unsigned v=1;v<4;v++)for(unsigned counter=0;counter<4;counter++)for(unsigned accel=0;accel<256;accel++){
+  unsigned x=(accel*37)&255,y=(accel*19)&255,tx=(x+23)&255,ty=(y-17)&255,dx=x>tx?x-tx:tx-x,dy=y>ty?y-ty:ty-y,divisor=7;struct A12StepModel sx=a12StepModel(dx,divisor,counter),sy=a12StepModel(dy,divisor,counter);unsigned nx=(x<tx?x+sx.q:x-sx.q)&255,ny=(y<ty?y+sy.q:y-sy.q)&255,entry=v==1?0x4A66:v==2?0x4A8A:0x4AAE,sel=v==1?0x63:v==2?0x65:0x66,next=(counter+(v<3&&accel?4:1))&255,f=v<3?(accel?((next?0:0x80)|(((next-1)&15)==15?0x20:0)):0xA0):(next?0:0x80)|((counter&15)==15?0x20:0);
+  prepareA12EffectMapping(c,0x63);wr(c,0xC5D7,x);wr(c,0xC5D8,y);wr(c,0xC5D9,tx);wr(c,0xC5DA,ty);wr(c,0xC5DD,dx);wr(c,0xC5DE,dy);wr(c,0xC5CB,divisor);wr(c,0xC5CC,counter);wr(c,0xC73A,accel);wr(c,0xC1C7,0);wr(c,0xC5F5,0x37);wr(c,0xC5CE,0x39);wr(c,0xC5CF,0x3C);cpu->af=0x5A00|(accel&15)<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;callWithLimit(c,entry,200000);
+  require(cpu->af==((v<3?accel:0)<<8|f)&&cpu->bc==divisor&&cpu->de==0x1234&&cpu->hl==0xC5CC&&rd(c,0xC5D7)==nx&&rd(c,0xC5D8)==ny&&rd(c,0xC5D5)==nx&&rd(c,0xC5D6)==ny&&rd(c,0xC5CC)==next&&rd(c,0xC5CB)==divisor&&rd(c,0xC73A)==accel&&rd(c,0xC5F5)==0&&rd(c,0xC1C7)==0&&rd(c,0xC5CE)==0x39&&rd(c,0xC5CF)==0x3C&&rd(c,0xC21C)==sel&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==sel&&rd(c,0xC115)==5&&rd(c,0xFF9D)==5,"A12 complete variants1to3 real tick movement position emitter-zero and counter no fake returns",v*1024+counter*256+accel);
+ }
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
