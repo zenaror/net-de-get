@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **13,129 assertions**.
+and stack assertions, the maintained fixture reports **14,457 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -287,3 +287,12 @@ above1 and retains CF0C, contrasting with the original slot4 cross-slot write.
 Count1 retains1 and uses the current stream; otherwise the saved pointer is
 used. FF stops before51C7. No external FF helpers, other bodies, natural
 playback, universal stream/table bounds or audio correctness are established.
+
+
+Slot6 adds 1,328 assertions: 256 dispatch stops,19 B0 streams,all256 B1/C0
+parameters,four FE counts0/1/2/FF and one tick->B0. B1 edits CF89 bits2/6; C0
+uses masked pointers via CF98/CF99 and copies16 bytes to wave RAM with the
+channel disabled, retaining CF67 rather than storing its index. Synthetic WRAM
+supplies32 pointers/waves. FE updates CF6C above1, retaining CF0C. FF stops
+before51C7. No active-channel wave RAM, external FF helpers, other bodies,
+natural playback, arbitrary bounds or audible correctness are established.

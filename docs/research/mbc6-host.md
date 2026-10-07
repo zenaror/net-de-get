@@ -982,3 +982,20 @@ otherwise saved pointer. No FF helpers, other bodies, natural playback,
 arbitrary table/stream bounds or audio correctness. Full/private/negative gates
 preserve909 published ed80d01 symbols and whole hash,24checker tests.
 286 sections:120 analyzed/19847 bytes,166 unknown/1028729 bytes.
+
+
+### A1E upper slot6 wave copy without stored index
+
+**PROBABLE**, static tick consumer: extract $4EAA-$502C (387 bytes), retaining
+ResidualROM0F_4EAA. CF60/CF61 stream; B1 edits CF89 bits2/6. C0 reads pointers
+via CF98/CF99 +2*(parameter&31) and copies16 bytes to FF30-FF3F without writing
+CF67, unlike slot2's CF27 store. FE stores its decrement in CF6C. FF calls
+51C7/522D/526C, unresolved. Numeric word-read base4A0E stays unchanged.
+
+**SYNTHETIC**: 256 dispatch stops,19 B0 streams,all256 B1/C0 parameters,four FE
+counts0/1/2/FF and one tick->B0 add1328 assertions,total14457. Wave cases use
+32 WRAM pointers/waves with channel disabled and retain CF67; FE retains CF0C.
+No active-channel wave behavior, FF helpers, other bodies, natural playback,
+arbitrary bounds or audible correctness. Full/private/negative gates preserve
+934 published e8097ab symbols and whole hash,24checker tests.287 sections:
+121 analyzed/20234 bytes,166 unknown/1028342 bytes.
