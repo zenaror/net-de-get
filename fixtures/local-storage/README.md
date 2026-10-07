@@ -1162,3 +1162,39 @@ The first wait/cleanup AF oracle omitted H set by AND A; corrected without
 changing ROM code.135200 additional assertions; total9192779, plus24 verifier tests. Complete
 initialization, handlers4157/421D and callback4239 are still untested as a whole;
 natural menu/audio/IRQ, Japanese interpretation and hardware remain unproved.
+
+
+## A12 variant dispatch, idle exit and DMA/palette callbacks
+
+PROBABLE: original flow plus synthetic execution. The new source extracts
+4157–4250 (250 bytes), preserving ResidualROM09_4157. The four-word table is
+separate from code. Raw variant dispatch doubles C5A8 as a byte and pushes
+416C as return; no range guard. Four measured targets use text selectors
+61/63/65/66 and C21D=0 before calling numerical callee5051. Later callees
+remain static; their complete execution is not established here.
+
+4096 prefixes cover all variant bytes and 16 flags, stopping before JP HL.
+16384 prefixes traverse both original dispatchers, the four variants, all
+prior C21D bytes and 16 flags. They stop at the actual5051 call target and
+check selectors/guards and three nested return addresses. 262144 forced tails
+after preceding calls cover every counter/option byte pair in all four variants:
+variants0–2 increment C5E5 by1 for option0, otherwise4; variant3 always adds1.
+They stop before the next call and compare wrap, independent INC/AND flags,
+registers and guards. Initial flags derive from option; no full flags Cartesian
+product is claimed for these tails.
+
+1048576 complete idle-gate calls cover all C220/CF86 bytes and 16 incoming
+flags; only a zero OR clears C5A3. 8192 complete no-op/window callback calls
+cover every incoming AF:422F returns unchanged,4230 sets WX=A7/WY=0.
+2560 full4239 callback calls use actual installed HRAM DMA with LCD disabled:
+all C5A9 bytes with dirty0/1/255, and all dirty bytes with C5A9=0/1, both VBKs.
+DMA runs only for nonzero C5A9; palette upload depends independently on C221.
+Check all160 OAM bytes, source and adjacent guards, all128 palette bytes,
+both entire unchanged VRAM planes, registers and scroll/window reset. FF8A
+is preserved, not produced by this callback body. This is not an IRQ trace.
+
+2705410 added assertions, total11898189, plus24 verifier tests. The focused
+fixture first required spacing after a hexadecimal literal ending in E in C;
+that was a compile fix only, not a ROM change. No disk save, natural menu/audio,
+physical timing, Japanese interpretation or universal raw-state validity is
+established. Complete callee chains remain pending in the canonical README.

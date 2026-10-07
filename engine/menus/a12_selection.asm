@@ -135,11 +135,11 @@ A12Selection_40B7::
 	di
 	ld a, $3F
 	call $0168
-	ld de, $4239
+	ld de, UpdateA12SelectionDMAAndPalettes
 	call StoreRuntimeCallback0
-	ld de, $422F
+	ld de, A12SelectionInterruptReturnOnly
 	call SetRuntimeInterruptStub0
-	ld de, $4230
+	ld de, PositionA12SelectionWindow
 	call StoreRuntimeCallback1
 	ld de, $0000
 	call SetRuntimeInterruptStub1
@@ -184,7 +184,7 @@ ASSERT @ == $4150
 
 SECTION "A12 selection state targets 4150-4155", ROMX[$4150], BANK[$09]
 A12SelectionStateTargets::
-	dw A12SelectionNoop, $4157, $421D
+	dw A12SelectionNoop, DispatchA12SelectionVariant, FinishA12SelectionWhenIdle
 ASSERT @ == $4156
 
 SECTION "A12 selection no-op 4156", ROMX[$4156], BANK[$09]

@@ -3699,6 +3699,85 @@ int main(int argc,char **argv){
  }
  wr(c,0x0000,0);g->memory.ime=false;
  }
+ { /* Raw A12 variant targets; valid variants traverse both real dispatchers. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned variant=0;variant<256;variant++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A8,variant);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4157;
+  unsigned offset=(variant*2)&255,target=rd(c,0x416D+offset)|(rd(c,0x416E + offset)<<8),steps=0,index=variant*16+flags;
+  while(cpu->pc!=0x416B&&steps++<100)c->step(c);
+  require(cpu->pc==0x416B&&cpu->sp==0xCFFC&&rd(c,0xCFFC)==0x6C&&rd(c,0xCFFD)==0x41,"A12 variant raw dispatcher actual return stack stop before indirect jump",index);
+  require(cpu->a==offset&&cpu->f.packed==(offset?0:0x80)&&cpu->bc==0xBEEF&&cpu->de==target&&cpu->hl==target&&rd(c,0xC5A8)==variant,"A12 raw variant byte-wrapped target and registers no range guard",index);
+ }
+ const unsigned selectors[]={0x61,0x63,0x65,0x66},returns[]={0x4182,0x41AF,0x41DF,0x420F};
+ for(unsigned variant=0;variant<4;variant++)for(unsigned prior=0;prior<256;prior++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC5A3,1);wr(c,0xC5A8,variant);wr(c,0xC21B,0x33);wr(c,0xC21C,prior^255);wr(c,0xC21D,prior);wr(c,0xC21E,0x5A);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=prior<<8|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x413A;
+  unsigned steps=0,index=variant*4096+prior*16+flags;while(cpu->pc!=0x5051&&steps++<200)c->step(c);
+  require(cpu->pc==0x5051&&cpu->sp==0xCFF8,"A12 both original dispatchers reach common5051 callee prefix",index);
+  require((rd(c,0xCFF8)|(rd(c,0xCFF9)<<8))==returns[variant]&&(rd(c,0xCFFA)|(rd(c,0xCFFB)<<8))==0x416C&&(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==0x414F&&(rd(c,0xCFFE)|(rd(c,0xCFFF)<<8))==0xC100,
+   "A12 variant callee prefix exact nested return chain",index);
+  require(cpu->a==0&&cpu->f.packed==(variant?0:0x80)&&cpu->bc==0xBEEF&&rd(c,0xC21C)==selectors[variant]&&rd(c,0xC21D)==0&&rd(c,0xC21B)==0x33&&rd(c,0xC21E)==0x5A&&rd(c,0xC5A3)==1&&rd(c,0xC5A8)==variant,
+   "A12 four variant original text selector prefix guards and flags",index);
+ }
+ }
+ { /* Forced variant tails after preceding callees; original counter arithmetic. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);struct GB *g=c->board;
+ const unsigned entries[]={0x4182,0x41B2,0x41E2,0x420F},stops[]={0x418F,0x41BF,0x41EF,0x4213};
+ for(unsigned variant=0;variant<4;variant++)for(unsigned counter=0;counter<256;counter++)for(unsigned option=0;option<256;option++){
+  unsigned initialFlags=(option&15)<<4,amount=variant==3||!option?1:4,value=(counter+amount)&255,index=variant*65536+counter*256+option;
+  unsigned expectedFlags=variant==3?((initialFlags&0x10)|(value?0:0x80)|((value&15)?0:0x20)):!option?0xA0:((value?0:0x80)|((value&15)?0:0x20));
+  wr(c,0xC5E4,0x33);wr(c,0xC5E5,counter);wr(c,0xC5E6,0x5A);wr(c,0xC73A,option);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  cpu->af=0x5A00|initialFlags;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=entries[variant];
+  unsigned steps=0;while(cpu->pc!=stops[variant]&&steps++<100)c->step(c);
+  require(cpu->pc==stops[variant]&&cpu->sp==0xCFFE,"A12 variant counter tail stops before original next call",index);
+  require(rd(c,0xC5E5)==value&&rd(c,0xC5E4)==0x33&&rd(c,0xC5E6)==0x5A&&rd(c,0xC73A)==option&&cpu->a==(variant==3?0x5A:option)&&cpu->f.packed==expectedFlags&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0xC5E5,
+   "A12 counter all byte pairs increment1 or4 wrap independent INC AND flags guards",index);
+ }
+ }
+ { /* Complete idle exit gate, every fade/audio byte pair and incoming flags. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned fade=0;fade<256;fade++)for(unsigned busy=0;busy<256;busy++)for(unsigned flags=0;flags<16;flags++){
+  unsigned state=(fade*73+busy)&255,value=fade|busy,index=fade*4096+busy*16+flags;
+  wr(c,0xC220,fade);wr(c,0xCF86,busy);wr(c,0xC5A2,0x33);wr(c,0xC5A3,state);wr(c,0xC5A4,0x5A);
+  cpu->af=0xA500|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x421D);
+  require(cpu->a==value&&cpu->f.packed==(value?0:0x80)&&cpu->bc==(0xBE00|fade)&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xC5A3)==(value?state:0)&&rd(c,0xC5A2)==0x33&&rd(c,0xC5A4)==0x5A&&rd(c,0xC220)==fade&&rd(c,0xCF86)==busy,
+   "A12 full idle gate OR domains clears state only after fade and audio zero",index);
+ }
+ }
+ { /* Original callback no-op and window positioning, all incoming AF values. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++){
+  cpu->af=a<<8|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;wr(c,0xFF8A,0x33);wr(c,0xC5A9,0x5A);call(c,0x422F);
+  require(cpu->af==(a<<8|flags<<4)&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xFF8A)==0x33&&rd(c,0xC5A9)==0x5A,"A12 interrupt callback no-op complete AF preserves registers guards",a*16+flags);
+  wr(c,0xFF4B,0x55);wr(c,0xFF4A,0x44);cpu->af=a<<8|flags<<4;cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x4230);
+  require(cpu->a==0&&cpu->f.packed==flags<<4&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xFF4B)==0xA7&&rd(c,0xFF4A)==0&&rd(c,0xFF8A)==0x33&&rd(c,0xC5A9)==0x5A,"A12 full window callback sets A7 zero preserves flags and other registers",a*16+flags);
+ }
+ }
+ { /* Original conditional DMA and palette callback, LCDoff synthetic memory. */
+ wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);call(c,0x09EB);
+ bool exact=true;for(unsigned i=0;i<10;i++)exact&=rd(c,0xFF80+i)==rd(c,0x09F9+i);
+ require(exact,"A12 callback actual original HRAM DMA template installed",0);
+ for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+ const unsigned dirties[]={0,1,255};unsigned index=0;
+ for(unsigned family=0;family<2;family++)for(unsigned input=0;input<256;input++)for(unsigned n=0;n<(family?2:3);n++)for(unsigned plane=0;plane<2;plane++){
+  unsigned dma=family?n:input,dirty=family?input:dirties[n];
+  for(unsigned i=0;i<160;i++){wr(c,0xC000+i,(i*37+dma*19+dirty)&255);wr(c,0xFE00+i,0x6D);}wr(c,0xC0A0,0x33);
+  for(unsigned i=0;i<128;i++)wr(c,0xC222+i,(i*29+dirty*11+dma*17)&255);wr(c,0xC220,0x5A);wr(c,0xC2A2,0x3C);
+  for(unsigned p=0;p<2;p++)for(unsigned i=0;i<64;i++){wr(c,p?0xFF6A:0xFF68,i);wr(c,p?0xFF6B:0xFF69,0x19);}
+  wr(c,0xFF4F,plane);wr(c,0xC5A9,dma);wr(c,0xC221,dirty);wr(c,0xFF8A,0x33);wr(c,0xFF43,0xA5);wr(c,0xFF42,0x5A);wr(c,0xFF4B,0x44);wr(c,0xFF4A,0x55);
+  cpu->af=0xA500|((input&15)<<4);cpu->bc=0xBEEF;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x4239);
+  require(cpu->af==0x0080&&cpu->bc==0xBEEF&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xC5A9)==dma&&rd(c,0xC221)==0&&rd(c,0xC220)==0x5A&&rd(c,0xC2A2)==0x3C&&rd(c,0xC0A0)==0x33&&rd(c,0xFF8A)==0x33&&rd(c,0xFF43)==0&&rd(c,0xFF42)==0&&rd(c,0xFF4B)==7&&rd(c,0xFF4A)==0&&(rd(c,0xFF4F)&1)==plane,
+   "A12 full conditional callback AF registers scroll window independent flags guards",index);
+  exact=true;for(unsigned i=0;i<160;i++)exact&=rd(c,0xFE00+i)==(dma?((i*37+dma*19+dirty)&255):0x6D)&&rd(c,0xC000+i)==((i*37+dma*19+dirty)&255);
+  require(exact,"A12 DMA only when C5A9 nonzero exact160 OAM bytes and source unchanged",index);
+  exact=true;for(unsigned p=0;p<2;p++)for(unsigned i=0;i<64;i++){wr(c,p?0xFF6A:0xFF68,i);unsigned expected=dirty?(((p*64+i)*29+dirty*11+dma*17)&255):0x19;exact&=rd(c,p?0xFF6B:0xFF69)==expected;}
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==0xA5;}wr(c,0xFF4F,plane);
+  require(exact,"A12 palettes only when dirty independent of DMA all palette bytes both whole VRAM planes",index++);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
