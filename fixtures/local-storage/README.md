@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **14,457 assertions**.
+and stack assertions, the maintained fixture reports **23,985 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -296,3 +296,15 @@ channel disabled, retaining CF67 rather than storing its index. Synthetic WRAM
 supplies32 pointers/waves. FE updates CF6C above1, retaining CF0C. FF stops
 before51C7. No active-channel wave RAM, external FF helpers, other bodies,
 natural playback, arbitrary bounds or audible correctness are established.
+
+
+Slot7 and upper FF helpers add 9,528 assertions. Core cases:256 dispatch stops,
+19 C0 durations,all256 B1/C0 parameters,four FE counts and one tick->C0. B1 uses
+CF89 bits3/7; C0 stores the raw parameter in CF77; B0 returns as unknown.
+4,096 complete E0/E1 streams use eight CF72 bases and every parameter. E0
+forms (base&7)|((((base>>4)+value)&15)<<4); E1 forms
+(base&F0)|(((base&7)+value)&FF). These preserve the original wrap/OR and update
+CF7E/CF7F without storing into CF72. Four complete upper FF chains clear only
+the selected16-byte slot and mask its routing bits, retaining other slot fields.
+Restoration/reset helpers execute, but their audible correctness is not asserted.
+No natural playback, all other bodies, table extent, IRQ timing or hardware.

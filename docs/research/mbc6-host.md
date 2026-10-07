@@ -999,3 +999,27 @@ No active-channel wave behavior, FF helpers, other bodies, natural playback,
 arbitrary bounds or audible correctness. Full/private/negative gates preserve
 934 published e8097ab symbols and whole hash,24checker tests.287 sections:
 121 analyzed/20234 bytes,166 unknown/1028342 bytes.
+
+
+### A1E slot7 noise arithmetic and full upper FF chains
+
+**PROBABLE**, tick/upper FF consumers: extract $502D-$5295 (617 bytes), retaining
+ResidualROM0F_502D. All eight tick handlers now symbolic. Slot7's CF70/CF71
+stream dispatches E0/E1, B1, C0 and loop/termination commands; B0 is an unknown
+return. B1 uses CF89 bits3/7; C0 stores a raw byte in CF77. Numeric4B08 table
+extent remains unknown. E0 writes CF7E and E1 writes CF7F, then computes FF22
+from CF72 with original eight-bit arithmetic; neither stores the result in CF72.
+Upper FF helpers51C7-5295 clear16 bytes, issue original reset/restore register
+writes or copy the lower-slot2 wave, and clear each pair of CF89 routing bits.
+Original register/byte order is retained, including5202's H/L-derived writes.
+
+**SYNTHETIC**: 256 dispatch stops,19 C0 durations,all256 B1/C0 parameters,four
+FE counts,one tick->C0,4096 E0/E1 streams (eight bases/all256 parameters) and
+four complete upper FF chains add9528 assertions,total23985. E0 computes
+(base&7)|((((base>>4)+value)&15)<<4); E1 computes
+(base&F0)|(((base&7)+value)&FF). WRAM and FF22 effects are checked without
+claiming musical validity. FF checks exact slot clear, other fields retained and
+CF89 masking; helper execution is not proof of audible restoration. No natural
+playback, all remaining bodies, table safety/extent, IRQ timing or hardware.
+Full/private/negative gates preserve961 published1783bae symbols and whole
+hash,24checker tests.288 sections:122 analyzed/20851 bytes,166 unknown/1027725.

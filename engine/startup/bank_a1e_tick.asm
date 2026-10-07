@@ -142,7 +142,7 @@ TickBankA1EState::
 	ld [hl], $FF
 	jr .at4381
 .at437E:
-	call $502D
+	call HandleA1ESlot7Commands
 .at4381:
 	ld a, [$CF86]
 	or a, a

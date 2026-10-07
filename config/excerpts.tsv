@@ -173,7 +173,8 @@ bank	start	end	symbol
 0F	4B90	4D22	HandleA1ESlot4Commands
 0F	4D23	4EA9	HandleA1ESlot5Commands
 0F	4EAA	502C	HandleA1ESlot6Commands
-0F	502D	5FFF	ResidualROM0F_502D
+0F	502D	5295	HandleA1ESlot7Commands
+0F	5296	5FFF	ResidualROM0F_5296
 0F	6000	7FFF	ResidualROM0F_6000
 10	4000	5FFF	ResidualROM10_4000
 10	6000	7FFF	ResidualROM10_6000

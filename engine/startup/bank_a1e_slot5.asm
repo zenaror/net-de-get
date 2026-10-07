@@ -29,9 +29,9 @@ A1ESlot5_4D2B::
 	ld hl, $CF50
 	cp a, $FF
 	ret nz
-	call $51C7
-	call $5202
-	call $527A
+	call ClearA1EUpperSlot16Bytes
+	call RestoreA1ELowerSlot1Registers
+	call ClearA1ESlot5Routing
 	ret
 A1ESlot5_4D65::
 	ld a, [bc]

@@ -1433,6 +1433,78 @@ int main(int argc,char **argv){
  wr(c,0xD800,0xB0);wr(c,0xD801,7);wr(c,0xD802,5);call(c,0x4000);
  require(rd(c,0xCF6D)==7&&rd(c,0xCF64)==5&&rd(c,0xCF60)==3&&rd(c,0xCF61)==0xD8,
          "A1E integrated tick invokes slot6 B0",0);
+ /* Upper slot7: all sub90 opcodes take its audio tail, not early return. */
+ wr(c,0x27FF,0x1E);wr(c,0x2800,0);
+ for(unsigned opcode=0;opcode<256;opcode++){
+  wr(c,0xCF70,0);wr(c,0xCF71,0xD8);wr(c,0xD800,opcode);
+  unsigned target=opcode<0x90?0x5177:opcode<0xA0?0x50FB:
+   opcode==0xB1?0x50D5:opcode==0xC0?0x50F3:opcode==0xE0?0x506F:opcode==0xE1?0x5095:
+   opcode==0xFD?0x50AD:opcode==0xFE?0x50BD:opcode==255?0x5065:0xC100;
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);struct GB *g=c->board;g->memory.ime=false;
+  cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);
+  cpu->de=0xBEEF;cpu->pc=0x502D;unsigned steps=0;while(cpu->pc!=target&&steps++<200)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(target==0xC100?0xD000:0xCFFE)&&cpu->bc==0xD801&&
+          cpu->a==opcode&&cpu->de==0xBEEF&&rd(c,0xCF70)==0&&rd(c,0xCF71)==0xD8,
+          "A1E slot7 all opcode dispatches",opcode);
+ }
+ for(unsigned index=0;index<19;index++){
+  unsigned first=index<3?shortCounts[index]:extendedPrefixes[(index-3)/4];
+  unsigned low=index<3?0:extendedLow[(index-3)%4];
+  wr(c,0xCF70,0);wr(c,0xCF71,0xD8);wr(c,0xCF75,0x77);wr(c,0xCF64,0xA5);
+  wr(c,0xD800,0xC0);wr(c,0xD801,7);wr(c,0xD802,first);wr(c,0xD803,low);call(c,0x502D);
+  require(rd(c,0xCF77)==7&&rd(c,0xCF70)==(index<3?3:4)&&rd(c,0xCF71)==0xD8&&
+          rd(c,0xCF74)==(index<3?first:(low|((first&1)<<7)))&&
+          rd(c,0xCF75)==(index<3?0x77:((first&0x7F)>>1))&&rd(c,0xCF64)==0xA5,
+          "A1E slot7 C0 countdown preserves slot6",index);
+ }
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xCF70,0);wr(c,0xCF71,0xD8);wr(c,0xCF89,0x2A);wr(c,0xCF88,0x37);
+  wr(c,0xD800,0xB1);wr(c,0xD801,value);wr(c,0xD802,1);call(c,0x502D);
+  require(rd(c,0xCF89)==(value<0x40?0xA2:value==0x40?0xAA:0x2A)&&rd(c,0xCF88)==0x37,
+          "A1E slot7 B1 bits3 and7 in CF89",value);
+ }
+ for(unsigned value=0;value<256;value++){
+  wr(c,0xCF70,0);wr(c,0xCF71,0xD8);wr(c,0xCF78,0x37);
+  wr(c,0xD800,0xC0);wr(c,0xD801,value);wr(c,0xD802,3);call(c,0x502D);
+  require(rd(c,0xCF77)==value&&rd(c,0xCF78)==0x37&&rd(c,0xCF70)==3&&rd(c,0xCF71)==0xD8&&rd(c,0xCF74)==3,
+          "A1E slot7 C0 stores raw parameter",value);
+ }
+ const unsigned loopCounts7[]={0,1,2,255};
+ for(unsigned index=0;index<4;index++){
+  unsigned count=loopCounts7[index];wr(c,0xCF70,0);wr(c,0xCF71,0xD8);
+  wr(c,0xCF7C,count);wr(c,0xCF0C,0x77);wr(c,0xCF7A,0);wr(c,0xCF7B,0xD9);
+  wr(c,0xD800,0xFE);wr(c,0xD801,5);wr(c,0xD900,3);call(c,0x502D);
+  require(rd(c,0xCF7C)==(count>1?count-1:count)&&rd(c,0xCF0C)==0x77&&
+          rd(c,0xCF70)==(count==1?2:1)&&rd(c,0xCF71)==(count==1?0xD8:0xD9)&&rd(c,0xCF74)==(count==1?5:3),
+          "A1E slot7 FE updates own count retains CF0C",index);
+ }
+ for(unsigned i=0;i<0x90;i++)wr(c,0xCF00+i,0);
+ wr(c,0xCF70,0);wr(c,0xCF71,0xD8);wr(c,0xCF74,1);
+ wr(c,0xD800,0xC0);wr(c,0xD801,7);wr(c,0xD802,5);call(c,0x4000);
+ require(rd(c,0xCF77)==7&&rd(c,0xCF74)==5&&rd(c,0xCF70)==3&&rd(c,0xCF71)==0xD8,
+         "A1E integrated tick invokes slot7 C0",0);
+ const unsigned noiseBases[]={0,7,8,15,16,127,128,255};
+ for(unsigned opcode=0xE0;opcode<=0xE1;opcode++)for(unsigned index=0;index<8;index++)for(unsigned value=0;value<256;value++){
+  unsigned base=noiseBases[index];wr(c,0xCF70,0);wr(c,0xCF71,0xD8);wr(c,0xCF72,base);
+  wr(c,0xCF7E,0x37);wr(c,0xCF7F,0x38);wr(c,0xD800,opcode);wr(c,0xD801,value);wr(c,0xD802,3);call(c,0x502D);
+  unsigned expected=opcode==0xE0?((base&7)|((((base>>4)+value)&15)<<4)):
+   ((base&0xF0)|(((base&7)+value)&255));
+  require(rd(c,0xFF22)==expected&&rd(c,0xCF72)==base&&
+          rd(c,0xCF7E)==(opcode==0xE0?value:0x37)&&rd(c,0xCF7F)==(opcode==0xE1?value:0x38)&&
+          rd(c,0xCF70)==3&&rd(c,0xCF71)==0xD8&&rd(c,0xCF74)==3,
+          "A1E slot7 E0 E1 original noise arithmetic",(opcode<<16)|(index<<8)|value);
+ }
+ const unsigned upperHandlers[]={0x4B90,0x4D23,0x4EAA,0x502D};
+ for(unsigned slot=0;slot<4;slot++){
+  for(unsigned i=0;i<0x80;i++)wr(c,0xCF00+i,0x5A);
+  wr(c,0xCF27,0);wr(c,0xCF98,0);wr(c,0xCF99,0xD9);wr(c,0xD900,0);wr(c,0xD901,0xDA);
+  for(unsigned i=0;i<16;i++)wr(c,0xDA00+i,i*7);
+  unsigned offset=0x40+slot*16;wr(c,0xCF00+offset,0);wr(c,0xCF01+offset,0xD8);wr(c,0xCF89,255);wr(c,0xD800,255);
+  unsigned before[128];for(unsigned i=0;i<128;i++)before[i]=rd(c,0xCF00+i);
+  call(c,upperHandlers[slot]);bool exact=true;
+  for(unsigned i=0;i<128;i++)if(rd(c,0xCF00+i)!=(i/16==slot+4?0:before[i]))exact=false;
+  require(exact&&rd(c,0xCF89)==(255^(0x11<<slot)),"A1E full upper FF clear restore routing chain",slot);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

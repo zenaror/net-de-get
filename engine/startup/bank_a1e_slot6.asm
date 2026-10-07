@@ -29,9 +29,9 @@ A1ESlot6_4EB2::
 	ld hl, $CF60
 	cp a, $FF
 	ret nz
-	call $51C7
-	call $522D
-	call $526C
+	call ClearA1EUpperSlot16Bytes
+	call RestoreA1ELowerSlot2Wave
+	call ClearA1ESlot6Routing
 	ret
 A1ESlot6_4EEC::
 	ld a, [bc]
