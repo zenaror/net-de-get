@@ -171,6 +171,19 @@ int main(int argc,char **argv){
           cpu->bc==0x1234&&cpu->de==0x5678&&cpu->hl==0x9ABC,
           "state 1 nonzero gate skips downstream callees",value);
  }
+ /* State 4: three paths that return without external callees. */
+ for(unsigned mode=0;mode<3;mode++){
+  wr(c,0xD000,4);wr(c,0xD01C,mode==0?255:mode==1?1:0);
+  wr(c,0xD007,5);wr(c,0xD002,3);wr(c,0xD003,8);wr(c,0xD001,2);
+  wr(c,0xD020,0xA5);
+  for(unsigned i=0;i<4;i++)wr(c,0xD00A+i,0xA5);
+  call(c,0x4303);
+  unsigned ok=rd(c,0xD000)==(mode==0?1:mode==1?2:4)&&
+              rd(c,0xD020)==(mode==1?1:0xA5);
+  const unsigned saved[]={2,3,5,8};
+  for(unsigned i=0;i<4;i++)ok&=rd(c,0xD00A+i)==(mode==1?saved[i]:0xA5);
+  require(ok,"state 4 bounded paths and saved fields",mode);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

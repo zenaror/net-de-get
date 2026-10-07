@@ -360,3 +360,21 @@ analysis, not decoding that area linearly as instructions. The static exact-byte
 total is **31 sections / 2477 bytes**. The **1636 synthetic assertions** still
 cover earlier helpers and dispatch/early-return cases; they do not execute this
 initialization or establish natural graphics/menu behavior.
+
+
+### Remaining table targets: states 4 and 5
+
+`$4303-$43BF` (189 bytes) and `$43C0-$450E` (335 bytes) complete the six
+return-terminated table targets in the partial source. All table words now use
+exported labels, preserving bytes and addresses. **PROBABLE static interpretation:**
+state 4 branches from `$D01C`, saves fields or invokes external action/presentation
+helpers; state 5 shifts list bytes, updates SYS1 through `$01B6/$01B9`, invokes
+external storage/flash helpers, rebuilds titles and returns state to 1. These
+callees and their natural combinations still require independent evidence.
+
+Three original-entry state-4 fixtures stop by `RET` without external calls:
+`$D01C=$FF` sets state 1; `$D01C=1` sets state 2 and copies the observed fields;
+`$D01C=0` with the sum equal to `$D003` retains state 4 and saved-field sentinels.
+The suite now has **1642 synthetic assertions**. State-5 execution is not probed
+here; no new flash-format, persistence, capacity or hardware claim follows.
+The total is **33 sections / 3001 byte-exact bytes**.

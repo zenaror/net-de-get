@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,636 assertions**.
+and stack assertions, the maintained fixture reports **1,642 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -41,3 +41,8 @@ State 1 at `$42CD` is tested with every nonzero byte at `$C21F`: it returns
 without invoking downstream callees and preserves BC/DE/HL and that byte. The
 zero path and states 2/3 have exact-byte checks only; their callees are not covered
 by these forced-entry fixtures. The meaning of `$C21F` is not established.
+
+Three bounded state-4 fixtures test `$D01C=$FF`, `$D01C=1`, and `$D01C=0`
+with the index sum matching `$D003`. They check return, the resulting state and
+saved fields. These paths have no external calls. Other state-4 paths and all
+of state 5 remain exact-byte checks only.
