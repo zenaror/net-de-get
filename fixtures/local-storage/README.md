@@ -1415,3 +1415,30 @@ copy; FE preserves the caller registers before its final index INC. No invented
 register preservation.147600 new asserts,total22279422,plus24 verifier tests.
 Prepared WRAM headers/payload/audio records are synthetic; no arbitrary geometry,
 natural resource table, audio waveform/cadence, flash or hardware claim.
+
+## A12 C601 text-mode controller
+
+PROBABLE109-byte UpdateA12TextModeController4B70-4BDC. Four published variant
+handlers now call its name. C601zero returns. Nonzero/non-FF requiresC5CF1,
+sets phase2 and calls actual ResetA12ResourceFrame. Mode1 then tail-jumps5C2F;
+mode2 setsC73A1,prepares text record0,shows window,queues pointer5695 and sets
+C601FF; other modes return. FF tests FF97 bit0 to clearC1C2 before text busy
+C1B8 gate. Idle calls real hide/copy,sets phase1,resets resources,clearsC601,
+optionally calls5C55 ifC73B nonzero,then clears that pending byte.
+
+2097152 whole-entry guard cases:all C601/C5CF bytes/16 flags with busy1/edge0;
+all FF97/C1B8 bytes/16 flags with C601FF.2088992 complete guarded returns,
+8160 actual first-call prefixes (4064 reset,4096 hide). Independent flag/field
+models check original stack returns,mode/phase writes,bit0 clear and guards.
+
+12288 forced suffix cases:all mode bytes/16 flags at4B88,all prior phase bytes/
+16 flags at4BC2,all pending bytes/16 flags at4BCA. Stop at actual tails/calls
+or complete local returns.4096 further full suffix calls at4BD7 cover all AF
+and flag preservation. These entries begin after unexecuted callees: they are
+local suffix evidence,never substituted calls/returns or a whole-path proof.
+No new complete reset/text/resource/5C2F/5C55 integration is claimed.
+
+4227072 new asserts,total26506494,plus24 verifier tests. Initial reset-prefix
+oracle omitted N from equal CP; corrected expectedC0 instead of80,without
+changing original bytes. Natural mode/input/text trace,Japanese meaning,tails
+5C2F/5C55,IRQ/cadence and hardware remain unconfirmed.

@@ -39,7 +39,7 @@ A12SelectionVariant0::
 	inc [hl]
 	inc [hl]
 A12Handler_418F::
-	call $4B70
+	call UpdateA12TextModeController
 	call $459F
 	call $470F
 	call ResidentJump0261
@@ -65,7 +65,7 @@ A12SelectionVariant1::
 	inc [hl]
 	inc [hl]
 A12Handler_41BF::
-	call $4B70
+	call UpdateA12TextModeController
 	call $459F
 	call $470F
 	call ResidentJump0261
@@ -91,7 +91,7 @@ A12SelectionVariant2::
 	inc [hl]
 	inc [hl]
 A12Handler_41EF::
-	call $4B70
+	call UpdateA12TextModeController
 	call $459F
 	call $470F
 	call ResidentJump0261

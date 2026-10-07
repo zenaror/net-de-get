@@ -4158,6 +4158,34 @@ int main(int argc,char **argv){
   wr(c,0xFF40,0);exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==(tile&&i==0x1841?(bank?0x45:0x23):0xA5);}require(exact,"A12 full marker chain both complete VRAM planes exact original effects",kind*8+plane*4+lcd*2+wrap);
  }
  }
+ { /* Complete guard returns or actual first-call boundaries of whole controller. */
+ struct GB *g=c->board;wr(c,0xFF40,0);wr(c,0xFF70,2);wr(c,0x27FF,0x12);wr(c,0x2800,0);
+ for(unsigned family=0;family<2;family++)for(unsigned first=0;first<256;first++)for(unsigned second=0;second<256;second++)for(unsigned flags=0;flags<16;flags++){
+  unsigned mode=family?255:first,phase=family?0x37:second,busy=family?second:1,edge=family?first:0;
+  bool reset=!family&&mode&&mode!=255&&phase==1,hide=family&&!busy;unsigned target=reset?0x4CFD:hide?0x4CB8:0xC100;
+  unsigned a,f;if(family){a=busy;f=busy?0x20:0xA0;}else if(!mode){a=0;f=0xA0;}else if(mode==255){a=1;f=0x20;}else if(phase!=1){a=phase;f=0x40|((phase&15)<1?0x20:0)|(phase<1?0x10:0);}else{a=2;f=0xC0;}
+  wr(c,0xC601,mode);wr(c,0xC5CF,phase);wr(c,0xC1B8,busy);wr(c,0xFF97,edge);wr(c,0xC1C2,0x5A);wr(c,0xC73A,0x37);wr(c,0xC73B,0x39);wr(c,0xC600,0x3C);wr(c,0xC602,0x5A);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4B70;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<200)c->step(c);
+  require(cpu->pc==target&&cpu->sp==(reset||hide?0xCFFC:0xD000)&&(!(reset||hide)||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==(reset?0x4B88:0x4BC2))&&cpu->af==(a<<8|f)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678,"A12 whole text controller exhaustive guards return or actual reset hide boundary registers flags",family*1048576+first*4096+second*16+flags);
+  require(rd(c,0xC601)==mode&&rd(c,0xC5CF)==(reset?2:phase)&&rd(c,0xC1C2)==((edge&1)?0:0x5A)&&rd(c,0xC73A)==0x37&&rd(c,0xC73B)==0x39&&rd(c,0xC600)==0x3C&&rd(c,0xC602)==0x5A,"A12 whole controller mode phase edge clear busy gate exact fields and guards",family*1048576+first*4096+second*16+flags);
+ }
+ /* Forced suffix entries prove only local contracts after unexecuted callees. */
+ for(unsigned family=0;family<3;family++)for(unsigned value=0;value<256;value++)for(unsigned flags=0;flags<16;flags++){
+  unsigned target=family==0?(value==1?0x5C2F:value==2?0x4C88:0xC100):family==1?0x4CFD:value?0x5C55:0xC100;
+  unsigned a=family==0?(value==2?0:value):family==1?1:value,f=family==0?(value==1||value==2?0xC0:0x40|((value&15)<2?0x20:0)|(value<2?0x10:0)):family==1?flags<<4:value?0x40:0xC0;
+  wr(c,0xC601,family==0?value:255);wr(c,0xC5CF,family==1?value:0x37);wr(c,0xC73A,0x5A);wr(c,0xC73B,family==2?value:0x39);wr(c,0xC1C2,0x3C);
+  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=family==0?0x4B88:family==1?0x4BC2:0x4BCA;
+  unsigned steps=0;while(cpu->pc!=target&&steps++<200)c->step(c);
+  bool nested=(family==0&&value==2)||family==1||(family==2&&value);unsigned ret=family==0?0x4B9F:family==1?0x4BCA:0x4BD7;
+  require(cpu->pc==target&&cpu->sp==(nested?0xCFFC:family==0&&value==1?0xCFFE:0xD000)&&(!nested||(rd(c,0xCFFC)|(rd(c,0xCFFD)<<8))==ret)&&cpu->af==(a<<8|f)&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678,"A12 text forced suffix exact local branch call tail stack registers flags",family*4096+value*16+flags);
+  require(rd(c,0xC601)==(family==0?value:family==1?255:0)&&rd(c,0xC5CF)==(family==1?1:0x37)&&rd(c,0xC73A)==(family==0&&value==2?1:0x5A)&&rd(c,0xC73B)==(family==2?value:0x39)&&rd(c,0xC1C2)==0x3C,"A12 local suffix writes mode phase accelerated counter flag and pending guard only",family*4096+value*16+flags);
+ }
+ for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++){
+  wr(c,0xC73B,0xA5);wr(c,0xC73A,0x37);wr(c,0xC601,0x39);cpu->af=a<<8|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,0x4BD7);
+  require(cpu->af==flags<<4&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC73B)==0&&rd(c,0xC73A)==0x37&&rd(c,0xC601)==0x39,"A12 post unexecuted5C55 suffix clears pending byte preserves every incoming flag",a*16+flags);
+ }
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;
