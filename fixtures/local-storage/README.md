@@ -833,3 +833,27 @@ Four artificial length0/1 FE/FF prefixes stop
 defect claim.139040 full calls and65540 prefixes add409161 assertions.
 SYNTHETIC/PROBABLE only: no natural menu, universal metadata/stream domains
 or hardware timing. Japanese bytes and published symbols are preserved.
+
+
+## A0F callbacks, frame wait and palette fade
+
+PROBABLE/SYNTHETIC: 4096 complete no-op callbacks (all A bytes and 16 flags),
+one original 09EB HRAM DMA installer and 512 complete OAM/palette callbacks
+(all dirty bytes, both VBKs, LCD off). Check the actual ten installed bytes,
+C000..C09F to OAM, raw BG/OBJ palette readback, AF/BC/DE/HL, guards and both
+8192-byte VRAM planes. The rejected bit-15 masking oracle was corrected to
+raw readback; no hardware color visibility is asserted.
+
+256 complete frame waits cover all initial FF8A bytes. A timing event scheduled
+before HALT observes the halted CPU and injects IE/IF with IME false. Flag zero
+continues spinning until explicitly supplied with 1. Injection after an unposted
+HALT blocked the host stepping call in the core event loop; scheduling a producer
+fixes the fixture contract without changing the core or original bytes.
+
+1024 complete fades cover original pointers 4E20/52EC, all CF86 bytes and both
+VBKs. Check each original wait, eight transition ticks, 192 accumulators/deltas,
+64 final 7FFF colors, guards and unchanged hardware palette/whole VRAM. Nonzero
+CF86 is held for two extra waits, then explicitly released. No natural audio,
+IRQ handler or frame producer executes. Reading 128 bytes at 4E20 crosses 4E68;
+this is not a claim about an independent palette object's extent. The 5888
+semantic calls plus DMA installer add 20987 assertions, total 3702286.

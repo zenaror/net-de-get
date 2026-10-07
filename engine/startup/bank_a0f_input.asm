@@ -144,7 +144,7 @@ A0FInput_42C6::
 	call ResidentJump0255
 	ld a, $63
 	ld [$C772], a
-	call $47AA
+	call FadeAndWaitA0FPalette - $2000
 	jr A0FInput_4305
 A0FInput_42D3::
 	ld a, $84

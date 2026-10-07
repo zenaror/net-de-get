@@ -18,9 +18,9 @@ ASSERT @ == $60B2
 SECTION "A0F setup 60B2-6140", ROMX[$60B2], BANK[$07]
 ResidualROM07_60B2::
 InitializeA0FDisplayContinuation::
-	ld de, $47CD
+	ld de, A0FNoopInterruptCallback - $2000
 	call SetRuntimeInterruptStub0
-	ld de, $47CE
+	ld de, A0FOAMAndPaletteCallback - $2000
 	call StoreRuntimeCallback0
 	ld de, $0000
 	call StoreRuntimeCallback1

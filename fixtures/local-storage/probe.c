@@ -27,6 +27,24 @@ static unsigned markerModel(unsigned b,unsigned c,unsigned e,unsigned *d,unsigne
 }
 static void wr(struct mCore *c,unsigned address,unsigned value){c->busWrite8(c,address,value);}
 static unsigned rd(struct mCore *c,unsigned address){return c->busRead8(c,address);}
+/* Schedule before HALT: the core processes this event inside its wait loop.
+   IME stays false; this is a fixture producer, not a natural IRQ/frame trace. */
+struct SyntheticWake {struct mTimingEvent event;struct mCore *core;bool fired,wasHalted;bool setFlag;};
+static void syntheticWakeEvent(struct mTiming *timing,void *context,uint32_t late){
+ (void)timing;(void)late;struct SyntheticWake *wake=context;
+ wake->wasHalted=((struct GB*)wake->core->board)->cpu->halted;wake->fired=true;
+ if(wake->setFlag)wr(wake->core,0xFF8A,1);
+ wr(wake->core,0xFFFF,1);wr(wake->core,0xFF0F,1);
+}
+static bool wakeSyntheticHalt(struct mCore *c,bool setFlag){
+ struct GB *g=c->board;struct SyntheticWake wake={0};wake.core=c;wake.setFlag=setFlag;
+ wake.event.context=&wake;wake.event.callback=syntheticWakeEvent;wake.event.name="synthetic frame wake";wake.event.priority=0x80;
+ mTimingSchedule(&g->timing,&wake.event,64);
+ unsigned steps=0;while(!wake.fired&&steps++<1000)c->step(c);
+ mTimingDeschedule(&g->timing,&wake.event);
+ wr(c,0xFF0F,0);wr(c,0xFFFF,0);
+ return wake.fired&&wake.wasHalted&&!g->cpu->halted&&!g->memory.ime;
+}
 static void callWithLimit(struct mCore *c,unsigned entry,unsigned limit){
  struct GB *g=c->board;struct SM83Core *cpu=g->cpu;
  wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;
@@ -2761,6 +2779,65 @@ int main(int argc,char **argv){
   require(exact,"A0F three indicator pairs original attributes both full VRAM planes",lcd*512+seed*2+initial);
  }
  wr(c,0xFF40,0);
+ }
+ { /* Original A0F callbacks/frame wait; explicit synthetic wakes, no IRQ trace. */
+ wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);
+ for(unsigned a=0;a<256;a++)for(unsigned flags=0;flags<16;flags++){
+  cpu->a=a;cpu->f.packed=flags<<4;cpu->bc=0x1234;cpu->de=0x5678;cpu->hl=0x9ABC;wr(c,0xC1B8,0x5A);wr(c,0xFF8A,0x3C);call(c,0x47CD);
+  require(cpu->a==a&&cpu->f.packed==flags*16&&cpu->bc==0x1234&&cpu->de==0x5678&&cpu->hl==0x9ABC&&rd(c,0xC1B8)==0x5A&&rd(c,0xFF8A)==0x3C,
+   "A0F no-op callback all A flags preserves registers and guarded fields",a*16+flags);
+ }
+ call(c,0x09EB);bool installed=true;for(unsigned i=0;i<10;i++)installed&=rd(c,0xFF80+i)==rd(c,0x09F9+i);
+ require(installed,"A0F callback fixture installs actual original ten-byte HRAM DMA",0);
+ for(unsigned dirty=0;dirty<256;dirty++)for(unsigned plane=0;plane<2;plane++){
+  for(unsigned i=0;i<160;i++)wr(c,0xC000+i,(i*37+dirty*19)&255);
+  for(unsigned i=0;i<128;i++)wr(c,0xC222+i,(i*29+dirty*11)&255);
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){wr(c,palette?0xFF6A:0xFF68,i);wr(c,palette?0xFF6B:0xFF69,0x19);}
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC221,dirty);wr(c,0xFF8A,0x3C);cpu->a=dirty;cpu->f.packed=(dirty&15)<<4;cpu->bc=0x1234;cpu->de=0x5678;cpu->hl=0x9ABC;call(c,0x47CE);
+  bool exact=rd(c,0xC221)==0&&rd(c,0xFF8A)==0x3C&&cpu->a==0&&cpu->f.packed==(0xC0|((dirty&1)<<4))&&cpu->bc==0x1234&&cpu->de==0x5678&&cpu->hl==0x9ABC&&(rd(c,0xFF4F)&1)==plane;
+  for(unsigned i=0;i<160;i++)exact&=rd(c,0xFE00+i)==((i*37+dirty*19)&255);
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+   unsigned index=palette*64+i,value=dirty?((index*29+dirty*11)&255):0x19;
+   wr(c,palette?0xFF6A:0xFF68,i);unsigned actual=rd(c,palette?0xFF6B:0xFF69);if(actual!=value)fprintf(stderr,"A0F callback palette dirty=%u palette=%u index=%u actual=%02X expected=%02X\n",dirty,palette,i,actual,value);exact&=actual==value;
+  }
+  if(!exact)fprintf(stderr,"A0F callback registers AF=%02X%02X BC=%04X DE=%04X HL=%04X dirty=%u flag=%u VBK=%u\n",cpu->a,cpu->f.packed,cpu->bc,cpu->de,cpu->hl,rd(c,0xC221),rd(c,0xFF8A),rd(c,0xFF4F)&1);
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==0xA5;}
+  require(exact,"A0F actual OAM DMA palette callback all dirty bytes LCDoff OAM palettes registers untouched VRAM",dirty*2+plane);
+ }
+ for(unsigned flag=0;flag<256;flag++){
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;
+  wr(c,0xFF8A,flag);wr(c,0xFF8B,0xA5);cpu->bc=0x1234;cpu->de=0x5678;cpu->hl=0x9ABC;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x47D5;
+  unsigned steps=0;bool woke=wakeSyntheticHalt(c,false);
+  require(woke&&rd(c,0xFF8A)==flag,"Frame wait HALTs even when its flag is already nonzero",flag);
+  if(flag==0){for(unsigned i=0;i<128;i++)SM83Tick(cpu);require(cpu->pc>=0x47D7&&cpu->pc<=0x47DC&&cpu->sp==0xCFFE&&rd(c,0xFF8A)==0,
+    "Frame wait awakened with flag0 still spins before RET",0);wr(c,0xFF8A,1);}
+  steps=0;while((cpu->pc!=0xC100||cpu->executionState!=SM83_CORE_FETCH)&&steps++<1000)SM83Tick(cpu);
+  require(cpu->pc==0xC100&&cpu->sp==0xD000&&cpu->a==0&&cpu->f.packed==0x80&&cpu->bc==0x1234&&cpu->de==0x5678&&cpu->hl==0x9ABC&&
+   rd(c,0xFF8A)==0&&rd(c,0xFF8B)==0xA5&&!g->memory.ime,"Frame wait clears all nonzero flag bytes and preserves registers after synthetic wake",flag);
+ }
+ unsigned colors[2][64];for(unsigned source=0;source<2;source++)for(unsigned i=0;i<64;i++)colors[source][i]=rd(c,(source?0x52EC:0x4E20)+2*i)|(rd(c,(source?0x52EC:0x4E20)+2*i+1)<<8);
+ for(unsigned source=0;source<2;source++)for(unsigned busy=0;busy<256;busy++)for(unsigned plane=0;plane<2;plane++){
+  unsigned pointer=source?0x52EC:0x4E20,release=busy?10:8;
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){wr(c,palette?0xFF6A:0xFF68,i);wr(c,palette?0xFF6B:0xFF69,0x19);}
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}
+  wr(c,0xFF4F,plane);wr(c,0xC773,pointer);wr(c,0xC774,pointer>>8);wr(c,0xC1B8,0x5A);wr(c,0xC21F,0);wr(c,0xC220,0);wr(c,0xC221,0);wr(c,0xCF86,busy);wr(c,0xFF8A,0);wr(c,0xFF8B,0xA5);
+  struct GB *g=c->board;wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x47AA;
+  unsigned steps=0,wakes=0;while((cpu->pc!=0xC100||cpu->executionState!=SM83_CORE_FETCH)&&steps++<200000){if(cpu->pc==0x47D5&&cpu->executionState==SM83_CORE_FETCH){wakes++;
+   bool before=wakes<=release&&rd(c,0xC220)==(wakes<8?8-wakes:0)&&rd(c,0xCF86)==busy&&rd(c,0xC1B8)==0;
+   if(wakes==release)wr(c,0xCF86,0);bool woke=wakeSyntheticHalt(c,true);
+   require(before&&woke,"Fade each original HALT counter state retains pending auxiliary byte before forced release",source*512+busy*2+plane);
+  }else c->step(c);}
+  bool exact=cpu->pc==0xC100&&cpu->sp==0xD000&&wakes==release&&cpu->a==0&&cpu->f.packed==0x80&&rd(c,0xC1B8)==0&&rd(c,0xC21F)==0&&rd(c,0xC220)==0&&
+   rd(c,0xC221)==1&&rd(c,0xCF86)==0&&rd(c,0xFF8A)==0&&rd(c,0xFF8B)==0xA5&&!g->memory.ime&&rd(c,0xC773)==(pointer&255)&&rd(c,0xC774)==pointer>>8&&(rd(c,0xFF4F)&1)==plane;
+  for(unsigned i=0;i<192;i++){unsigned component=(colors[source][i/3]>>(5*(i%3)))&31,delta=(31-component)*256;
+   exact&=rd(c,0xC2A2+2*i)==0&&rd(c,0xC2A3+2*i)==0xF8&&rd(c,0xC422+2*i)==(delta&255)&&rd(c,0xC423+2*i)==delta>>8;
+  }
+  for(unsigned i=0;i<64;i++)exact&=rd(c,0xC222+2*i)==255&&rd(c,0xC223+2*i)==127;
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){wr(c,palette?0xFF6A:0xFF68,i);exact&=rd(c,palette?0xFF6B:0xFF69)==0x19;}
+  for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==0xA5;}
+  require(exact,"Complete fade eight ticks plus pending idle waits original colors forced flag auxiliary release no IRQ upload",source*512+busy*2+plane);
+ }
  }
  { /* Original marker classification and pre-mutation insertion coordinates. */
  wr(c,0xFF40,0);wr(c,0xFF70,1);wr(c,0x27FF,0x0F);wr(c,0x2800,0);

@@ -464,7 +464,7 @@ bank	start	end	symbol
 07	65A0	6627	RedrawA0FListText
 07	668B	674B	DrawA0FResourceGrid
 07	674C	67A9	DrawA0FMarkedTextRow
-07	67AA	67DF	ResidualROM07_67AA
+07	67AA	67DF	FadeAndWaitA0FPalette
 07	63BF	63EF	SelectA0FModeResourcePointer
 07	651F	655C	TrimA0FListTail
 07	6628	668A	DrawA0FModeIndicatorRow
