@@ -525,3 +525,25 @@ writes only `$D9` and leaves the following two bytes unchanged. The emitted
 mechanics are tested with five DE values on both slots and both stubs.
 Tests do not execute the destination or dispatch a natural interrupt. Suite:
 **1797 assertions**; source **61 sections / 12583 byte-exact bytes**.
+
+
+### SYS1 loader, per-entry palettes and full runtime-init fixture
+
+**PROBABLE static interpretation:** `$45FF-$4619` opens SYS1 with requested
+size `$02A3`, copies exactly 675 bytes to `$D064-$D306`, and closes the record.
+There is no capacity or null-pointer guard added to the original sequence.
+The existing-record opener does not resize to requested size; no universal
+safety claim follows from this loader.
+
+`$481B-$487D` resets A and repeatedly reloads HL=`$487E` for eight background
+and eight object palette calls. `$0171/$0174` reach `$0799/$07C0`; each uploads
+eight bytes, advances HL, sets C=`$80` and increments A after restoring AF.
+Only the observed read interval `$487E-$4885` is extracted as palette data.
+
+LCD-off probes verify individual slots 0..7, unchanged other slots, all palettes
+initialized from the original source, and new/existing correctly sized SYS1
+loads with exact destination bytes and a trailing sentinel. An integrated
+original-entry `$5BC6` fixture now checks those helpers, flags and registered
+consumer `$5A08`. It remains synthetic, without natural initialization, short
+record safety or LCD-on timing evidence. Suite: **1839 assertions**. Source:
+**66 sections / 12801 byte-exact bytes**.

@@ -39,7 +39,7 @@ A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 selet
 
 `home/flash_read_control.asm` cobre ROM0 `$1359-$138C`, incluindo os controles de leitura, as escritas em `$1000` e os helpers de flags de software. A lista de títulos usa os símbolos exportados dessas rotinas e da tabela, em vez de equates que repetem seus endereços. A interpretação estática dos nomes é `PROBABLE`.
 
-A montagem parcial contém agora **12583 bytes em 61 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
+A montagem parcial contém agora **12801 bytes em 66 seções**, todos comparados byte a byte com a referência externa. O comparador liga os objetos juntos para resolver referências entre arquivos e compara apenas as seções emitidas, exigindo também as fronteiras e símbolos do manifesto.
 
 ## Ciclos com validação
 
@@ -70,7 +70,7 @@ Objetivo: ampliar progressivamente o fonte RGBDS legível, preservando os bytes 
 
 ### Trabalho a fazer
 
-1. Extrair os produtores de descriptors e os callees `$45FF/$481B` da inicialização `$5BC6`; seguir dependências dos seis estados e preparação natural dos gráficos/paletas.
+1. Seguir os produtores da fila, os indicadores de OAM `$461A` e dependências dos seis estados; buscar preparação natural dos gráficos/paletas.
 2. Inventariar consumidores do template `$71D4`, distinguindo a leitura observada estaticamente da extensão total do objeto.
 3. Seguir a construção do menu e documentar campos e nomes sem traduzir textos.
 4. Em cada unidade: medir, extrair, conferir `verify` e `private-check`, publicar arquivos explícitos, repetir os checks em clone remoto e atualizar a OMM.
@@ -94,7 +94,7 @@ O prefixo do menu está em `engine/menus/local_entry.asm`, A `$14:$4000-$4029`. 
 
 O menu passa `SYS1` e tamanho solicitado `$02A3` ao thunk `$01B6`, que salta para `$0CA5`. A busca usa uma tabela em `$A002` com passo de seis bytes e compara nomes de quatro bytes. Nos caminhos de sucesso, a abertura de registro existente devolve HL=`header + 9`; a criação devolve o início de dados após o header de nove bytes. O caminho existente não compara o comprimento armazenado com o tamanho solicitado: `$02A3` não é garantia universal de capacidade. Nomes e layout são `PROBABLE` sem novo trace natural.
 
-`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **1.797 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
+`fixtures/local-storage/` executa helpers originais em pontos de entrada forçados, com memória sintética e sem carregar saves. Os **1.839 asserts** cobrem ponteiros, preservação de registradores, nomes iguais/diferentes, diretório livre/com correspondência/cheio, checksums e comparação de palavras. A referência não é alterada. Esses probes não simulam uma abertura natural completa e não promovem a confiança das interpretações.
 
 ```sh
 make storage-probe REFERENCE_ROM="/caminho/externo/ROM.gbc" MGBA_SOURCE="/caminho/mgba" MGBA_BUILD="/caminho/build"
@@ -151,6 +151,12 @@ Os probes incluem lista vazia, índice embutido, contagens válidas 3/16, contag
 
 ### Registro do consumidor e stubs de interrupção
 
-`engine/menus/local_runtime_init.asm` cobre `$5BC6-$5BE9`: zera estado/flags da fila, configura outros campos e registra o consumidor `$5A08` via `$0150`. Os callees `$45FF/$481B` ainda estão numéricos e a inicialização completa não foi executada por esses probes. `home/runtime_callbacks.asm` reconstrói os thunks `$0150-$015B` e os setters `$0661-$0698`. Dois setters gravam DE nos ponteiros `$FF8E/$FF92`; os outros escrevem `JP DE` nos stubs `$C67F/$C682`, ou `RETI` para DE zero, preservando AF e os dois bytes de operandos no caminho zero.
+`engine/menus/local_runtime_init.asm` cobre `$5BC6-$5BE9`: zera estado/flags da fila, configura outros campos e registra o consumidor `$5A08` via `$0150`. Os callees `$45FF/$481B` agora usam símbolos dos helpers extraídos; uma fixture executa a inicialização completa com `SYS1` sintético corretamente dimensionado. `home/runtime_callbacks.asm` reconstrói os thunks `$0150-$015B` e os setters `$0661-$0698`. Dois setters gravam DE nos ponteiros `$FF8E/$FF92`; os outros escrevem `JP DE` nos stubs `$C67F/$C682`, ou `RETI` para DE zero, preservando AF e os dois bytes de operandos no caminho zero.
 
 Fixtures forçadas cobrem cinco valores de DE em ambos os ponteiros e ambos os stubs, verificando bytes e registradores. Elas não executam o destino ou uma interrupção natural e não validam a admissibilidade dos endereços de teste. A semântica dos nomes permanece `PROBABLE`.
+
+### Carregamento de SYS1 e inicialização das paletas
+
+`engine/menus/local_load.asm` cobre `$45FF-$4619`, copiando `$02A3` bytes de `SYS1` para `$D064-$D306` e fechando o registro. Não foi inserida validação de HL ou capacidade. `engine/menus/local_palette_init.asm` cobre `$481B-$487D`, enviando o mesmo conjunto de oito bytes para os oito índices de paleta de background e de objetos. O intervalo lido `$487E-$4885` está em `data/local_menu_white_palette.asm`; bytes idênticos seguintes não foram incluídos sem consumidor demonstrado.
+
+Os thunks `$0171/$0174` e seus corpos `$0799-$07E6` estão em `home/palette_entries.asm`. Cada chamada lê oito bytes, avança HL, incrementa A e modifica C para `$80`. Probes cobrem os índices 0–7, o envio completo das paletas, `SYS1` novo/existente com tamanho correto e a entrada completa de `$5BC6`. Não demonstram segurança para registros curtos ou corrompidos, abertura natural ou timing com LCD ligado.

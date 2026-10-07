@@ -60,3 +60,8 @@ bank	start	end	symbol
 00	0150	015B	StoreRuntimeCallback0
 00	0661	0698	StoreRuntimeCallback0Body
 0A	5BC6	5BE9	InitializeLocalMenuRuntime
+00	0171	0176	UploadBackgroundPaletteEntry
+00	0799	07E6	UploadBackgroundPaletteEntryBody
+0A	45FF	4619	LoadLocalMenuStorage
+0A	481B	487D	InitializeLocalMenuPalettes
+0A	487E	4885	LocalMenuWhitePalette

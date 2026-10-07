@@ -489,6 +489,58 @@ int main(int argc,char **argv){
           cpu->hl==stub+(target?2:0),
           "interrupt stub JP or RETI, preserved AF and untouched null operand",slot*10+n);
  }
+ /* Per-entry palette helpers: indices 0..7, LCD off. */
+ wr(c,0xFF40,0);wr(c,0x27FF,0x14);wr(c,0x2800,0);wr(c,0xFF70,1);
+ for(unsigned kind=0;kind<2;kind++)for(unsigned index=0;index<8;index++){
+  for(unsigned i=0;i<8;i++)wr(c,0xD800+i,(i*37+11)&(i%2?127:255));
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+   wr(c,palette?0xFF6A:0xFF68,i);wr(c,palette?0xFF6B:0xFF69,0x19);
+  }
+  cpu->a=index;cpu->bc=0x1234;cpu->de=0xBEEF;cpu->hl=0xD800;
+  call(c,kind?0x0174:0x0171);
+  unsigned ok=cpu->a==index+1&&cpu->hl==0xD808&&cpu->bc==0x1280&&cpu->de==0xBEEF;
+  for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+   wr(c,palette?0xFF6A:0xFF68,i);
+   unsigned value=palette==kind&&i>=index*8&&i<index*8+8?
+    (((i-index*8)*37+11)&(i%2?127:255)):0x19;
+   ok&=rd(c,palette?0xFF6B:0xFF69)==value;
+  }
+  require(ok,"individual palette slot, next index and unchanged others",kind*10+index);
+ }
+ cpu->bc=0x1234;cpu->de=0xBEEF;call(c,0x481B);
+ unsigned whiteOK=cpu->a==8&&cpu->hl==0x4886&&cpu->bc==0x1280&&cpu->de==0xBEEF;
+ for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+  wr(c,palette?0xFF6A:0xFF68,i);whiteOK&=rd(c,palette?0xFF6B:0xFF69)==(i%2?127:255);
+ }
+ require(whiteOK,"menu initialization sets all palette entries",0);
+ /* Loader with new and existing correctly sized SYS1 records. */
+ for(unsigned mode=0;mode<2;mode++){
+  wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);
+  wr(c,0xFFAF,0);wr(c,0xFFB0,1);
+  for(unsigned i=0;i<4096;i++)wr(c,0xA000+i,0);
+  if(mode){
+   cpu->bc=0x02A3;cpu->de=0x3ED8;call(c,0x01B6);
+   for(unsigned i=0;i<0x02A3;i++)wr(c,0xA317+i,(i*37+11)&255);
+   call(c,0x01B9);
+  }
+  for(unsigned i=0;i<0x02A3;i++)wr(c,0xD064+i,0xA5);
+  wr(c,0xD307,0x37);call(c,0x45FF);
+  unsigned ok=rd(c,0xD307)==0x37&&rd(c,0xC677)==0x17&&rd(c,0xC678)==0xA3;
+  for(unsigned i=0;i<0x02A3;i++)ok&=rd(c,0xD064+i)==(mode?((i*37+11)&255):0);
+  require(ok,"new/existing SYS1 loader exact payload and destination sentinel",mode);
+ }
+ /* Full menu-runtime initialization with an existing correctly sized record. */
+ for(unsigned i=0;i<0x02A3;i++)wr(c,0xD064+i,0xA5);
+ wr(c,0xC671,3);wr(c,0xC5A3,0x37);wr(c,0xD000,0x37);
+ wr(c,0xD021,0x37);wr(c,0xD309,0x37);call(c,0x5BC6);
+ unsigned initOK=rd(c,0xD004)==3&&rd(c,0xC5A3)==1&&rd(c,0xD000)==0&&
+                 rd(c,0xD021)==0&&rd(c,0xD309)==0&&
+                 rd(c,0xFF8E)==8&&rd(c,0xFF8F)==0x5A;
+ for(unsigned i=0;i<0x02A3;i++)initOK&=rd(c,0xD064+i)==((i*37+11)&255);
+ for(unsigned palette=0;palette<2;palette++)for(unsigned i=0;i<64;i++){
+  wr(c,palette?0xFF6A:0xFF68,i);initOK&=rd(c,palette?0xFF6B:0xFF69)==(i%2?127:255);
+ }
+ require(initOK,"full runtime init storage, palettes, flags and registered consumer",0);
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

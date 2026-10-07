@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,797 assertions**.
+and stack assertions, the maintained fixture reports **1,839 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -95,5 +95,13 @@ Callback setter fixtures use DE=0/1/$5A08/$BEEF/$FFFF on both pointer slots
 and both interrupt-stub setters. Checks cover little-endian pointers, JP/RETI
 opcodes, preserved registers and unchanged operand bytes for a null target.
 They do not dispatch an interrupt, execute those targets or establish admissibility
-of the deliberately unusual addresses. Full menu-runtime initialization remains
-exact-byte coverage only while its two dependent callees are unextracted.
+of the deliberately unusual addresses. A later integrated fixture covers full menu-runtime initialization with a
+synthetic, correctly sized record; this does not establish natural execution.
+
+Per-entry palette probes cover indices 0..7 for background/object palettes and
+verify that other entries remain unchanged. Full `$481B` initializes every entry
+from its original eight-byte source. `$45FF` is exercised with fresh and existing
+correctly sized SYS1 records: all 675 destination bytes and a trailing sentinel
+are checked. A full `$5BC6` fixture checks storage, palettes, flags and registration
+of `$5A08`. These are LCD-off synthetic cases; no short/corrupted-record safety
+or naturally initialized menu claim follows.
