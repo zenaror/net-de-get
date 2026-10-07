@@ -541,6 +541,24 @@ int main(int argc,char **argv){
   wr(c,palette?0xFF6A:0xFF68,i);initOK&=rd(c,palette?0xFF6B:0xFF69)==(i%2?127:255);
  }
  require(initOK,"full runtime init storage, palettes, flags and registered consumer",0);
+ /* OAM list indicators, including deliberately wrapped offset values. */
+ const unsigned listOffsets[]={0,1,251,252,255},listCounts[]={0,5,6,255};
+ for(unsigned blink=0;blink<2;blink++)for(unsigned oi=0;oi<5;oi++)
+ for(unsigned ci=0;ci<4;ci++){
+  unsigned offset=listOffsets[oi],count=listCounts[ci];
+  wr(c,0xD006,blink?0x10:0);wr(c,0xD002,offset);wr(c,0xD003,count);
+  for(unsigned i=0;i<10;i++)wr(c,0xC06F+i,0xA5);
+  call(c,0x461A);
+  unsigned upper=!blink&&offset!=0,lower=!blink&&((offset+5)&255)<count;
+  const unsigned top[]={0x30,0xA0,0,0},bottom[]={0x78,0xA0,1,0};
+  unsigned ok=rd(c,0xC06F)==0xA5&&rd(c,0xC078)==0xA5;
+  for(unsigned i=0;i<4;i++){
+   ok&=rd(c,0xC070+i)==(upper?top[i]:i?0xA5:0);
+   ok&=rd(c,0xC074+i)==(lower?bottom[i]:i?0xA5:0);
+  }
+  require(ok,"list OAM indicators, blink bit, wrapped comparison and sentinels",
+          blink*100+oi*10+ci);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

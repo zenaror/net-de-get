@@ -9,7 +9,7 @@ LocalMenuState1::
 	call $0279
 	call $4940
 	call $488E
-	call $461A
+	call UpdateLocalListIndicators
 	call $478D
 	call $4656
 .return:
@@ -21,7 +21,7 @@ SECTION "Local menu state 2", ROMX[$42E6], BANK[$0A]
 LocalMenuState2::
 	call $0279
 	call $4940
-	call $461A
+	call UpdateLocalListIndicators
 	call $48DA
 	call $478D
 	call $4656

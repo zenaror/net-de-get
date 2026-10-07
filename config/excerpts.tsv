@@ -65,3 +65,4 @@ bank	start	end	symbol
 0A	45FF	4619	LoadLocalMenuStorage
 0A	481B	487D	InitializeLocalMenuPalettes
 0A	487E	4885	LocalMenuWhitePalette
+0A	461A	4655	UpdateLocalListIndicators

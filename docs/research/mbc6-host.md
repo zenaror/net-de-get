@@ -547,3 +547,18 @@ original-entry `$5BC6` fixture now checks those helpers, flags and registered
 consumer `$5A08`. It remains synthetic, without natural initialization, short
 record safety or LCD-on timing evidence. Suite: **1839 assertions**. Source:
 **66 sections / 12801 byte-exact bytes**.
+
+
+### OAM list indicators and eight-bit comparison
+
+**PROBABLE static interpretation:** `$461A-$4655` clears the first byte of
+OAM-source entries `$C070/$C074`, returns early when `$D006` bit `$10` is set,
+shows the upper entry for nonzero `$D002`, and shows the lower entry when
+eight-bit `$D002+5` is below `$D003`. Hidden entries retain their other three
+bytes. No widening or inferred bounds were added.
+
+Forty forced-entry fixtures combine blink bit on/off, offsets 0/1/251/252/255
+and counts 0/5/6/255, checking both entries and adjacent sentinels. Large
+offsets are deliberate mechanics checks, not natural invalid-state evidence.
+No rendered/natural indicator claim follows. Suite: **1919 assertions**.
+Source: **67 sections / 12861 byte-exact bytes**.
