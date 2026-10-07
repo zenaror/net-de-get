@@ -24,11 +24,11 @@ LocalMinigameMenuLoop::
 	call ClearLocalOAMBuffer
 	di
 	ld de, $0000
-	call $0150
+	call StoreRuntimeCallback0
 	ld de, $0000
-	call $0159
+	call SetRuntimeInterruptStub1
 	ld de, $0000
-	call $0153
+	call SetRuntimeInterruptStub0
 	ei
 	ret
 LocalMinigameMenuLoopEnd:

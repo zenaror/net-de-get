@@ -57,3 +57,6 @@ bank	start	end	symbol
 0A	7244	7801	LocalMenuTilesAfterTemplate
 0A	5B26	5B30	ClearLocalOAMBuffer
 0A	5B31	5B8B	SumLocalFlashHeaderCounts
+00	0150	015B	StoreRuntimeCallback0
+00	0661	0698	StoreRuntimeCallback0Body
+0A	5BC6	5BE9	InitializeLocalMenuRuntime

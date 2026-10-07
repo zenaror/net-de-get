@@ -22,7 +22,7 @@ Coverage: all 256 byte indices for directory address arithmetic and header
 pointer reads; four result-register cases; a matching name and four one-byte
 mismatches; free/matching/full 130-entry directory fixtures; one record checksum;
 directory checksum match/mismatch; eight word-comparison cases; forced first-record creation, existing open without resizing, and checksum update on close. Including return
-and stack assertions, the maintained fixture reports **1,757 assertions**.
+and stack assertions, the maintained fixture reports **1,797 assertions**.
 Recovery adds six fixtures: empty, one/two valid records, invalid first/second checksum, and a valid checksum summing to zero. Clearing checks every byte of the selected 4 KiB SRAM window and preservation of the other window. All 256 arithmetic indices are tested, but this does not mean all are admissible
 in the original search, whose static upper bound is `$82`.
 
@@ -90,3 +90,10 @@ directly into disposable core flash backing and restored; no program/erase
 command or save file is used. Checks also cover disabled read/write controls and
 the visited B selector/type remaining selected, not restored. Count units and
 natural duplicate-list admissibility are not established.
+
+Callback setter fixtures use DE=0/1/$5A08/$BEEF/$FFFF on both pointer slots
+and both interrupt-stub setters. Checks cover little-endian pointers, JP/RETI
+opcodes, preserved registers and unchanged operand bytes for a null target.
+They do not dispatch an interrupt, execute those targets or establish admissibility
+of the deliberately unusual addresses. Full menu-runtime initialization remains
+exact-byte coverage only while its two dependent callees are unextracted.

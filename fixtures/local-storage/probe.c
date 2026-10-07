@@ -469,6 +469,26 @@ int main(int argc,char **argv){
   require(ok,"header count filters, wrap and selected B window remains",mode);
  }
  fixtureFlash[5]=originalCount;fixtureFlash[0x44]=originalMarker;
+ /* Callback pointer/stub setters: forced calls, no interrupt dispatch. */
+ const unsigned callbackTargets[]={0,1,0x5A08,0xBEEF,0xFFFF};
+ for(unsigned slot=0;slot<2;slot++)for(unsigned n=0;n<5;n++){
+  unsigned target=callbackTargets[n],pointer=slot?0xFF92:0xFF8E;
+  cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=target;
+  call(c,slot?0x0156:0x0150);
+  require(rd(c,pointer)==(target&255)&&rd(c,pointer+1)==(target>>8)&&
+          cpu->af==0x5AB0&&cpu->bc==0x1234&&cpu->de==target&&cpu->hl==pointer+1,
+          "runtime callback pointer and register preservation",slot*10+n);
+  unsigned stub=slot?0xC682:0xC67F;
+  wr(c,stub,0xA5);wr(c,stub+1,0x11);wr(c,stub+2,0x22);
+  cpu->af=0x5AB0;cpu->bc=0x1234;cpu->de=target;
+  call(c,slot?0x0159:0x0153);
+  require(rd(c,stub)==(target?0xC3:0xD9)&&
+          rd(c,stub+1)==(target?(target&255):0x11)&&
+          rd(c,stub+2)==(target?(target>>8):0x22)&&
+          cpu->af==0x5AB0&&cpu->bc==0x1234&&cpu->de==target&&
+          cpu->hl==stub+(target?2:0),
+          "interrupt stub JP or RETI, preserved AF and untouched null operand",slot*10+n);
+ }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);
  c->unloadROM(c);mCoreConfigDeinit(&c->config);c->deinit(c);return 0;

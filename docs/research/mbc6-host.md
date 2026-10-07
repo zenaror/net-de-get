@@ -509,3 +509,19 @@ flash program/erase command, original modification or real save is used. This
 does not establish natural duplicates or universal list bounds. An OAM-source
 clear fixture checks all 160 bytes, registers and a trailing sentinel. Suite:
 **1757 assertions**. Source: **58 sections / 12479 byte-exact bytes**.
+
+
+### Runtime consumer registration and callback setters
+
+**PROBABLE static interpretation:** `$5BC6-$5BE9` calls `$45FF/$481B`, copies
+`$C671` to `$D004`, sets `$C5A3=1`, clears `$D000/$D021/$D309`, and stores
+consumer `$5A08` through `$0150` between DI/EI. External callees are still
+unextracted; no new full-init or natural callback trace is asserted.
+
+Thunks `$0150/$0156` reach setters `$0661/$067D` that store DE in little-endian
+HRAM slots `$FF8E/$FF92`. `$0153/$0159` reach `$0668/$0684`, preserving AF
+while writing opcode `$C3` plus DE into WRAM stubs `$C67F/$C682`; a null DE
+writes only `$D9` and leaves the following two bytes unchanged. The emitted
+mechanics are tested with five DE values on both slots and both stubs.
+Tests do not execute the destination or dispatch a natural interrupt. Suite:
+**1797 assertions**; source **61 sections / 12583 byte-exact bytes**.
