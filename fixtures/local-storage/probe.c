@@ -552,6 +552,23 @@ static void probeA12PhaseInputGate(struct mCore *c,unsigned entry,unsigned phase
  bool exact=cpu->af==af&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC5CF)==phase&&rd(c,0xC600)==state&&rd(c,0xC601)==busy&&rd(c,0xFF97)==outInput&&rd(c,0xC739)==next&&rd(c,0xC5A8)==variant&&rd(c,0xC602)==0x37&&rd(c,0xC214)==0x39&&rd(c,0xC738)==0x3C&&rd(c,0xC73A)==0x5A&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFFAD)==5&&rd(c,0xC115)==5&&!memcmp(((struct GB*)c->board)->memory.rom+0x2459F,originalPhaseInputCode,sizeof(originalPhaseInputCode));
  require(exact,"A12 phase input complete guarded returns low-nibble counter saturation clear invalid variant flags mapper guards immutable368 code",index);
 }
+static uint8_t originalPhaseText[158];
+static void probeOriginalA12PhaseText(struct mCore *c,unsigned variant,unsigned value,unsigned plane,unsigned fontPlane,unsigned gate,unsigned index){
+ struct GB *g=c->board;struct SM83Core *cpu=g->cpu;const uint8_t *rom=g->memory.rom;const unsigned tables[]={0x5334,0x535E,0x5387};unsigned region=value>=6?1:(variant==0&&value==0?3:2),width=region==1?14:region==2?11:5,height=region==2?2:3,rows=height,columns=region==3?1:2,spacing=region==1?6:5,count=rows*columns;
+ prepareA12EffectMapping(c,0x61);prepareA12EffectAudio(c);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);
+ wr(c,0xC1AF,fontPlane);wr(c,0xC1A3,0x23);wr(c,0xC1B5,0);wr(c,0xC1B6,0x98);wr(c,0xC1B9,0);wr(c,0xC1BA,0);wr(c,0xC1BF,1);wr(c,0xC1B1,0x23);wr(c,0xC1C0,0);wr(c,0xC1C1,0);wr(c,0xC5A8,variant);wr(c,0xC5A4,value);wr(c,0xC5CF,1);wr(c,0xC600,0);wr(c,0xC601,0);wr(c,0xC732,0x37);wr(c,0xC739,0x39);wr(c,0xC73A,0x3C);wr(c,0xFF97,0xA3);
+ wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);wr(c,0xFFAF,0);wr(c,0xFFB0,1);for(unsigned i=0;i<0x30E;i++)wr(c,0xA000+i,0);wr(c,0xA002,0);wr(c,0xA003,0xA4);unsigned payload[50],sum=50;
+ for(unsigned i=0;i<4;i++){unsigned v=rom[0x17B3+i];wr(c,0xA004+i,v);wr(c,0xA402+i,v);sum+=v;}wr(c,0xA406,50);wr(c,0xA407,0);wr(c,0xA408,0);
+ for(unsigned i=0;i<50;i++){payload[i]=i==3?0:(i*13+value)&255;wr(c,0xA409+i,payload[i]);sum+=payload[i];}sum&=65535;wr(c,0xA43B,0x37);
+ uint8_t expected[2][8192];memset(expected,0xA5,sizeof(expected));for(unsigned y=0;y<2*height+2;y++)for(unsigned x=0;x<width+2;x++){expected[0][0x1800+y*32+x]=0x6C+(y==0?0:y==2*height+1?6:3)+(x==0?0:x==width+1?2:1);expected[1][0x1800+y*32+x]=0x23;}
+ unsigned text=tables[variant],glyphs=0,lastCol=0;
+ for(unsigned row=0;row<rows;row++)for(unsigned col=0;col<columns;col++){unsigned x=(spacing+2)*col,y=2*row;while(rom[0x24000+text-0x4000]){unsigned code=rom[0x24000+text-0x4000],off=0x1800+(2+y-(code>=254))*32+1+x,slot=0x16B0-16*glyphs;expected[0][off]=(0x6B-glyphs)&255;expected[1][off]=0x23;memcpy(expected[1]+slot,rom+0x3F00+16*code,16);glyphs++;text++;if(code<254){x++;if(x>=width){x=0;y+=2;}}}text++;lastCol=x;}
+ cpu->af=0x5A00|((value&15)<<4);cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;wr(c,0xFF40,0x91);callWithLimit(c,gate?0x459F:0x45C7,4000000);
+ bool exact=cpu->af==(gate?0x0080:0x00A0)&&cpu->bc==sum&&cpu->de==0xC646&&cpu->hl==sum&&rd(c,0xC5A8)==variant&&rd(c,0xC5A4)==value&&rd(c,0xC5A5)==region&&rd(c,0xC5C4)==region&&rd(c,0xC600)==1&&rd(c,0xC601)==0&&rd(c,0xC602)==count&&rd(c,0xC20A)==(tables[variant]&255)&&rd(c,0xC20B)==(tables[variant]>>8)&&rd(c,0xC20D)==spacing&&rd(c,0xC20E)==rows&&rd(c,0xC20F)==count&&rd(c,0xC210)==columns&&rd(c,0xC211)==rows&&rd(c,0xC212)==0&&rd(c,0xC213)==1&&rd(c,0xC214)==0&&rd(c,0xC215)==255&&rd(c,0xC216)==255&&rd(c,0xC217)==1&&rd(c,0xC1C2)==glyphs&&rd(c,0xC1C3)==((0x6B-glyphs+1)&255)&&rd(c,0xC1AF)==fontPlane&&rd(c,0xC1AB)==(text&255)&&rd(c,0xC1AC)==(text>>8)&&rd(c,0xC1BC)==lastCol&&rd(c,0xC1BD)==0&&rd(c,0xC1B8)==0&&rd(c,0xFF97)==(gate?0:0xA3)&&rd(c,0xC732)==0x37&&rd(c,0xC739)==0x39&&rd(c,0xC73A)==0x3C&&rd(c,0xFF40)==0xF1&&(rd(c,0xFF4F)&1)==plane&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFFAD)==5&&rd(c,0xC115)==5&&rd(c,0xCF82)==0&&rd(c,0xCF89)==0x11&&g->memory.ime&&!memcmp(rom+0x25314,originalPhaseText,sizeof(originalPhaseText));
+ require(exact,"Original valid phase input text setup frame original glyphs synthetic audio SYS0 load full registers fields guards mapping",index);
+ wr(c,0xFF40,0);exact=true;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)exact&=rd(c,0x8000+i)==expected[bank][i];}require(exact,"Original valid phase text both entire VRAM planes frame glyph overlays original font slots exact",index);
+ exact=rd(c,0xA409)==255;wr(c,0x0000,0x0A);wr(c,0x0400,0);wr(c,0x0800,1);for(unsigned i=0;i<50;i++)exact&=rd(c,0xC700+i)==payload[i]&&rd(c,0xA409+i)==payload[i];exact&=(rd(c,0xA400)|(rd(c,0xA401)<<8))==sum&&rd(c,0xA43B)==0x37;require(exact,"Original valid phase load closes SRAM original checksum synthetic50-byte SYS0 payload guard no disk save",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4708,6 +4725,14 @@ int main(int argc,char **argv){
  for(unsigned input=0;input<256;input++)if(!(input&1))for(unsigned flags=0;flags<16;flags++)probeA12PhaseInputGate(c,0x459F,1,0,0,input,0x37,0,flags<<4,sample++);
  for(unsigned variant=3;variant<256;variant++)for(unsigned input=1;input<256;input+=2)probeA12PhaseInputGate(c,0x459F,1,0,0,input,0x37,variant,(input&15)<<4,sample++);
  printf("Original phase input: %u complete guarded/tail calls; valid action variants remain separate\n",sample);
+ }
+ { /* Valid original phase text preparation, rendering, audio and SYS0 load. */
+ memcpy(originalPhaseText,((struct GB*)c->board)->memory.rom+0x25314,sizeof(originalPhaseText));unsigned sample=0;
+ const uint8_t *rom=((struct GB*)c->board)->memory.rom;const unsigned starts[]={0x5334,0x535E,0x5387},ends[]={0x535E,0x5387,0x53B2};
+ for(unsigned variant=0;variant<3;variant++){unsigned p=starts[variant];bool ordinary=true;for(unsigned item=0;item<6;item++){while(rom[0x24000+p-0x4000]){ordinary&=rom[0x24000+p-0x4000]>15;p++;}p++;}require(p==ends[variant]&&ordinary,"Original three six-string lists exact terminated bounds all glyph bytes",variant);}
+
+ for(unsigned variant=0;variant<3;variant++)for(unsigned value=0;value<256;value++)for(unsigned plane=0;plane<2;plane++)for(unsigned fontPlane=0;fontPlane<2;fontPlane++)for(unsigned gate=0;gate<2;gate++)probeOriginalA12PhaseText(c,variant,value,plane,fontPlane,gate,sample++);
+ printf("Original valid phase text: %u full positive preparation chains; SYS0 C703 zero branch\n",sample);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

@@ -1,24 +1,16 @@
 ; HYPOTHESIS classification: uninterpreted original bytes, not asserted data/code.
 ; Byte preservation is checked; this source needs later consumer/flow analysis.
-; Physical bank $09, address $5334-$56AC.
+; Physical bank $09, address $53B2-$56AC.
 ; Literal source only; building does not read the external reference ROM.
-SECTION "Uninterpreted 09:5334-56AC", ROMX[$5334], BANK[$09]
-ResidualROM09_5334::
-	db $E5, $DB, $FE, $CD, $3C, $E6, $00, $FF, $E3, $C3, $F7, $D9, $00, $C9, $FF, $E1
-	db $D0, $ED, $F7, $00, $CF, $3C, $FE, $DF, $3C, $00, $FF, $DF, $F7, $FE, $D4, $95
-	db $A9, $B7, $00, $C1, $E0, $F1, $95, $A9, $B7, $00, $E5, $DB, $FE, $CD, $3C, $E6
-	db $00, $FF, $E3, $C3, $F7, $D9, $00, $C9, $FF, $E1, $D0, $ED, $F7, $00, $CF, $3C
-	db $FE, $DF, $3C, $00, $C5, $CF, $FE, $CB, $95, $A9, $B7, $00, $C1, $E0, $F1, $95
-	db $A9, $B7, $00, $E5, $DB, $FE, $CD, $3C, $E6, $00, $FF, $E3, $C3, $F7, $D9, $00
-	db $C9, $FF, $E1, $D0, $ED, $F7, $00, $CF, $3C, $FE, $DF, $3C, $00, $C5, $CF, $FE
-	db $CB, $95, $A9, $B7, $00, $FF, $DF, $F7, $FE, $D4, $95, $A9, $B7, $00, $00, $00
-	db $AD, $35, $30, $7F, $FF, $7F, $1F, $00, $0D, $21, $BF, $2D, $FF, $7F, $00, $7C
-	db $8C, $3D, $B1, $7E, $FF, $7F, $F5, $14, $BE, $29, $5F, $4A, $FF, $7F, $0E, $01
-	db $B5, $11, $7F, $36, $FF, $7F, $8B, $2E, $73, $37, $B5, $11, $FF, $7F, $4A, $29
-	db $EF, $3D, $94, $52, $FF, $7F, $01, $44, $C8, $7C, $8A, $7E, $FF, $7F, $1F, $7C
-	db $00, $00, $EF, $3D, $FF, $7F, $FF, $7F, $FF, $7F, $16, $21, $0B, $00, $FF, $7F
-	db $AE, $72, $16, $21, $0B, $00, $FF, $7F, $CE, $39, $FF, $7F, $00, $00, $00, $00
-	ds $20, $00
+SECTION "Uninterpreted 09:53B2-56AC", ROMX[$53B2], BANK[$09]
+ResidualROM09_53B2::
+	db $00, $00, $AD, $35, $30, $7F, $FF, $7F, $1F, $00, $0D, $21, $BF, $2D, $FF, $7F
+	db $00, $7C, $8C, $3D, $B1, $7E, $FF, $7F, $F5, $14, $BE, $29, $5F, $4A, $FF, $7F
+	db $0E, $01, $B5, $11, $7F, $36, $FF, $7F, $8B, $2E, $73, $37, $B5, $11, $FF, $7F
+	db $4A, $29, $EF, $3D, $94, $52, $FF, $7F, $01, $44, $C8, $7C, $8A, $7E, $FF, $7F
+	db $1F, $7C, $00, $00, $EF, $3D, $FF, $7F, $FF, $7F, $FF, $7F, $16, $21, $0B, $00
+	db $FF, $7F, $AE, $72, $16, $21, $0B, $00, $FF, $7F, $CE, $39, $FF, $7F, $00, $00
+	ds $22, $00
 	db $AD, $35, $4B, $2F, $FF, $7F, $1F, $00, $0D, $21, $F5, $4F, $FF, $7F, $00, $7C
 	db $8C, $3D, $0E, $01, $FF, $7F, $6E, $1D, $36, $2E, $CA, $7E, $F5, $4F, $95, $09
 	db $1F, $22, $4B, $2F, $F5, $4F, $0E, $01, $95, $09, $1F, $22, $FF, $7F, $22, $0A

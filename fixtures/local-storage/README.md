@@ -1710,3 +1710,12 @@ Initial shadow filling accidentally overwrote availability/request fields. Faili
 The original `$459F` entry and `$46F2` counter tail execute 1,278,848 complete calls. Tail coverage is Cartesian over every input/counter byte and 16 flags. Entry coverage includes every phase other than 1 with every input and varied counters/flags; each nonzero state/busy guard with every input; inputs without bit 0 with all flags; and invalid variants 3–255 with every bit-0 input, through the actual dispatcher and clear. Valid action variants remain separate.
 
 Independent models check AF/BC/DE/HL, input/counter saturation, state guards, mapping and all 368 immutable code bytes. No injected returns. Phase/counter entry coverage is not Cartesian; tail arithmetic is. There are 2,557,696 added assertions, totaling 39,389,199. Static extraction includes valid text setup and cap helpers, but does not claim their positive execution, natural UI, Japanese meaning, original sound, IRQ timing or hardware. Interpretation remains `PROBABLE`.
+
+
+### Original valid A12 phase text actions
+
+There are 6,144 complete chains through the real `$45C7` dispatcher and `$459F` entry: variants 0/1/2, every `$C5A4` byte, both incoming VBK values and both `$C1AF` values. Original callees prepare the region/frame, initialize and activate selection, render original Japanese strings/glyphs, show the window, install controlled synthetic audio, and load an existing disposable in-memory SYS0 record. Its `$C703` is zero, so the nonzero cap branch remains separate. No injected returns or disk saves.
+
+Independent models compare registers/flags, selection fields, cursor/pointers/glyph count, mapping/guards/IME and both entire VRAM planes. Frame/fill, normal glyphs, `$FE/$FF` placement one row above without horizontal advance, attributes and original font uploads are modeled. Original renderer changes to VBK 1 for attributes and keeps it for glyph HDMA, then restores incoming VBK; an initial `$C1AF`-based upload expectation failed and was corrected from source evidence. This is synthetic emulator behavior, not hardware timing.
+
+All 50 SYS0 payload bytes, close checksum, adjacent guard and disabled SRAM are checked; only disposable backing is reenabled for inspection. The 158 original record/list bytes remain immutable. The three six-string boundary contracts and four assertions per chain add 24,579 checks, for 39,413,778 total. Original audio identity, nonzero cap, natural menu/input and hardware remain unproven. Interpretation is `PROBABLE`; Japanese bytes stay unchanged.

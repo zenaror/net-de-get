@@ -76,7 +76,7 @@ A12PhaseInput_460F:
 A12PhaseInput_4621:
 	ld a, d
 	ld [$C602], a
-	ld hl, $5334
+	ld hl, A12PhaseInputTextList0
 	call ResidentJump01F2
 	call ResidentJump01F5
 	call ShowA12TextWindow
@@ -115,7 +115,7 @@ A12PhaseInput_465D:
 A12PhaseInput_466F:
 	ld a, d
 	ld [$C602], a
-	ld hl, $535E
+	ld hl, A12PhaseInputTextList1
 	call ResidentJump01F2
 	call ResidentJump01F5
 	call ShowA12TextWindow
@@ -154,7 +154,7 @@ A12PhaseInput_46AB:
 A12PhaseInput_46BD:
 	ld a, d
 	ld [$C602], a
-	ld hl, $5387
+	ld hl, A12PhaseInputTextList2
 	call ResidentJump01F2
 	call ResidentJump01F5
 	call ShowA12TextWindow
