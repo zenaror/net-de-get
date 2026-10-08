@@ -60,7 +60,7 @@ A12Selection_403B::
 	ld [$C5C1], a
 	ld a, $1E
 	ld [$C5C2], a
-	call $4251
+	call DispatchA12VariantGraphics
 	call $43C0
 	xor a, a
 	ld [$C5A9], a

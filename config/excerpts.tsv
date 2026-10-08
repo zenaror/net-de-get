@@ -113,7 +113,9 @@ bank	start	end	symbol
 09	422F	422F	A12SelectionInterruptReturnOnly
 09	4230	4238	PositionA12SelectionWindow
 09	4239	4250	UpdateA12SelectionDMAAndPalettes
-09	4251	459E	ResidualROM09_4251
+09	4251	4266	DispatchA12VariantGraphics
+09	4267	426E	A12VariantGraphicsTargets
+09	426F	459E	ResidualROM09_426F
 09	459F	45C6	UpdateA12PhaseInputGate
 09	45C7	45D9	DispatchA12PhaseInputVariant
 09	45DA	4640	PrepareA12PhaseInputVariant0

@@ -1740,3 +1740,10 @@ An independent model keeps the secondary read in the old phase, including frame 
 The 11 measured ordinary-to-effect transitions execute 1,056 full preparation/wrapper chains, combining threshold/255 counters, acceleration 0/1/255, availability 0/1/40/255, both VBK values and LCD initially on/off. Counters are edge coverage, not the full byte Cartesian domain. Actual secondary tick, primary effects, original first tile copy and both OAM emitters run unchanged; audio installation uses the shared synthetic program. No callee return is injected.
 
 Independent models check full registers/flags, resource fields and guards/mapping, tile and audio state, all 1,024 shadow bytes and both complete VRAM planes. All 3,591 original paired/OAM/tile resource bytes remain immutable. FE-only cases preserve VRAM. The 10,560 assertions establish synthetic integration of these transitions; continued wrapper sequences, other variants, natural input, original audio, IRQ timing, visuals and hardware remain outside this evidence.
+
+
+### Initialization graphics dispatch prefix
+
+All 256 C5A8 values and 16 incoming flag combinations execute the original 4251 prefix, stopping before JP HL at 4265. The 4,096 probes compare doubled byte wrap, target read, complete registers/flags, pushed 4266 return and outer return, guards/mapping and 30 immutable dispatcher/table bytes. The first failed oracle confused requested C21C=61 with the unchanged actual B selector 5; only the model was corrected.
+
+These 8,192 assertions do not execute target bodies or the post-target return, establish a natural initialization, protect indices outside 0-3, or prove IRQ/hardware behavior. Targets 426F/42CE/432A/4386 remain numeric pending separate extraction.

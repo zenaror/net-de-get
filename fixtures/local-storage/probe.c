@@ -4780,6 +4780,14 @@ int main(int argc,char **argv){
  }
  printf("Original effect expiry wrappers: %u complete chains; %u ordinary-to-effect transitions\n",sample,transitions);
  }
+ { /* Original initialization graphics dispatcher: stop before JP HL. */
+ const uint8_t *rom=((struct GB*)c->board)->memory.rom;uint8_t original[30];memcpy(original,rom+0x24251,sizeof(original));prepareA12EffectMapping(c,0x61);struct GB *g=c->board;
+ for(unsigned variant=0;variant<256;variant++)for(unsigned flags=0;flags<16;flags++){
+  unsigned offset=(2*variant)&255,target=rom[0x24267+offset]|rom[0x24268+offset]<<8,index=variant*16+flags;wr(c,0xC5A8,variant);wr(c,0xC5A7,0x37);wr(c,0xC5A9,0x39);wr(c,0xFFFF,0);wr(c,0xFF0F,0);g->memory.ime=false;cpu->irqPending=false;cpu->halted=false;cpu->af=0x5A00|flags<<4;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;cpu->sp=0xCFFE;wr(c,0xCFFE,0);wr(c,0xCFFF,0xC1);cpu->pc=0x4251;
+  unsigned steps=0;while(cpu->pc!=0x4265&&steps++<100)c->step(c);require(cpu->pc==0x4265&&cpu->sp==0xCFFC,"A12 graphics dispatcher bounded prefix before JP HL",index);
+  require(cpu->af==(offset<<8|(offset?0:0x80))&&cpu->bc==0xBEEF&&cpu->de==target&&cpu->hl==target&&(rd(c,0xCFFC)|rd(c,0xCFFD)<<8)==0x4266&&(rd(c,0xCFFE)|rd(c,0xCFFF)<<8)==0xC100&&rd(c,0xC5A8)==variant&&rd(c,0xC5A7)==0x37&&rd(c,0xC5A9)==0x39&&rd(c,0xFFAB)==0x12&&rd(c,0xFFAD)==5&&rd(c,0xC115)==5&&rd(c,0xC21C)==0x61&&!memcmp(rom+0x24251,original,sizeof(original)),"A12 graphics all byte indices flags wrapped targets returns guards immutable30 bytes",index);
+ }
+ }
  { /* Original phase input gates: all tails, state guards and invalid dispatch. */
  memcpy(originalPhaseInputCode,((struct GB*)c->board)->memory.rom+0x2459F,sizeof(originalPhaseInputCode));unsigned sample=0;
  for(unsigned input=0;input<256;input++)for(unsigned counter=0;counter<256;counter++)for(unsigned flags=0;flags<16;flags++)probeA12PhaseInputGate(c,0x46F2,1,0,0,input,counter,0,flags<<4,sample++);
