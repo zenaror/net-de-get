@@ -1,14 +1,10 @@
 ; HYPOTHESIS classification: uninterpreted original bytes, not asserted data/code.
 ; Byte preservation is checked; this source needs later consumer/flow analysis.
-; Physical bank $00, address $318A-$38AF.
+; Physical bank $00, address $31C3-$38AF.
 ; Literal source only; building does not read the external reference ROM.
-SECTION "Uninterpreted 00:318A-38AF", ROM0[$318A]
-ResidualROM00_318A::
-	db $F5, $FA, $0F, $C2, $47, $F1, $B8, $38, $04, $FA, $0F, $C2, $3D, $F5, $FA, $0E
-	db $C2, $4F, $FA, $0D, $C2, $CD, $12, $20, $4F, $F1, $CD, $46, $20, $7D, $EA, $12
-	db $C2, $EA, $15, $C2, $FA, $10, $C2, $7F, $4F, $7C, $CD, $46, $20, $7C, $EA, $1B
-	db $C2, $7D, $EA, $14, $C2, $EA, $16, $C2, $C9, $00, $00, $00, $00, $00, $00, $00
-	ds $B6, $00
+SECTION "Uninterpreted 00:31C3-38AF", ROM0[$31C3]
+ResidualROM00_31C3::
+	ds $BD, $00
 	db $FE, $02, $EA, $88, $CB, $7D, $EA, $86, $CB, $7C, $EA, $87, $CB, $20, $0E, $EA
 	db $82, $CB, $7D, $EA, $81, $CB, $21, $83, $CB, $79, $22, $78, $77, $21, $22, $CA
 	db $CB, $F6, $21, $81, $CB, $2A, $66, $6F, $E5, $21, $81, $CB, $3E, $74, $22, $3E

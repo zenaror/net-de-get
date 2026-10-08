@@ -67,7 +67,8 @@ bank	start	end	symbol
 00	2DC3	2DCF	LocalCursorHorizontalJitter
 00	3031	30BB	ResidualROM00_3031
 00	30BC	3189	DrawSelectionText
-00	318A	38AF	ResidualROM00_318A
+00	318A	31C2	SetSelectionIndexFields
+00	31C3	38AF	ResidualROM00_31C3
 00	38B0	391B	CheckLocalMinigameChecksum
 00	391C	3CD7	ResidualROM00_391C
 00	3CD8	3CE7	BuiltinGameWindowBSelectors

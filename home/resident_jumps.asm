@@ -166,7 +166,7 @@ ResidentJump02AC::
 ResidentJump02AF::
 	jp $3F60
 ResidentJump02B2::
-	jp $318A
+	jp SetSelectionIndexFields
 ResidentJump02B5::
 	jp $3560
 ASSERT @ == $02B8
