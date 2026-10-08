@@ -1733,3 +1733,10 @@ Original positive phase-text chains increase from 6,144 to 18,432 by testing SYS
 The fixture executes 452,328 complete preparation/wrapper chains across 161 ordinary-to-ordinary transitions, including all nine phase wraps. Every counter from the measured threshold through 255 is combined with acceleration 0/1/255 and availability 0/1/40/255. Actual current FF/FE destination records are excluded. Primary/secondary readers, position copies and both OAM emitters execute unchanged.
 
 An independent model keeps the secondary read in the old phase, including frame zero on wrap, before the primary reader advances or resets into its lookahead phase. It checks registers/flags, both coordinate/selection sets, preserved steps, guards/mapping, all 1,024 shadow bytes and 3,414 immutable resource bytes. No-OAM expiry preserves C=0x37 from setup; the first failed oracle expectation of zero was corrected using the original code. The 3,618,624 added assertions establish synthetic contracts, not natural input, audio, IRQ timing, hardware OAM or admissibility of adversarial availability.
+
+
+### Original wrapper expiry through FF/FE effects
+
+The 11 measured ordinary-to-effect transitions execute 1,056 full preparation/wrapper chains, combining threshold/255 counters, acceleration 0/1/255, availability 0/1/40/255, both VBK values and LCD initially on/off. Counters are edge coverage, not the full byte Cartesian domain. Actual secondary tick, primary effects, original first tile copy and both OAM emitters run unchanged; audio installation uses the shared synthetic program. No callee return is injected.
+
+Independent models check full registers/flags, resource fields and guards/mapping, tile and audio state, all 1,024 shadow bytes and both complete VRAM planes. All 3,591 original paired/OAM/tile resource bytes remain immutable. FE-only cases preserve VRAM. The 10,560 assertions establish synthetic integration of these transitions; continued wrapper sequences, other variants, natural input, original audio, IRQ timing, visuals and hardware remain outside this evidence.

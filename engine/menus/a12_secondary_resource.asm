@@ -66,7 +66,7 @@ ReadA12SecondaryResource::
 	ld a, [$C5CE]
 	ld h, a
 	ld l, $04
-	call $5CFF
+	call MultiplyA12HLBytes
 	add hl, de
 	ld a, [hl]
 	cp a, $FF

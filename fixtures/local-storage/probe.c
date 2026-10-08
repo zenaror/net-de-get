@@ -529,6 +529,29 @@ static void probeOriginalA12Effects(struct mCore *c,unsigned phase,unsigned fram
  require(exact,"Original current FF first frame both whole VRAM planes exact original geometry payload FE-only unchanged",index);
 
 }
+static void probeOriginalA12WrapperEffectsExpiry(struct mCore *c,unsigned phase,unsigned frame,unsigned counter,unsigned accel,unsigned available,unsigned plane,unsigned lcd,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;const uint8_t *page=((struct GB*)c->board)->memory.rom+0x61*8192;struct OriginalA12Primary old=originalA12PrimaryModel(c,phase,frame);bool wrap=frame+1==old.count;unsigned nextPhase=wrap?old.nextIndex:phase,nextFrame=wrap?0:frame+1;
+ unsigned pos=old.base+4*(frame+1),tile=0,effects=0;bool hasTile=page[pos-0x6000]==255,hasAudio=false;
+ if(hasTile){tile=page[pos+2-0x6000]|page[pos+3-0x6000]<<8;pos+=4;effects++;}if(page[pos-0x6000]==254){hasAudio=true;pos+=4;effects++;}nextFrame+=effects;const uint8_t *h=page+tile-0x6000;unsigned area=hasTile?h[2]*h[3]:0;
+ struct OriginalA12Primary p=originalA12PrimaryModel(c,nextPhase,nextFrame);struct OriginalA12Secondary q=originalA12SecondaryModel(c,phase,wrap?0:frame+1);
+ probeOriginalA12Pair(c,phase,frame,counter,(counter&15)<<4,false,index);
+ prepareA12EffectAudio(c);for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++)wr(c,0x8000+i,0xA5);}wr(c,0xFF4F,plane);
+ for(unsigned a=0xC5E1;a<=0xC5E8;a++)wr(c,a,0x37);for(unsigned a=0xC5F7;a<=0xC5FC;a++)wr(c,a,0x37);wr(c,0xCF82,0x37);
+ wr(c,0xC73A,accel);for(unsigned i=0;i<1024;i++)wr(c,0xC000+i,0xA5);wr(c,0xC1C7,available);wr(c,0xC21C,0x61);wr(c,0xC21D,0);wr(c,0xC115,0x61);wr(c,0xC116,0);wr(c,0xC113,0x12);wr(c,0xC114,0);unsigned shadow[1024];for(unsigned i=0;i<1024;i++)shadow[i]=rd(c,0xC000+i);
+ struct OriginalOAMResult po=modelOriginalA12OAM(page,0x7203,p.index,available,p.x,p.y,shadow);unsigned remaining=available?(available-po.count)&255:0;struct OriginalOAMResult so=modelOriginalA12OAM(page,0x78EE,q.index,remaining,q.x,q.y,shadow);
+ unsigned next=accel?4:1,f=accel?0:0xA0;if(lcd)wr(c,0xFF40,0x91);callWithLimit(c,0x4A36,2000000);
+ bool exact=cpu->af==(accel<<8|f)&&cpu->bc==(remaining?so.lastX:available?po.lastX:hasTile?h[3]:0x37)&&cpu->de==(remaining?so.de:available?po.de:hasTile?tile+7:p.base)&&cpu->hl==0xC5CC&&rd(c,0xC5CC)==next&&rd(c,0xC5CB)==p.threshold&&rd(c,0xC5CD)==p.count&&rd(c,0xC5CE)==nextFrame&&rd(c,0xC5CF)==nextPhase&&rd(c,0xC5D0)==p.index&&rd(c,0xC5D1)==p.nextIndex&&rd(c,0xC5F6)==q.index;
+ exact&=rd(c,0xC5D7)==p.x&&rd(c,0xC5D8)==p.y&&rd(c,0xC5D5)==p.x&&rd(c,0xC5D6)==p.y&&rd(c,0xC5D9)==p.tx&&rd(c,0xC5DA)==p.ty&&rd(c,0xC5DD)==p.dx&&rd(c,0xC5DE)==p.dy&&rd(c,0xC5FD)==p.extra&&rd(c,0xC5EB)==q.x&&rd(c,0xC5EC)==q.y&&rd(c,0xC5E9)==q.x&&rd(c,0xC5EA)==q.y&&rd(c,0xC5ED)==q.tx&&rd(c,0xC5EE)==q.ty&&rd(c,0xC5F1)==q.dx&&rd(c,0xC5F2)==q.dy;
+ exact&=rd(c,0xC5DB)==0x37&&rd(c,0xC5DC)==0x39&&rd(c,0xC5DF)==0x3C&&rd(c,0xC5E0)==0x5A&&rd(c,0xC5EF)==0x39&&rd(c,0xC5F0)==0x3C&&rd(c,0xC5F3)==0x5A&&rd(c,0xC5F4)==0xA5&&rd(c,0xC5CA)==0x3C&&rd(c,0xC5F5)==remaining&&rd(c,0xC1C7)==available&&rd(c,0xC73A)==accel&&rd(c,0xC21C)==0x61&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==0x61&&rd(c,0xFFAE)==0&&rd(c,0xFF9D)==0x61&&rd(c,0xFF9E)==0&&rd(c,0xC115)==0x61&&rd(c,0xC116)==0;
+ require(exact,"Original effect expiry wrapper advanced frame real effects OAM exact registers fields guards",index);
+ exact=true;for(unsigned i=0;i<1024;i++)exact&=rd(c,0xC000+i)==shadow[i];exact&=!memcmp(page+0xBBD,originalPairedResources,sizeof(originalPairedResources))&&!memcmp(page+0x1203,originalOAMResources,sizeof(originalOAMResources));require(exact,"Original effect expiry whole shadow and immutable paired OAM resource bytes",index);
+ exact=(rd(c,0xFF4F)&1)==plane&&rd(c,0xCF82)==(hasAudio?0:0x37)&&rd(c,0xCF89)==(hasAudio?0x11:0);const unsigned fields[]={0xC5F9,0xC5FA,0xC5E2,0xC5E3,0xC5E6,0xC5E4,0xC5E8};for(unsigned i=0;i<7;i++)exact&=rd(c,fields[i])==(hasTile?h[i]:0x37);
+ exact&=rd(c,0xC5E1)==0x37&&rd(c,0xC5E5)==(hasTile?0:0x37)&&rd(c,0xC5E7)==(hasTile?0:0x37)&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==(hasTile?tile+7+2*(area&255):0x3737)&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==(hasTile?tile+7:0x3737);
+ for(unsigned i=0;i<128;i++){unsigned expected=0x5A;if(hasAudio&&i>=64&&i<80)expected=i==64?1:i==65?0xDD:i==68?8:0;exact&=rd(c,0xCF00+i)==expected;}
+ const unsigned tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};for(unsigned i=0;i<3;i++)exact&=!memcmp(page+tiles[i]-0x6000,originalEffectTiles[i],sizes[i]);require(exact,"Original effect expiry complete tile state synthetic audio mapper immutable177 bytes",index);
+ wr(c,0xFF40,0);exact=true;unsigned start=hasTile?0x1800+h[0]+32*h[1]:0;for(unsigned bank=0;bank<2;bank++){wr(c,0xFF4F,bank);for(unsigned i=0;i<8192;i++){bool changed=hasTile&&i>=start&&i<start+32*h[3]&&((i-start)%32)<h[2];unsigned expected=changed?h[7+bank*area+((i-start)/32)*h[2]+(i-start)%32]:0xA5;exact&=rd(c,0x8000+i)==expected;}}require(exact,"Original effect expiry both full VRAM planes first tile payload FE-only unchanged",index);
+
+}
 static void verifyOriginalA12TileTick(struct mCore *c,unsigned tile,unsigned counter,unsigned frame,unsigned delay,unsigned source,unsigned image,unsigned af,unsigned bc,unsigned de,unsigned hl,unsigned plane,bool ime,unsigned index){
  const unsigned tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};const uint8_t *rom=((struct GB*)c->board)->memory.rom,*h=rom+0x61*8192+tile-0x6000;struct SM83Core *cpu=((struct GB*)c->board)->cpu;
  const unsigned fields[]={0xC5F9,0xC5FA,0xC5E2,0xC5E3,0xC5E6,0xC5E8},offsets[]={0,1,2,3,4,6};bool exact=cpu->af==af&&cpu->bc==bc&&cpu->de==de&&cpu->hl==hl&&rd(c,0xC5E4)==delay&&rd(c,0xC5E5)==counter&&rd(c,0xC5E7)==frame&&(rd(c,0xC5F7)<<8|rd(c,0xC5F8))==source&&(rd(c,0xC5FB)<<8|rd(c,0xC5FC))==tile+7&&rd(c,0xC5E1)==0x37&&rd(c,0xC5E9)==0x39&&rd(c,0xC5F6)==0x3C&&rd(c,0xC5FD)==0x5A&&rd(c,0xC21C)==0x61&&rd(c,0xC21D)==0&&rd(c,0xFFAD)==0x61&&rd(c,0xC115)==0x61&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFF9D)==h[2]&&(rd(c,0xFF4F)&1)==plane&&((struct GB*)c->board)->memory.ime==ime;
@@ -4747,6 +4770,15 @@ int main(int argc,char **argv){
   transitions++;wraps+=wrap;for(unsigned counter=old.threshold;counter<256;counter++)for(unsigned a=0;a<3;a++)for(unsigned v=0;v<4;v++)probeOriginalA12WrapperExpiry(c,phase,frame,counter,accels[a],availability[v],sample++);
  }
  printf("Original expiry wrappers: %u complete chains; %u ordinary transitions including %u phase wraps\n",sample,transitions,wraps);
+ }
+ { /* Original ordinary-to-effect expiry transitions through full wrapper. */
+ const uint8_t *page=((struct GB*)c->board)->memory.rom+0x61*8192;const unsigned pointers[]={0x6BCF,0x6C34,0x6D5D,0x6D9A,0x6DDB,0x6E18,0x6E49,0x6E7E,0x6EAF},accels[]={0,1,255},availability[]={0,1,40,255},tiles[]={0x6800,0x6837,0x6A0F},sizes[]={55,55,67};unsigned sample=0,transitions=0;
+ memcpy(originalPairedResources,page+0xBBD,sizeof(originalPairedResources));memcpy(originalOAMResources,page+0x1203,sizeof(originalOAMResources));for(unsigned i=0;i<3;i++)memcpy(originalEffectTiles[i],page+tiles[i]-0x6000,sizes[i]);
+ for(unsigned phase=0;phase<9;phase++)for(unsigned frame=0;frame+1<page[pointers[phase]-0x6000];frame++){
+  if(page[pointers[phase]-0x6000+1+4*frame]>=254||page[pointers[phase]-0x6000+1+4*(frame+1)]<254)continue;struct OriginalA12Primary old=originalA12PrimaryModel(c,phase,frame);transitions++;
+  for(unsigned edge=0;edge<2;edge++)for(unsigned a=0;a<3;a++)for(unsigned v=0;v<4;v++)for(unsigned plane=0;plane<2;plane++)for(unsigned lcd=0;lcd<2;lcd++)probeOriginalA12WrapperEffectsExpiry(c,phase,frame,edge?255:old.threshold,accels[a],availability[v],plane,lcd,sample++);
+ }
+ printf("Original effect expiry wrappers: %u complete chains; %u ordinary-to-effect transitions\n",sample,transitions);
  }
  { /* Original phase input gates: all tails, state guards and invalid dispatch. */
  memcpy(originalPhaseInputCode,((struct GB*)c->board)->memory.rom+0x2459F,sizeof(originalPhaseInputCode));unsigned sample=0;
