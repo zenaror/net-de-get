@@ -1703,3 +1703,10 @@ The real `$4CFD` reset and `$50D8` secondary load prepare the first ordinary fra
 Availability 40 covers every acceleration byte. Acceleration 0/1/255 also covers availability 0/1/255 and exactly the primary count, including secondary zero after positive primary emission. There are 70,752 chains, 212,256 complete calls and 566,016 added assertions, for a total of 36,831,503. Independent models compare registers/flags, movement quotient/remainder, fields/guards/mapping, the entire 1,024-byte `$C000-$C3FF` shadow and 3,414 immutable original animation/OAM bytes. Counter-zero recurrence and coordinate-equality early returns are preserved.
 
 Initial shadow filling accidentally overwrote availability/request fields. Failing contracts identified it, and fixture preparation order was corrected. No original code was modified. Interpretation remains `PROBABLE`: first-frame movement only, without all transitions/effects, natural input/menu, DMA, original sound, IRQ timing or hardware.
+
+
+### A12 phase/input gates
+
+The original `$459F` entry and `$46F2` counter tail execute 1,278,848 complete calls. Tail coverage is Cartesian over every input/counter byte and 16 flags. Entry coverage includes every phase other than 1 with every input and varied counters/flags; each nonzero state/busy guard with every input; inputs without bit 0 with all flags; and invalid variants 3–255 with every bit-0 input, through the actual dispatcher and clear. Valid action variants remain separate.
+
+Independent models check AF/BC/DE/HL, input/counter saturation, state guards, mapping and all 368 immutable code bytes. No injected returns. Phase/counter entry coverage is not Cartesian; tail arithmetic is. There are 2,557,696 added assertions, totaling 39,389,199. Static extraction includes valid text setup and cap helpers, but does not claim their positive execution, natural UI, Japanese meaning, original sound, IRQ timing or hardware. Interpretation remains `PROBABLE`.

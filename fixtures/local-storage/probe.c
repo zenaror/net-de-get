@@ -542,6 +542,16 @@ static void probeOriginalA12TileTick(struct mCore *c,unsigned tile,unsigned stag
  else{outCounter=0;if(frame==0){frame=1;image=1;source=base+4*area;copy=true;de=base+2*area;}else{frame=0;if(h[6]){image=0;source=base+2*area;copy=true;de=base;}else delay=0;}if(copy){af=(source&255)<<8|0x80;bc=h[2]<<8|h[3];hl=source;}else{af=0x0080;bc=0x02EF;}}
  verifyOriginalA12TileTick(c,tile,outCounter,frame,delay,source,image,af,bc,de,hl,plane,copy,index);
 }
+static uint8_t originalPhaseInputCode[368];
+static void probeA12PhaseInputGate(struct mCore *c,unsigned entry,unsigned phase,unsigned state,unsigned busy,unsigned input,unsigned counter,unsigned variant,unsigned flags,unsigned index){
+ struct SM83Core *cpu=((struct GB*)c->board)->cpu;prepareA12EffectMapping(c,0x61);wr(c,0xC5CF,phase);wr(c,0xC600,state);wr(c,0xC601,busy);wr(c,0xFF97,input);wr(c,0xC739,counter);wr(c,0xC5A8,variant);wr(c,0xC602,0x37);wr(c,0xC214,0x39);wr(c,0xC738,0x3C);wr(c,0xC73A,0x5A);
+ unsigned af,next=counter,outInput=input;bool tail=entry==0x46F2||phase!=1;
+ if(tail){if(input&15){unsigned sum=counter+1;af=((sum&255)<<8)|((sum&255)?0:0x80)|((counter&15)==15?0x20:0)|(sum>255?0x10:0);next=counter==255?255:sum;}else af=(input<<8)|0xA0|(entry==0x46F2?(flags&0x10):(phase==0?0x10:0));}
+ else if(state)af=(state<<8)|0x40;else if(busy)af=(busy<<8)|0x40;else if(input&3){af=0x0080;outInput=0;}else af=(input<<8)|0xA0;
+ cpu->af=0x5A00|flags;cpu->bc=0xBEEF;cpu->de=0x1234;cpu->hl=0x5678;call(c,entry);
+ bool exact=cpu->af==af&&cpu->bc==0xBEEF&&cpu->de==0x1234&&cpu->hl==0x5678&&rd(c,0xC5CF)==phase&&rd(c,0xC600)==state&&rd(c,0xC601)==busy&&rd(c,0xFF97)==outInput&&rd(c,0xC739)==next&&rd(c,0xC5A8)==variant&&rd(c,0xC602)==0x37&&rd(c,0xC214)==0x39&&rd(c,0xC738)==0x3C&&rd(c,0xC73A)==0x5A&&rd(c,0xFFAB)==0x12&&rd(c,0xC113)==0x12&&rd(c,0xFFAD)==5&&rd(c,0xC115)==5&&!memcmp(((struct GB*)c->board)->memory.rom+0x2459F,originalPhaseInputCode,sizeof(originalPhaseInputCode));
+ require(exact,"A12 phase input complete guarded returns low-nibble counter saturation clear invalid variant flags mapper guards immutable368 code",index);
+}
 int main(int argc,char **argv){
  if(argc!=2)return 2;
  struct mCore *c=mCoreFind(argv[1]);if(!c||!c->init(c))return 3;
@@ -4689,6 +4699,15 @@ int main(int argc,char **argv){
   for(unsigned a=0;a<3;a++)probeOriginalA12Wrapper(c,phase,counter,accelerations[a],primaryCounts[phase],sample++);
  }
  printf("Original full variant0 wrappers: %u checked reset/load/movement/OAM/counter chains\n",sample);
+ }
+ { /* Original phase input gates: all tails, state guards and invalid dispatch. */
+ memcpy(originalPhaseInputCode,((struct GB*)c->board)->memory.rom+0x2459F,sizeof(originalPhaseInputCode));unsigned sample=0;
+ for(unsigned input=0;input<256;input++)for(unsigned counter=0;counter<256;counter++)for(unsigned flags=0;flags<16;flags++)probeA12PhaseInputGate(c,0x46F2,1,0,0,input,counter,0,flags<<4,sample++);
+ for(unsigned phase=0;phase<256;phase++)if(phase!=1)for(unsigned input=0;input<256;input++)probeA12PhaseInputGate(c,0x459F,phase,0x37,0x39,input,(phase*37+input*19)&255,0,(input&15)<<4,sample++);
+ for(unsigned state=1;state<256;state++)for(unsigned input=0;input<256;input++){probeA12PhaseInputGate(c,0x459F,1,state,0,input,0x37,0,(input&15)<<4,sample++);probeA12PhaseInputGate(c,0x459F,1,0,state,input,0x37,0,(input&15)<<4,sample++);}
+ for(unsigned input=0;input<256;input++)if(!(input&1))for(unsigned flags=0;flags<16;flags++)probeA12PhaseInputGate(c,0x459F,1,0,0,input,0x37,0,flags<<4,sample++);
+ for(unsigned variant=3;variant<256;variant++)for(unsigned input=1;input<256;input+=2)probeA12PhaseInputGate(c,0x459F,1,0,0,input,0x37,variant,(input&15)<<4,sample++);
+ printf("Original phase input: %u complete guarded/tail calls; valid action variants remain separate\n",sample);
  }
  printf("PASS SYNTHETIC storage probes: %u assertions; version=%s commit=%s\n",
         checks,projectVersion,gitCommit);

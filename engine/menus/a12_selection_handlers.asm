@@ -40,7 +40,7 @@ A12SelectionVariant0::
 	inc [hl]
 A12Handler_418F::
 	call UpdateA12TextModeController
-	call $459F
+	call UpdateA12PhaseInputGate
 	call UpdateA12InputMode
 	call ResidentJump0261
 	call TickA12Variant0ResourceWrapper
@@ -66,7 +66,7 @@ A12SelectionVariant1::
 	inc [hl]
 A12Handler_41BF::
 	call UpdateA12TextModeController
-	call $459F
+	call UpdateA12PhaseInputGate
 	call UpdateA12InputMode
 	call ResidentJump0261
 	call TickA12Variant1ResourceWrapper
@@ -92,7 +92,7 @@ A12SelectionVariant2::
 	inc [hl]
 A12Handler_41EF::
 	call UpdateA12TextModeController
-	call $459F
+	call UpdateA12PhaseInputGate
 	call UpdateA12InputMode
 	call ResidentJump0261
 	call TickA12Variant2ResourceWrapper
