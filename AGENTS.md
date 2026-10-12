@@ -9,6 +9,7 @@ Este repositório reúne a análise MBC6 e o disassembly incremental do Net de G
 - MBC6 usa janelas independentes de 8 KiB; não confunda seletores do mapper com bancos físicos de 16 KiB das ferramentas.
 - A organização do disassembly pode avançar além das rotinas MBC6. Implementação Mobile Adapter/REON e tradução permanecem fora do escopo. Preserve os bytes japoneses originais.
 - Commit e push somente quando o Operador pedir nesta conversa.
+- Não insira automaticamente trailers `Co-authored-by` de Claude/Anthropic nos commits. Preserve autores, coautores e créditos humanos legítimos.
 - Ao terminar, atualize a OMM no escopo `mgba` e deixe handoff com fatos, limites e próximos passos.
 
 ## Base OMM e particularidades

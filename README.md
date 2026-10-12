@@ -14,6 +14,10 @@ A montagem RGBDS produz `build/net-de-get.gbc`, com os 1048576 bytes e SHA-256 i
 - Hash da ROM externa: [`roms.sha256`](roms.sha256)
 - Ferramentas e ambiente: [`INSTALL.md`](INSTALL.md)
 
+## Assistência de IA
+
+Partes deste projeto foram desenvolvidas com assistência de ferramentas de IA, incluindo geração de código.
+
 ## Organização e montagem
 
 - `home/`: rotinas ROM0 residentes, incluindo os helpers MBC6.
