@@ -39,6 +39,27 @@ O layout RGBDS usa bancos físicos de 16 KiB. A rotina de títulos ocupa o iníc
 
 A rotina nova preserva o uso duplo de `$C5C5`: primeiro guarda o seletor B, depois recebe o Index do jogo, que é usado no final. Não foi corrigida a lógica da ROM. A cópia do título limita a leitura a `$18` bytes e termina a string; a semântica dos nomes permanece `PROBABLE`. As observações naturais específicas estão em [minigame-maintenance.md](docs/research/minigame-maintenance.md).
 
+### Cleanup e retenção de artefatos
+
+No fechamento de tarefas, checkpoints e pausas, aplique a regra global OMM `6b256ecb-03db-4417-be99-a6c5aa468f12`. Arquivo ignorado ou não rastreado não é automaticamente descartável. O Makefile não possui alvo `clean`; não remova recursivamente `build/`, `.workspace/` ou `/tmp/netdeget-*`, nem use `git clean -xfd`.
+
+| Categoria | Origem e reprodução | Retenção e condição de remoção |
+| --- | --- | --- |
+| Objetos `build/<fonte>.o`, imagens `build/excerpts.gb` e `build/net-de-get.gbc`, mapas/símbolos `build/excerpts.map` e `build/excerpts.sym` | RGBDS/Makefile, fontes e ferramentas versionados; reproduzíveis com `make` e os gates documentados | Remover somente arquivos identificados como produtos da própria tarefa, após terminar os processos e preservar o conjunto aceito necessário à conferência. Conservar mapas/símbolos ligados a um resultado ainda necessário até substituição verificada. |
+| Clones privados, logs, relatórios e casos negativos de verificadores/probes | Ferramentas em `tools/` e `fixtures/`; diretórios temporários registrados pelos runners | Antes da remoção, guardar em armazenamento durável fora de `/tmp` os casos relevantes, falhas não explicadas e o conjunto mínimo de relatórios, comandos, hashes e ambiente. Remover apenas duplicatas ou saídas comprovadamente reproduzíveis da tarefa; a OMM aponta para os artefatos, não os substitui. |
+| Fontes/fixtures versionados, evidências únicas, resultados aceitos, referências e arquivos do Operador | Conhecimento de retomada, ROM original externa, saves, observações de hardware/console, releases e backups/mapas de recuperação Git ainda necessários | Preservar. Não são alvos de cleanup automático; a referência original continua externa e somente leitura. Motivo e condição de descarte de uma exceção devem ser registrados explicitamente. |
+
+Inspeção inicial, sem exclusão:
+
+```sh
+git status --short --ignored
+rg --files --hidden --no-ignore build
+```
+
+A lista de inspeção não autoriza remoção. Confira cada caminho e eventuais links simbólicos, origem, sessão responsável e processos consumidores. Feche o checkpoint, preserve os artefatos necessários em destino durável e registre uma lista explícita de arquivos descartáveis; só então remova os arquivos aprovados individualmente, sem glob amplo ou seleção por idade. Nunca inclua saídas ativas ou de outra sessão. Registre no handoff o que foi removido, o que foi retido e onde, além das pendências de procedência; informe quantidade/tamanho quando disponíveis sem auditoria cara.
+
+Não há prazo universal: resultados necessários e falhas pendentes permanecem até resolução ou substituição conferida. Os logs históricos referenciados em `/tmp` e o `build/` preexistente exigem inventário e confirmação de retenção antes de qualquer cleanup; não se afirma que estejam arquivados só porque constam neste README. Esta política não autoriza exclusão retroativa em massa, novos testes ou retomada de desenvolvimento pausado.
+
 ### Trechos seguintes
 
 A tabela em `data/builtin_game_selectors.asm` ocupa ROM0 `$3CD8-$3CE7`: 16 seletores nativos, com `$FF` na última entrada. O papel dessa última entrada ainda não foi estabelecido.
