@@ -31,4 +31,6 @@ The original is read only for comparison, never as an assembly input or gap fill
 It rejects a changed literal byte and a deleted zero-filled page. The second
 image still has the original SHA-256 because linker padding matches, but lacks
 explicit source coverage and must fail. Scripts and contracts live in `tools/`;
-temporary logs are disposable evidence, not the only way to reproduce the checks.
+temporary logs are not permanent storage. Preserve accepted reports, relevant failures
+and unique evidence in durable storage before removing owned, reproducible outputs;
+follow the cleanup and retention policy in [README.md](README.md#cleanup-e-retenção-de-artefatos).

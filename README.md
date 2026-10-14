@@ -20,6 +20,17 @@ Partes deste projeto foram desenvolvidas com assistência de ferramentas de IA, 
 
 ## Organização e montagem
 
+Este projeto mantém somente [zenaror/net-de-get](https://github.com/zenaror/net-de-get). Os projetos mGBA, MBC6 Test ROM, Mobile Trainer e Maker são referências/frentes separadas, não subdiretórios a reorganizar aqui. A base comum OMM padroniza responsabilidades; os caminhos RGBDS existentes cumprem a função de `src/` sem exigir essa pasta.
+
+| Responsabilidade | Local canônico neste projeto |
+| --- | --- |
+| Instruções dos agentes e restrições locais | [AGENTS.md](AGENTS.md); papel `project-base` e regras compartilhadas na OMM, escopo `mgba` |
+| Apresentação, organização, estado e planejamento | Este README, seção "Plano e pendências"; handoff protegido na OMM para posição de retomada |
+| Documentação técnica e ambiente | [INSTALL.md](INSTALL.md), [docs/ROM_INFO.md](docs/ROM_INFO.md), [docs/research/](docs/research/) e contratos dos fixtures |
+| Código e dados RGBDS | [home/](home/), [engine/](engine/), [data/](data/), [constants/](constants/), [ram/](ram/) e [includes.asm](includes.asm), preservados na raiz |
+| Montagem, gates e ferramentas reproduzíveis | [Makefile](Makefile), [tools/](tools/), [fixtures/](fixtures/), [config/excerpts.tsv](config/excerpts.tsv) e [roms.sha256](roms.sha256) |
+| Saídas geradas e retenção | `build/` ignorado; seção "Cleanup e retenção de artefatos" deste README; referências únicas externas preservadas |
+
 - `home/`: rotinas ROM0 residentes, incluindo os helpers MBC6.
 - `engine/`: seleção, catálogo e menus; `engine/menus/local_titles.asm` cobre a lista de títulos em A `$14:$4D43-$4E27`.
 - `data/`: tabelas extraídas; nenhum título japonês foi traduzido.

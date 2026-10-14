@@ -14,6 +14,11 @@ Este repositório reúne a análise MBC6 e o disassembly incremental do Net de G
 
 ## Base OMM e particularidades
 
+Consulte o papel `project-base` com `get_role` na retomada; a base comum é a
+regra `e5a27e0e-7b46-455f-a84e-60925116bad9`. O mapa de responsabilidades
+está em "Organização e montagem" do README; não crie uma árvore `src/`
+paralela nem cópias locais das regras/skills compartilhadas.
+
 Use as regras globais vigentes da OMM como base, em especial a anotação
 `ed20994e-1d65-4adb-9637-08af5aa71364` (projeto, proveniência e handoff) e
 `27191077-0bb4-4450-b8b0-d8ef352e33b3` (delegação proporcional). Consulte memória
