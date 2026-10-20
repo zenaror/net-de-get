@@ -8,7 +8,7 @@ LocalMinigameMenuEntry::
 	ld a, $01
 	ldh [rSVBK], a
 	xor a, a
-	call $0168
+	call ResidentJump0168
 	call ClearFlashSoftwareFlag
 	call ResidentJump0279
 	ldh a, [hHeldButtons]

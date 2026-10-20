@@ -134,7 +134,7 @@ A12Selection_40B7::
 	call ResidentJump0294
 	di
 	ld a, $3F
-	call $0168
+	call ResidentJump0168
 	ld de, UpdateA12SelectionDMAAndPalettes
 	call StoreRuntimeCallback0
 	ld de, A12SelectionInterruptReturnOnly
@@ -152,7 +152,7 @@ CleanupA12Selection::
 	call ResidentJump028B
 	di
 	xor a, a
-	call $0168
+	call ResidentJump0168
 	ld de, $0000
 	call SetRuntimeInterruptStub0
 	call StoreRuntimeCallback0

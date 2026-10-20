@@ -21,7 +21,7 @@ InitializeBankA16::
 	ldh [$FF26], a
 	ld a, $07
 	ldh [$FF4B], a
-	call $016B
+	call ResidentJump016B
 	call ResidentJump0270
 	call ResidentJump0282
 	call ResidentJump0279
@@ -238,7 +238,7 @@ InitializeDMGFallback::
 	ld de, $4B91
 	call $0150
 	ei
-	call $016B
+	call ResidentJump016B
 .at41DE:
 	halt
 	nop
