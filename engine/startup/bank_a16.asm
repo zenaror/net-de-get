@@ -6,7 +6,7 @@ InitializeBankA16::
 	xor a, a
 	ldh [$FF0F], a
 	ldh [$FFFF], a
-	call $018F
+	call ResidentJump018F
 	ld a, $03
 	ldh [$FFFF], a
 	ldh a, [$FF9C]

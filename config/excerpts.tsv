@@ -6,7 +6,7 @@ bank	start	end	symbol
 00	0171	0176	UploadBackgroundPaletteEntry
 00	0177	017F	StartColorSubtractTransition
 00	018C	018E	UploadPendingCGBPalettes
-00	018F	0197	ResidualROM00_018F
+00	018F	0197	ResidentOAMJumpTable
 00	019B	019D	ResidualROM00_019B
 00	019E	01A3	CopyBankedVRAMBytes
 00	01A4	01A6	CopyTwoPlaneTilemap
