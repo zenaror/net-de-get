@@ -23,8 +23,8 @@ ASSERT @ == $4267
 
 SECTION "A12 graphics dispatch targets 4267-426E", ROMX[$4267], BANK[$09]
 A12VariantGraphicsTargets::
-	dw $426F
-	dw $42CE
-	dw $432A
-	dw $4386
+	dw PrepareA12VariantGraphics0
+	dw PrepareA12VariantGraphics1
+	dw PrepareA12VariantGraphics2
+	dw PrepareA12VariantGraphics3
 ASSERT @ == $426F

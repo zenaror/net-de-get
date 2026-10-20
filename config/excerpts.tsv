@@ -115,7 +115,11 @@ bank	start	end	symbol
 09	4239	4250	UpdateA12SelectionDMAAndPalettes
 09	4251	4266	DispatchA12VariantGraphics
 09	4267	426E	A12VariantGraphicsTargets
-09	426F	459E	ResidualROM09_426F
+09	426F	42CD	PrepareA12VariantGraphics0
+09	42CE	4329	PrepareA12VariantGraphics1
+09	432A	4385	PrepareA12VariantGraphics2
+09	4386	43BF	PrepareA12VariantGraphics3
+09	43C0	459E	ResidualROM09_43C0
 09	459F	45C6	UpdateA12PhaseInputGate
 09	45C7	45D9	DispatchA12PhaseInputVariant
 09	45DA	4640	PrepareA12PhaseInputVariant0
