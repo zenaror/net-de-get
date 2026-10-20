@@ -25,7 +25,8 @@ bank	start	end	symbol
 00	0995	09EA	UploadPendingCGBPalettesBody
 00	09EB	09F8	InstallOAMDMARoutine
 00	09F9	0A02	OAMDMATemplate
-00	0A03	0A4F	ResidualROM00_0A03
+00	0A03	0A0D	Clear256BytesDescendingFromFEFF
+00	0A0E	0A4F	ClearBothVRAMBanks
 00	0A50	0A67	CopyVRAMBytesBody
 00	0A68	0AE3	CopyBankedVRAMBytesBody
 00	0AE4	0B14	CopyTilemapPlaneBody
