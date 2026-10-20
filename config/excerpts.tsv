@@ -149,7 +149,11 @@ bank	start	end	symbol
 09	453A	4543	A12Variant2ResourceInitIndex4
 09	4544	454D	A12Variant2ResourceInitIndex5
 09	454E	455D	A12Variant2ResourceInitIndex6
-09	455E	459E	ResidualROM09_455E
+09	455E	4583	A12Variant3ResourceInitDispatch
+09	4584	4589	A12Variant3ResourceInitTargets
+09	458A	4590	A12Variant3ResourceInitIndex0
+09	4591	4597	A12Variant3ResourceInitIndex1
+09	4598	459E	A12Variant3ResourceInitIndex2
 09	459F	45C6	UpdateA12PhaseInputGate
 09	45C7	45D9	DispatchA12PhaseInputVariant
 09	45DA	4640	PrepareA12PhaseInputVariant0
