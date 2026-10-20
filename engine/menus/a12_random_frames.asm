@@ -52,7 +52,7 @@ TryA12Variant1TileFrames::
 	ld a, [$C5CF]
 	cp a, $01
 	ret nz
-	ld a, [$C5E4]
+	ld a, [wA12FrameDelay]
 	cp a, $00
 	ret nz
 	call StepA12RandomState

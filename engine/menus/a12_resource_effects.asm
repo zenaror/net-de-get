@@ -5,41 +5,41 @@ ApplyA12ResourceTileEffect::
 	ld a, [hli]
 	ld a, [hli]
 	ld a, [hli]
-	ld [$C5F8], a
+	ld [wA12FrameSourceLow], a
 	ld a, [hli]
-	ld [$C5F7], a
+	ld [wA12FrameSourceHigh], a
 	push hl
-	ld a, [$C5F7]
+	ld a, [wA12FrameSourceHigh]
 	ld h, a
-	ld a, [$C5F8]
+	ld a, [wA12FrameSourceLow]
 	ld l, a
 	ld a, [hli]
-	ld [$C5F9], a
+	ld [wA12TilemapColumn], a
 	ld a, [hli]
-	ld [$C5FA], a
+	ld [wA12TilemapRow], a
 	ld a, [hli]
-	ld [$C5E2], a
+	ld [wA12FrameWidth], a
 	ld a, [hli]
-	ld [$C5E3], a
+	ld [wA12FrameHeight], a
 	ld a, [hli]
-	ld [$C5E6], a
+	ld [wA12FrameCount], a
 	ld a, [hli]
-	ld [$C5E4], a
+	ld [wA12FrameDelay], a
 	ld a, [hli]
-	ld [$C5E8], a
+	ld [wA12FrameLoop], a
 	ld a, h
-	ld [$C5F7], a
-	ld [$C5FB], a
+	ld [wA12FrameSourceHigh], a
+	ld [wA12FrameSourceStartHigh], a
 	ld a, l
-	ld [$C5F8], a
-	ld [$C5FC], a
+	ld [wA12FrameSourceLow], a
+	ld [wA12FrameSourceStartLow], a
 	call $4FFF
 	ld a, [$C5CE]
 	inc a
 	ld [$C5CE], a
 	xor a, a
-	ld [$C5E5], a
-	ld [$C5E7], a
+	ld [wA12FrameDelayAccumulator], a
+	ld [wA12FrameIndex], a
 	pop hl
 	ret
 ASSERT @ == $4FFF

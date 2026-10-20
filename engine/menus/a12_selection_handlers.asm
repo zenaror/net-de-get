@@ -30,7 +30,7 @@ A12SelectionVariant0::
 	ld a, $00
 	ld [$C21D], a
 	call TickA12TileFrame
-	ld hl, $C5E5
+	ld hl, wA12FrameDelayAccumulator
 	inc [hl]
 	ld a, [$C73A]
 	and a, a
@@ -56,7 +56,7 @@ A12SelectionVariant1::
 	ld [$C21D], a
 	call TickA12TileFrame
 	call TryA12Variant1TileFrames
-	ld hl, $C5E5
+	ld hl, wA12FrameDelayAccumulator
 	inc [hl]
 	ld a, [$C73A]
 	and a, a
@@ -82,7 +82,7 @@ A12SelectionVariant2::
 	ld [$C21D], a
 	call TickA12TileFrame
 	call CycleA12Variant2TilePairs
-	ld hl, $C5E5
+	ld hl, wA12FrameDelayAccumulator
 	inc [hl]
 	ld a, [$C73A]
 	and a, a
@@ -107,7 +107,7 @@ A12SelectionVariant3::
 	ld a, $00
 	ld [$C21D], a
 	call TickA12TileFrame
-	ld hl, $C5E5
+	ld hl, wA12FrameDelayAccumulator
 	inc [hl]
 	call ResidentJump0261
 	call TickA12Variant3ResourceWrapper

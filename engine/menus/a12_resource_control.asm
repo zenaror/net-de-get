@@ -14,10 +14,10 @@ ASSERT @ == $4D0B
 SECTION "A12 resource control 4D0B-4D25", ROMX[$4D0B], BANK[$09]
 ResetA12ResourceAndTileFrames::
 	xor a, a
-	ld [$C5E5], a
-	ld [$C5E7], a
-	ld [$C5E6], a
-	ld [$C5E4], a
+	ld [wA12FrameDelayAccumulator], a
+	ld [wA12FrameIndex], a
+	ld [wA12FrameCount], a
+	ld [wA12FrameDelay], a
 	xor a, a
 	ld [$C5CC], a
 	ld [$C5CE], a
