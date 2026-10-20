@@ -11,7 +11,7 @@ PrepareA12VariantGraphics0::
 	ld a, $00
 	ldh [$FF4F], a
 	ld hl, $6000
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $60
 	ld [$C21C], a
 	ld a, $00
@@ -19,7 +19,7 @@ PrepareA12VariantGraphics0::
 	ld a, $01
 	ldh [$FF4F], a
 	ld hl, $7481
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $61
 	ld [$C21C], a
 	ld a, $00
@@ -52,7 +52,7 @@ PrepareA12VariantGraphics1::
 	ld a, $00
 	ldh [$FF4F], a
 	ld hl, $6000
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $67
 	ld [$C21C], a
 	ld a, $00
@@ -60,7 +60,7 @@ PrepareA12VariantGraphics1::
 	ld a, $01
 	ldh [$FF4F], a
 	ld hl, $6000
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $63
 	ld [$C21C], a
 	ld a, $00
@@ -92,7 +92,7 @@ PrepareA12VariantGraphics2::
 	ld a, $00
 	ldh [$FF4F], a
 	ld hl, $6000
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $64
 	ld [$C21C], a
 	ld a, $00
@@ -100,7 +100,7 @@ PrepareA12VariantGraphics2::
 	ld a, $01
 	ldh [$FF4F], a
 	ld hl, $7515
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $65
 	ld [$C21C], a
 	ld a, $00
@@ -133,7 +133,7 @@ PrepareA12VariantGraphics3::
 	ld a, $00
 	ldh [$FF4F], a
 	ld hl, $6000
-	call $5F43
+	call LoadA12GraphicsResourceToVRAM
 	ld a, $66
 	ld [$C21C], a
 	ld a, $00

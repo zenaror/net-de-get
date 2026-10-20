@@ -212,7 +212,11 @@ bank	start	end	symbol
 09	5CA4	5CD0	ApplyA12PendingAction2
 09	5CD1	5CFE	ApplyA12PendingAction3
 09	5CFF	5D10	MultiplyA12HLBytes
-09	5D11	5FFF	ResidualROM09_5D11
+09	5D11	5F42	ResidualROM09_5D11
+09	5F43	5F9E	LoadA12GraphicsResourceToVRAM
+09	5F9F	5FAF	CopyA12GraphicsResourcePasses
+09	5FB0	5FEC	CopyA12GraphicsResourceStream
+09	5FED	5FFF	ResidualROM09_5FED
 09	6000	7FFF	ResidualROM09_6000
 0A	4000	4029	LocalMinigameMenuEntry
 0A	402A	406B	LocalMinigameMenuLoop
