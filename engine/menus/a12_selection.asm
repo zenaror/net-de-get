@@ -61,7 +61,7 @@ A12Selection_403B::
 	ld a, $1E
 	ld [$C5C2], a
 	call DispatchA12VariantGraphics
-	call $43C0
+	call InitializeA12ResourceVariantDispatcher
 	xor a, a
 	ld [$C5A9], a
 	ld [$C1BC], a
