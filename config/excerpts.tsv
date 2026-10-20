@@ -246,7 +246,10 @@ bank	start	end	symbol
 09	5CA4	5CD0	ApplyA12PendingAction2
 09	5CD1	5CFE	ApplyA12PendingAction3
 09	5CFF	5D10	MultiplyA12HLBytes
-09	5D11	5D5B	ResidualROM09_5D11
+09	5D11	5D17	ResidualROM09_5D11
+09	5D18	5D43	WriteAAsThreeDecimalDigits
+09	5D44	5D4F	WaitForSTATBit1ClearAndWriteAToHL
+09	5D50	5D5B	WaitForSTATBit1ClearAndWriteAToDE
 09	5D5C	5D73	CopyBCBytesToDEWithSTATWait
 09	5D74	5D7C	CopyCountedBytesFromHLToDE
 09	5D7D	5D8E	Fill40FourBytePatternsAtC000
