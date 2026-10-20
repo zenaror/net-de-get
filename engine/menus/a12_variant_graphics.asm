@@ -25,7 +25,7 @@ PrepareA12VariantGraphics0::
 	ld a, $00
 	ld [$C21D], a
 	ld hl, $6000
-	call $5E1D
+	call CopyA12ResourceToVRAMMap
 	ld a, $61
 	ld [$C21C], a
 	ld a, $00
@@ -66,7 +66,7 @@ PrepareA12VariantGraphics1::
 	ld a, $00
 	ld [$C21D], a
 	ld hl, $6000
-	call $5E1D
+	call CopyA12ResourceToVRAMMap
 	ld a, $63
 	ld [$C21C], a
 	ld a, $00
@@ -106,7 +106,7 @@ PrepareA12VariantGraphics2::
 	ld a, $00
 	ld [$C21D], a
 	ld hl, $6000
-	call $5E1D
+	call CopyA12ResourceToVRAMMap
 	ld a, $65
 	ld [$C21C], a
 	ld a, $00

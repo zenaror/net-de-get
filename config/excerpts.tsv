@@ -212,7 +212,12 @@ bank	start	end	symbol
 09	5CA4	5CD0	ApplyA12PendingAction2
 09	5CD1	5CFE	ApplyA12PendingAction3
 09	5CFF	5D10	MultiplyA12HLBytes
-09	5D11	5F42	ResidualROM09_5D11
+09	5D11	5D5B	ResidualROM09_5D11
+09	5D5C	5D73	CopyBCBytesToDEWithSTATWait
+09	5D74	5E1C	ResidualROM09_5D74
+09	5E1D	5E78	CopyA12ResourceToVRAMMap
+09	5E79	5E97	CopyA12ResourceToBothVRAMBanks
+09	5E98	5F42	ResidualROM09_5E98
 09	5F43	5F9E	LoadA12GraphicsResourceToVRAM
 09	5F9F	5FAF	CopyA12GraphicsResourcePasses
 09	5FB0	5FEC	CopyA12GraphicsResourceStream
