@@ -23,5 +23,5 @@ ASSERT @ == $43D6
 
 SECTION "A12 resource init dispatch targets 43D6-43DD", ROMX[$43D6], BANK[$09]
 A12ResourceVariantInitTargets::
-	dw $43DE, $445E, $44D2, $455E
+	dw A12Variant0ResourceInitDispatch, $445E, $44D2, $455E
 ASSERT @ == $43DE
