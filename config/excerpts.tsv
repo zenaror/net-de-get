@@ -140,7 +140,16 @@ bank	start	end	symbol
 09	44AE	44B7	A12Variant1ResourceInitIndex4
 09	44B8	44C1	A12Variant1ResourceInitIndex5
 09	44C2	44D1	A12Variant1ResourceInitIndex6
-09	44D2	459E	ResidualROM09_44D2
+09	44D2	44F1	A12Variant2ResourceInitDispatch
+09	44F2	44FF	A12Variant2ResourceInitTargets
+09	4500	4500	A12Variant2ResourceInitIndex0
+09	4501	450D	A12Variant2ResourceInitIndex1
+09	450E	4517	A12Variant2ResourceInitIndex2
+09	4518	4539	A12Variant2ResourceInitIndex3
+09	453A	4543	A12Variant2ResourceInitIndex4
+09	4544	454D	A12Variant2ResourceInitIndex5
+09	454E	455D	A12Variant2ResourceInitIndex6
+09	455E	459E	ResidualROM09_455E
 09	459F	45C6	UpdateA12PhaseInputGate
 09	45C7	45D9	DispatchA12PhaseInputVariant
 09	45DA	4640	PrepareA12PhaseInputVariant0
