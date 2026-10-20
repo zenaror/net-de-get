@@ -220,7 +220,7 @@ InitializeDMGFallback::
 	ld hl, $6000
 	ld de, $8800
 	ld bc, $0A70
-	call $0198
+	call CopyVRAMBytes
 	ld c, $00
 	ld b, $00
 	call ResidentJump0219
@@ -233,7 +233,7 @@ InitializeDMGFallback::
 	pop de
 	ld b, $14
 	ld c, $12
-	call $01A4
+	call CopyTwoPlaneTilemap
 	di
 	ld de, $4B91
 	call $0150

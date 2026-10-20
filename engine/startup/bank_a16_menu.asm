@@ -52,7 +52,7 @@ InitializeA16MenuDisplay::
 	ld hl, $4E7A
 	ld de, $8800
 	ld bc, $0050
-	call $0198
+	call CopyVRAMBytes
 	call FillA16MenuBackgroundPlanes
 	ld a, $04
 	ld hl, $4EDA
